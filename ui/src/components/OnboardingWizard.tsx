@@ -206,6 +206,8 @@ export function OnboardingWizard() {
       ? "codex"
       : adapterType === "gemini_local"
         ? "gemini"
+      : adapterType === "pi_local"
+      ? "pi"
       : adapterType === "cursor"
       ? "agent"
       : adapterType === "opencode_local"
