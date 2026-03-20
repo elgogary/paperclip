@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
 import {
   agents,
@@ -19,7 +19,7 @@ import {
   projectWorkspaces,
   projects,
 } from "@paperclipai/db";
-import { extractAgentMentionIds, extractProjectMentionIds } from "@paperclipai/shared";
+import { extractProjectMentionIds } from "@paperclipai/shared";
 import { conflict, notFound, unprocessable } from "../errors.js";
 import {
   defaultIssueExecutionWorkspaceSettingsForProject,
@@ -68,9 +68,6 @@ export interface IssueFilters {
   projectId?: string;
   parentId?: string;
   labelId?: string;
-  originKind?: string;
-  originId?: string;
-  includeRoutineExecutions?: boolean;
   q?: string;
 }
 
@@ -99,6 +96,13 @@ type IssueUserContextInput = {
   createdAt: Date | string;
   updatedAt: Date | string;
 };
+
+function redactIssueComment<T extends { body: string }>(comment: T): T {
+  return {
+    ...comment,
+    body: redactCurrentUserText(comment.body),
+  };
+}
 
 function sameRunLock(checkoutRunId: string | null, actorRunId: string | null) {
   if (actorRunId) return checkoutRunId === actorRunId;
@@ -190,6 +194,13 @@ function unreadForUserCondition(companyId: string, userId: string) {
       )
     )
   `;
+}
+
+const HTML_ENTITY_IN_MENTION = /&#x[0-9a-fA-F]+;|&#[0-9]+;|&[a-z]+;/gi;
+
+/** Strips common HTML entities from a raw @mention capture so UI-encoded bodies still match agent names. */
+export function normalizeAgentMentionToken(raw: string): string {
+  return raw.replace(HTML_ENTITY_IN_MENTION, "").trim();
 }
 
 export function deriveIssueUserContext(
@@ -315,13 +326,6 @@ function withActiveRuns(
 
 export function issueService(db: Db) {
   const instanceSettings = instanceSettingsService(db);
-
-  function redactIssueComment<T extends { body: string }>(comment: T, censorUsernameInLogs: boolean): T {
-    return {
-      ...comment,
-      body: redactCurrentUserText(comment.body, { enabled: censorUsernameInLogs }),
-    };
-  }
 
   async function assertAssignableAgent(companyId: string, agentId: string) {
     const assignee = await db
@@ -519,8 +523,6 @@ export function issueService(db: Db) {
       }
       if (filters?.projectId) conditions.push(eq(issues.projectId, filters.projectId));
       if (filters?.parentId) conditions.push(eq(issues.parentId, filters.parentId));
-      if (filters?.originKind) conditions.push(eq(issues.originKind, filters.originKind));
-      if (filters?.originId) conditions.push(eq(issues.originId, filters.originId));
       if (filters?.labelId) {
         const labeledIssueIds = await db
           .select({ issueId: issueLabels.issueId })
@@ -538,9 +540,6 @@ export function issueService(db: Db) {
             commentContainsMatch,
           )!,
         );
-      }
-      if (!filters?.includeRoutineExecutions && !filters?.originKind && !filters?.originId) {
-        conditions.push(ne(issues.originKind, "routine_execution"));
       }
       conditions.push(isNull(issues.hiddenAt));
 
@@ -623,7 +622,6 @@ export function issueService(db: Db) {
         eq(issues.companyId, companyId),
         isNull(issues.hiddenAt),
         unreadForUserCondition(companyId, userId),
-        ne(issues.originKind, "routine_execution"),
       ];
       if (status) {
         const statuses = status.split(",").map((s) => s.trim()).filter(Boolean);
@@ -762,7 +760,6 @@ export function issueService(db: Db) {
 
         const values = {
           ...issueData,
-          originKind: issueData.originKind ?? "manual",
           goalId: resolveIssueGoalId({
             projectId: issueData.projectId,
             goalId: issueData.goalId,
@@ -1225,8 +1222,7 @@ export function issueService(db: Db) {
         );
 
       const comments = limit ? await query.limit(limit) : await query;
-      const { censorUsernameInLogs } = await instanceSettings.getGeneral();
-      return comments.map((comment) => redactIssueComment(comment, censorUsernameInLogs));
+      return comments.map(redactIssueComment);
     },
 
     getCommentCursor: async (issueId: string) => {
@@ -1258,15 +1254,14 @@ export function issueService(db: Db) {
     },
 
     getComment: (commentId: string) =>
-      instanceSettings.getGeneral().then(({ censorUsernameInLogs }) =>
-        db
+      db
         .select()
         .from(issueComments)
         .where(eq(issueComments.id, commentId))
         .then((rows) => {
           const comment = rows[0] ?? null;
-          return comment ? redactIssueComment(comment, censorUsernameInLogs) : null;
-        })),
+          return comment ? redactIssueComment(comment) : null;
+        }),
 
     addComment: async (issueId: string, body: string, actor: { agentId?: string; userId?: string }) => {
       const issue = await db
@@ -1277,10 +1272,7 @@ export function issueService(db: Db) {
 
       if (!issue) throw notFound("Issue not found");
 
-      const currentUserRedactionOptions = {
-        enabled: (await instanceSettings.getGeneral()).censorUsernameInLogs,
-      };
-      const redactedBody = redactCurrentUserText(body, currentUserRedactionOptions);
+      const redactedBody = redactCurrentUserText(body);
       const [comment] = await db
         .insert(issueComments)
         .values({
@@ -1298,7 +1290,7 @@ export function issueService(db: Db) {
         .set({ updatedAt: new Date() })
         .where(eq(issues.id, issueId));
 
-      return redactIssueComment(comment, currentUserRedactionOptions.enabled);
+      return redactIssueComment(comment);
     },
 
     createAttachment: async (input: {
@@ -1461,20 +1453,14 @@ export function issueService(db: Db) {
       const re = /\B@([^\s@,!?.]+)/g;
       const tokens = new Set<string>();
       let m: RegExpExecArray | null;
-      while ((m = re.exec(body)) !== null) tokens.add(m[1].toLowerCase());
-
-      const explicitAgentMentionIds = extractAgentMentionIds(body);
-      if (tokens.size === 0 && explicitAgentMentionIds.length === 0) return [];
-
+      while ((m = re.exec(body)) !== null) {
+        const normalized = normalizeAgentMentionToken(m[1]);
+        if (normalized) tokens.add(normalized.toLowerCase());
+      }
+      if (tokens.size === 0) return [];
       const rows = await db.select({ id: agents.id, name: agents.name })
         .from(agents).where(eq(agents.companyId, companyId));
-      const resolved = new Set<string>(explicitAgentMentionIds);
-      for (const agent of rows) {
-        if (tokens.has(agent.name.toLowerCase())) {
-          resolved.add(agent.id);
-        }
-      }
-      return [...resolved];
+      return rows.filter(a => tokens.has(a.name.toLowerCase())).map(a => a.id);
     },
 
     findMentionedProjectIds: async (issueId: string) => {
