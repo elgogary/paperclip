@@ -1,25 +1,25 @@
 /**
  * Paperclip Runtime Adapter for assistant-ui
  *
- * Maps Paperclip's issue comments + heartbeat runs to assistant-ui's
- * message model. Zero new backend endpoints — uses existing APIs.
+ * Uses React Query (auto-invalidated by LiveUpdatesProvider WebSocket)
+ * instead of manual polling. Falls back to 5s refetchInterval.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo } from "react";
 import type { ThreadMessageLike } from "@assistant-ui/react";
-import {
-  useExternalStoreRuntime,
-  useExternalMessageConverter,
-} from "@assistant-ui/react";
+import { useExternalStoreRuntime } from "@assistant-ui/react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { issuesApi } from "../../api/issues";
 import { heartbeatsApi } from "../../api/heartbeats";
 import { agentsApi } from "../../api/agents";
-import type { IssueComment, HeartbeatRunEvent } from "@paperclipai/shared";
+import { queryKeys } from "../../lib/queryKeys";
+import type { IssueComment } from "@paperclipai/shared";
 
 function commentToThreadMessage(
   comment: IssueComment,
   currentUserId: string | null,
 ): ThreadMessageLike {
-  const isUser = comment.authorUserId != null && comment.authorUserId === currentUserId;
+  const isUser =
+    comment.authorUserId != null && comment.authorUserId === currentUserId;
   return {
     id: comment.id,
     role: isUser ? "user" : "assistant",
@@ -40,101 +40,41 @@ export function usePaperclipChat({
   agentId,
   currentUserId,
 }: UsePaperclipChatOptions) {
-  const [comments, setComments] = useState<IssueComment[]>([]);
-  const [isRunning, setIsRunning] = useState(false);
-  const [streamingText, setStreamingText] = useState("");
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const queryClient = useQueryClient();
 
-  const loadComments = useCallback(async () => {
-    if (!issueId) return;
-    try {
-      const result = await issuesApi.listComments(issueId);
-      setComments(result);
-    } catch {
-      // silently fail
-    }
-  }, [issueId]);
+  const { data: comments = [] } = useQuery({
+    queryKey: queryKeys.issues.comments(issueId),
+    queryFn: () => issuesApi.listComments(issueId),
+    enabled: !!issueId,
+    refetchInterval: 5000,
+  });
 
-  const pollActiveRun = useCallback(async () => {
-    if (!issueId) return;
-    try {
-      const activeRun = await heartbeatsApi.activeRunForIssue(issueId);
-      if (activeRun && (activeRun.status === "running" || activeRun.status === "queued")) {
-        setIsRunning(true);
-        const events = await heartbeatsApi.events(activeRun.id);
-        const assistantTexts = events
-          .filter((e) => {
-            const p = e.payload as Record<string, unknown> | null;
-            return p?.type === "assistant" || p?.subtype === "assistant_text";
-          })
-          .map((e) => {
-            const p = e.payload as Record<string, unknown> | null;
-            const content = p?.content ?? p?.text ?? "";
-            return typeof content === "string" ? content : JSON.stringify(content);
-          });
-        if (assistantTexts.length > 0) {
-          setStreamingText(assistantTexts[assistantTexts.length - 1]);
-        }
-      } else {
-        if (isRunning) {
-          setIsRunning(false);
-          setStreamingText("");
-          await loadComments();
-        }
-      }
-    } catch {
-      // silently fail
-    }
-  }, [issueId, isRunning, loadComments]);
+  const { data: activeRun } = useQuery({
+    queryKey: queryKeys.issues.activeRun(issueId),
+    queryFn: () => heartbeatsApi.activeRunForIssue(issueId),
+    enabled: !!issueId,
+    refetchInterval: 5000,
+  });
 
-  useEffect(() => {
-    loadComments();
-  }, [loadComments]);
+  const isRunning =
+    activeRun?.status === "running" || activeRun?.status === "queued";
 
-  useEffect(() => {
-    if (isRunning) {
-      pollRef.current = setInterval(pollActiveRun, 2000);
-    }
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, [isRunning, pollActiveRun]);
-
-  // Convert comments to ThreadMessageLike
   const threadMessages = useMemo((): ThreadMessageLike[] => {
-    const msgs = comments.map((c) => commentToThreadMessage(c, currentUserId));
-    if (isRunning && streamingText) {
-      msgs.push({
-        id: "streaming",
-        role: "assistant",
-        content: [{ type: "text", text: streamingText }],
-      });
-    }
-    return msgs;
-  }, [comments, currentUserId, isRunning, streamingText]);
+    return comments.map((c) => commentToThreadMessage(c, currentUserId));
+  }, [comments, currentUserId]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onNew = useCallback(
-    async (message: any) => {
-      const textPart = message.content.find((p: { type: string; text?: string }) => p.type === "text" && p.text);
+    async (message: { content: { type: string; text?: string }[] }) => {
+      const textPart = message.content.find(
+        (p) => p.type === "text" && p.text,
+      );
       if (!textPart?.text) return;
 
       await issuesApi.addComment(issueId, textPart.text);
 
-      setComments((prev) => [
-        ...prev,
-        {
-          id: `local-${Date.now()}`,
-          issueId,
-          body: textPart.text!,
-          authorAgentId: null,
-          authorUserId: currentUserId,
-          authorAgentName: null,
-          authorUserName: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        } as unknown as IssueComment,
-      ]);
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.issues.comments(issueId),
+      });
 
       try {
         await agentsApi.wakeup(agentId, {
@@ -145,11 +85,8 @@ export function usePaperclipChat({
       } catch {
         // agent might already be running
       }
-
-      setIsRunning(true);
-      pollActiveRun();
     },
-    [issueId, agentId, currentUserId, pollActiveRun],
+    [issueId, agentId, queryClient],
   );
 
   // @ts-expect-error -- adapter type mismatch with assistant-ui generics
@@ -162,6 +99,7 @@ export function usePaperclipChat({
   return {
     runtime,
     isRunning,
-    reload: loadComments,
+    activeRunId: activeRun?.id ?? null,
+    comments,
   };
 }
