@@ -14,6 +14,7 @@ import { NewProjectDialog } from "./NewProjectDialog";
 import { NewGoalDialog } from "./NewGoalDialog";
 import { NewAgentDialog } from "./NewAgentDialog";
 import { ToastViewport } from "./ToastViewport";
+import { ChatModal } from "./chat/ChatModal";
 import { MobileBottomNav } from "./MobileBottomNav";
 import { useDialog } from "../context/DialogContext";
 import { usePanel } from "../context/PanelContext";
@@ -366,6 +367,7 @@ export function Layout() {
       <NewGoalDialog />
       <NewAgentDialog />
       <ToastViewport />
+      <ChatModal />
     </div>
   );
 }
