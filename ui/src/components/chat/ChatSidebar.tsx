@@ -1,49 +1,12 @@
 import { cn } from "../../lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { AGENT_ICONS, ROLE_COLORS, DEFAULT_ICON } from "./chat-constants";
 import {
   MessageSquare,
   Plus,
   ChevronLeft,
-  Crown,
-  Brain,
-  Rocket,
-  Bug,
-  Server,
-  Briefcase,
-  Phone,
-  BarChart3,
-  Palette,
-  Code,
-  Wrench,
-  Zap,
 } from "lucide-react";
-
-const AGENT_ICONS: Record<string, typeof Crown> = {
-  crown: Crown,
-  brain: Brain,
-  rocket: Rocket,
-  bug: Bug,
-  server: Server,
-  briefcase: Briefcase,
-  phone: Phone,
-  "chart-bar": BarChart3,
-  palette: Palette,
-  code: Code,
-  wrench: Wrench,
-  zap: Zap,
-};
-
-const ROLE_COLORS: Record<string, string> = {
-  ceo: "bg-amber-500",
-  cto: "bg-purple-500",
-  engineer: "bg-blue-500",
-  pm: "bg-teal-500",
-  qa: "bg-orange-500",
-  devops: "bg-slate-500",
-  general: "bg-indigo-500",
-  researcher: "bg-emerald-500",
-};
 
 type Agent = {
   id: string;
@@ -113,7 +76,7 @@ export function ChatSidebar({
               Select Agent
             </label>
             {agents.map((agent) => {
-              const IconComp = AGENT_ICONS[agent.icon ?? ""] ?? Zap;
+              const IconComp = AGENT_ICONS[agent.icon ?? ""] ?? DEFAULT_ICON;
               const bgColor = ROLE_COLORS[agent.role] ?? "bg-muted-foreground";
               return (
                 <button
@@ -156,7 +119,7 @@ export function ChatSidebar({
               {(() => {
                 const agent = agents.find((a) => a.id === selectedAgentId);
                 if (!agent) return null;
-                const IconComp = AGENT_ICONS[agent.icon ?? ""] ?? Zap;
+                const IconComp = AGENT_ICONS[agent.icon ?? ""] ?? DEFAULT_ICON;
                 const bgColor = ROLE_COLORS[agent.role] ?? "bg-muted-foreground";
                 return (
                   <div className="flex items-center gap-2.5">

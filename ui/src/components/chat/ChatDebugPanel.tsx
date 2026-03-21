@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { cn, formatTokens } from "../../lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -51,30 +51,24 @@ export function ChatDebugPanel({
   agentId,
   companyId,
 }: ChatDebugPanelProps) {
-  const [events, setEvents] = useState<DebugEvent[]>([]);
-  const [runInfo, setRunInfo] = useState<RunInfo | null>(null);
   const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (!runId) return;
+  const { data: runInfo } = useQuery({
+    queryKey: queryKeys.runDetail(runId!),
+    queryFn: async () => {
+      const run = await heartbeatsApi.get(runId!);
+      return run as RunInfo;
+    },
+    enabled: !!runId,
+    refetchInterval: isRunning ? 3000 : false,
+  });
 
-    const loadRunInfo = async () => {
-      try {
-        const run = await heartbeatsApi.get(runId);
-        setRunInfo(run as RunInfo);
-        const evts = await heartbeatsApi.events(runId);
-        setEvents(evts);
-      } catch {
-        // silently fail
-      }
-    };
-
-    loadRunInfo();
-    if (isRunning) {
-      const interval = setInterval(loadRunInfo, 3000);
-      return () => clearInterval(interval);
-    }
-  }, [runId, isRunning]);
+  const { data: events = [] } = useQuery({
+    queryKey: ["heartbeat-events", runId],
+    queryFn: () => heartbeatsApi.events(runId!),
+    enabled: !!runId,
+    refetchInterval: isRunning ? 3000 : false,
+  });
 
   // Model selector data
   const { data: agent } = useQuery({
@@ -120,18 +114,18 @@ export function ChatDebugPanel({
       )
     : null;
 
-  const toolCalls = events.filter(
+  const toolCalls = useMemo(() => events.filter(
     (e) =>
       e.payload?.type === "tool_use" ||
       e.payload?.subtype === "tool_call" ||
       e.eventType === "tool_use",
-  );
+  ), [events]);
 
-  const lessons = events.filter(
+  const lessons = useMemo(() => events.filter(
     (e) =>
       typeof (e.payload?.text ?? e.payload?.content) === "string" &&
       String(e.payload?.text ?? e.payload?.content ?? "").includes("LESSON"),
-  );
+  ), [events]);
 
   return (
     <div className="w-[320px] min-w-[320px] border-l bg-card flex flex-col">

@@ -18,6 +18,9 @@ import { TypingIndicator } from "./TypingIndicator";
 import { QuickSuggestions } from "./QuickSuggestions";
 import { SlashCommandMenu, type SlashCommand } from "./SlashCommandMenu";
 import { VoiceRecorder } from "./VoiceRecorder";
+import { ChatHistoryDrawer } from "./ChatHistoryDrawer";
+import { ChatToolsDrawer } from "./ChatToolsDrawer";
+import { AGENT_ICONS, ROLE_COLORS, DEFAULT_ICON } from "./chat-constants";
 import {
   MessageSquare,
   X,
@@ -29,16 +32,6 @@ import {
   Wrench,
   ChevronLeft,
   Plus,
-  Crown,
-  Brain,
-  Rocket,
-  Bug,
-  Server,
-  Briefcase,
-  Phone,
-  BarChart3,
-  Palette,
-  Zap,
   Trash2,
   Download,
   Copy,
@@ -47,24 +40,15 @@ import {
 
 type ChatMode = "closed" | "popup" | "panel";
 
-const AGENT_ICONS: Record<string, typeof Crown> = {
-  crown: Crown, brain: Brain, rocket: Rocket, bug: Bug,
-  server: Server, briefcase: Briefcase, phone: Phone,
-  "chart-bar": BarChart3, palette: Palette, zap: Zap,
-};
-
-const ROLE_COLORS: Record<string, string> = {
-  ceo: "bg-amber-500", cto: "bg-purple-500", engineer: "bg-blue-500",
-  pm: "bg-teal-500", qa: "bg-orange-500", devops: "bg-slate-500",
-  general: "bg-indigo-500", researcher: "bg-emerald-500",
-};
-
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
   const handleCopy = async () => {
     await navigator.clipboard.writeText(text);
     setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setCopied(false), 1500);
   };
   return (
     <button
@@ -93,7 +77,7 @@ export function ChatModal() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: agents = [] } = useQuery({
-    queryKey: queryKeys.agents.list(companyId!),
+    queryKey: queryKeys.agents.list(companyId ?? ""),
     queryFn: () => agentsApi.list(companyId!),
     enabled: !!companyId && mode !== "closed",
   });
@@ -108,14 +92,14 @@ export function ChatModal() {
   });
 
   const { data: comments = [] } = useQuery({
-    queryKey: queryKeys.issues.comments(selectedIssueId!),
+    queryKey: queryKeys.issues.comments(selectedIssueId ?? ""),
     queryFn: () => issuesApi.listComments(selectedIssueId!),
     enabled: !!selectedIssueId,
     refetchInterval: 5000,
   });
 
   const { data: activeRun } = useQuery({
-    queryKey: queryKeys.issues.activeRun(selectedIssueId!),
+    queryKey: queryKeys.issues.activeRun(selectedIssueId ?? ""),
     queryFn: () => heartbeatsApi.activeRunForIssue(selectedIssueId!),
     enabled: !!selectedIssueId,
     refetchInterval: 5000,
@@ -173,11 +157,14 @@ export function ChatModal() {
       sendMessage.mutate(inputValue.trim());
     }
 
-    for (const file of attachments) {
-      await issuesApi.uploadAttachment(companyId!, selectedIssueId!, file);
-    }
-
     if (attachments.length > 0) {
+      await Promise.all(
+        attachments.map((file) =>
+          issuesApi.uploadAttachment(companyId!, selectedIssueId!, file).catch(() => {
+            /* individual upload failed — continue with rest */
+          }),
+        ),
+      );
       queryClient.invalidateQueries({ queryKey: queryKeys.issues.attachments(selectedIssueId!) });
     }
 
@@ -206,7 +193,7 @@ export function ChatModal() {
     }
   };
 
-  const handleSlashCommand = useCallback((cmd: SlashCommand) => {
+  const handleSlashCommand = useCallback(async (cmd: SlashCommand) => {
     setSlashOpen(false);
     if (cmd.name === "status") {
       setInputValue("What is your current status?");
@@ -216,10 +203,10 @@ export function ChatModal() {
       }
       setInputValue("");
     } else if (cmd.name === "help") {
-      setInputValue("");
+      setInputValue("/help — show commands\n/clear — clear chat\n/status — ask status\n/retry — re-run heartbeat");
     } else if (cmd.name === "retry") {
       if (selectedAgentId) {
-        agentsApi.wakeup(selectedAgentId, { source: "on_demand", triggerDetail: "manual", reason: "Retry from chat" });
+        try { await agentsApi.wakeup(selectedAgentId, { source: "on_demand", triggerDetail: "manual", reason: "Retry from chat" }); } catch { /* agent may be running */ }
       }
       setInputValue("");
     }
@@ -239,7 +226,7 @@ export function ChatModal() {
     a.href = url;
     a.download = `chat-${agent?.name ?? "agent"}-${new Date().toISOString().slice(0, 10)}.md`;
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }, [comments, agents, selectedAgentId]);
 
   const handleClear = useCallback(() => {
@@ -269,7 +256,7 @@ export function ChatModal() {
 
   const isPopup = mode === "popup";
   const selectedAgent = agents.find((a: { id: string }) => a.id === selectedAgentId);
-  const AgentIcon = AGENT_ICONS[selectedAgent?.icon ?? ""] ?? Zap;
+  const AgentIcon = AGENT_ICONS[selectedAgent?.icon ?? ""] ?? DEFAULT_ICON;
 
   return (
     <div
@@ -357,67 +344,26 @@ export function ChatModal() {
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto relative">
-        {/* History Drawer */}
-        {historyOpen && (
-          <div className="absolute inset-0 bg-card z-10 overflow-y-auto p-3 space-y-1 animate-in slide-in-from-left-2">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
-              Conversation History
-            </p>
-            {conversations.map((conv: { id: string; identifier: string | null; title: string }) => (
-              <button
-                key={conv.id}
-                onClick={() => { setSelectedIssueId(conv.id); setHistoryOpen(false); }}
-                className={cn(
-                  "w-full text-left p-2.5 rounded-lg text-xs border transition-all",
-                  conv.id === selectedIssueId
-                    ? "border-primary/30 bg-primary/5"
-                    : "border-transparent hover:bg-muted",
-                )}
-              >
-                <div className="font-medium truncate">{conv.title}</div>
-                <div className="text-[10px] text-muted-foreground mt-0.5">
-                  {conv.identifier ?? conv.id.slice(0, 8)}
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Tools Drawer */}
-        {toolsOpen && (
-          <div className="absolute inset-0 bg-card z-10 overflow-y-auto p-3 animate-in slide-in-from-right-2">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
-              Agent Tools & Skills
-            </p>
-            {agentConfig ? (
-              <div className="space-y-1">
-                {Object.entries(agentConfig)
-                  .filter(([key]) => key.toLowerCase().includes("skill") || key.toLowerCase().includes("tool") || key.toLowerCase().includes("adapter"))
-                  .map(([key, value]) => (
-                    <button
-                      key={key}
-                      onClick={() => { setInputValue(`/skill ${key}`); setToolsOpen(false); }}
-                      className="w-full text-left p-2 rounded-lg hover:bg-muted text-xs border border-transparent hover:border-border"
-                    >
-                      <div className="font-medium">{key}</div>
-                      <div className="text-[10px] text-muted-foreground truncate">
-                        {typeof value === "string" ? value : JSON.stringify(value).slice(0, 60)}
-                      </div>
-                    </button>
-                  ))}
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground">Loading agent configuration...</p>
-            )}
-          </div>
-        )}
+        <ChatHistoryDrawer
+          open={historyOpen}
+          conversations={conversations}
+          selectedIssueId={selectedIssueId}
+          onSelectConversation={setSelectedIssueId}
+          onClose={() => setHistoryOpen(false)}
+        />
+        <ChatToolsDrawer
+          open={toolsOpen}
+          agentConfig={agentConfig}
+          onSelectTool={(key) => setInputValue(`/skill ${key}`)}
+          onClose={() => setToolsOpen(false)}
+        />
 
         {!selectedAgentId ? (
           /* Agent selection */
           <div className="p-3 space-y-1">
             <p className="text-[11px] text-muted-foreground px-1 mb-2">Select an agent to chat with:</p>
             {agents.map((agent: { id: string; name: string; title: string | null; icon: string | null; role: string; status: string }) => {
-              const Icon = AGENT_ICONS[agent.icon ?? ""] ?? Zap;
+              const Icon = AGENT_ICONS[agent.icon ?? ""] ?? DEFAULT_ICON;
               return (
                 <button
                   key={agent.id}

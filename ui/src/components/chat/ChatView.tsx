@@ -34,10 +34,13 @@ import {
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
   const handleCopy = async () => {
     await navigator.clipboard.writeText(text);
     setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setCopied(false), 1500);
   };
   return (
     <button
@@ -146,11 +149,14 @@ export function ChatView({ initialAgentId, initialIssueId }: ChatViewProps) {
       sendMessage.mutate(inputValue.trim());
     }
 
-    for (const file of attachments) {
-      await issuesApi.uploadAttachment(companyId!, selectedIssueId!, file);
-    }
-
     if (attachments.length > 0) {
+      await Promise.all(
+        attachments.map((file) =>
+          issuesApi.uploadAttachment(companyId!, selectedIssueId!, file).catch(() => {
+            /* individual upload failed — continue with rest */
+          }),
+        ),
+      );
       queryClient.invalidateQueries({ queryKey: queryKeys.issues.attachments(selectedIssueId!) });
     }
 
@@ -179,7 +185,7 @@ export function ChatView({ initialAgentId, initialIssueId }: ChatViewProps) {
     }
   };
 
-  const handleSlashCommand = useCallback((cmd: SlashCommand) => {
+  const handleSlashCommand = useCallback(async (cmd: SlashCommand) => {
     setSlashOpen(false);
     if (cmd.name === "status") {
       setInputValue("What is your current status?");
@@ -189,10 +195,10 @@ export function ChatView({ initialAgentId, initialIssueId }: ChatViewProps) {
       }
       setInputValue("");
     } else if (cmd.name === "help") {
-      setInputValue("");
+      setInputValue("/help — show commands\n/clear — clear chat\n/status — ask status\n/retry — re-run heartbeat");
     } else if (cmd.name === "retry") {
       if (selectedAgentId) {
-        try { agentsApi.wakeup(selectedAgentId, { source: "on_demand", triggerDetail: "manual", reason: "Retry from chat" }); } catch { /* ok */ }
+        try { await agentsApi.wakeup(selectedAgentId, { source: "on_demand", triggerDetail: "manual", reason: "Retry from chat" }); } catch { /* agent may be running */ }
       }
       setInputValue("");
     }
