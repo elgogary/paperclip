@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { cn, formatTokens } from "../../lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { agentsApi } from "../../api/agents";
+import { queryKeys } from "../../lib/queryKeys";
 import {
   ChevronRight,
   Cpu,
@@ -12,6 +15,7 @@ import {
   Activity,
 } from "lucide-react";
 import { heartbeatsApi } from "../../api/heartbeats";
+import { ChatApprovalCard } from "./ChatApprovalCard";
 
 import type { HeartbeatRunEvent } from "@paperclipai/shared";
 
@@ -35,6 +39,8 @@ type ChatDebugPanelProps = {
   isRunning: boolean;
   collapsed: boolean;
   onToggleCollapse: () => void;
+  agentId?: string | null;
+  companyId?: string | null;
 };
 
 export function ChatDebugPanel({
@@ -42,9 +48,12 @@ export function ChatDebugPanel({
   isRunning,
   collapsed,
   onToggleCollapse,
+  agentId,
+  companyId,
 }: ChatDebugPanelProps) {
   const [events, setEvents] = useState<DebugEvent[]>([]);
   const [runInfo, setRunInfo] = useState<RunInfo | null>(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!runId) return;
@@ -66,6 +75,31 @@ export function ChatDebugPanel({
       return () => clearInterval(interval);
     }
   }, [runId, isRunning]);
+
+  // Model selector data
+  const { data: agent } = useQuery({
+    queryKey: queryKeys.agents.detail(agentId!),
+    queryFn: () => agentsApi.get(agentId!),
+    enabled: !!agentId,
+  });
+
+  const adapterType = (agent as Record<string, unknown>)?.adapterType as string | undefined;
+  const adapterConfig = (agent as Record<string, unknown>)?.adapterConfig as Record<string, unknown> | undefined;
+  const currentModel = adapterConfig?.model as string | undefined;
+
+  const { data: models = [] } = useQuery({
+    queryKey: queryKeys.agents.adapterModels(companyId!, adapterType ?? "claude-local"),
+    queryFn: () => agentsApi.adapterModels(companyId!, adapterType ?? "claude-local"),
+    enabled: !!companyId && !!adapterType,
+  });
+
+  const updateModel = useMutation({
+    mutationFn: (modelId: string) =>
+      agentsApi.update(agentId!, { adapterConfig: { ...adapterConfig, model: modelId } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.agents.detail(agentId!) });
+    },
+  });
 
   if (collapsed) {
     return (
@@ -152,6 +186,25 @@ export function ChatDebugPanel({
         </div>
       </div>
 
+      {/* Model Selector */}
+      {models.length > 0 && (
+        <div className="p-3 border-b">
+          <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 block">
+            Model
+          </label>
+          <select
+            value={currentModel ?? ""}
+            onChange={(e) => updateModel.mutate(e.target.value)}
+            className="w-full text-xs border rounded-md px-2 py-1.5 bg-background"
+            disabled={updateModel.isPending}
+          >
+            {models.map((m) => (
+              <option key={m.id} value={m.id}>{m.label}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* Status */}
       <div className="px-3 py-2 border-b">
         <div className="flex items-center gap-2">
@@ -167,7 +220,7 @@ export function ChatDebugPanel({
         </div>
       </div>
 
-      {/* Tool call log */}
+      {/* Tool call log + Approval cards */}
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-2">
           <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -176,19 +229,36 @@ export function ChatDebugPanel({
           {events.length === 0 ? (
             <p className="text-[11px] text-muted-foreground">No events yet</p>
           ) : (
-            events.slice(-30).map((evt) => (
-              <div key={evt.seq} className="text-[11px] border rounded p-2 bg-muted/50">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-mono font-semibold text-primary">
-                    {String(evt.payload?.type ?? evt.eventType ?? "event")}
-                  </span>
-                  <span className="text-muted-foreground">#{evt.seq}</span>
+            events.slice(-30).map((evt) => {
+              const isToolUse = evt.payload?.type === "tool_use" || evt.eventType === "tool_use";
+              const approvalId = evt.payload?.approvalId as string | undefined;
+
+              if (isToolUse && approvalId) {
+                return (
+                  <ChatApprovalCard
+                    key={evt.seq}
+                    approvalId={approvalId}
+                    toolName={String(evt.payload?.name ?? "tool")}
+                    payload={(evt.payload?.input ?? evt.payload ?? {}) as Record<string, unknown>}
+                    status={String(evt.payload?.approvalStatus ?? "pending_approval")}
+                  />
+                );
+              }
+
+              return (
+                <div key={evt.seq} className="text-[11px] border rounded p-2 bg-muted/50">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-mono font-semibold text-primary">
+                      {String(evt.payload?.type ?? evt.eventType ?? "event")}
+                    </span>
+                    <span className="text-muted-foreground">#{evt.seq}</span>
+                  </div>
+                  <pre className="text-[10px] text-muted-foreground overflow-x-auto whitespace-pre-wrap break-all max-h-20">
+                    {JSON.stringify(evt.payload, null, 1).slice(0, 200)}
+                  </pre>
                 </div>
-                <pre className="text-[10px] text-muted-foreground overflow-x-auto whitespace-pre-wrap break-all max-h-20">
-                  {JSON.stringify(evt.payload, null, 1).slice(0, 200)}
-                </pre>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </ScrollArea>

@@ -1,28 +1,28 @@
 /**
  * ChatView — 3-panel chat layout (Sidebar + Chat + Debug)
- * Uses assistant-ui primitives for the chat area, Paperclip APIs for data
+ * Uses assistant-ui primitives for the chat area, Paperclip APIs for data.
+ * Phase 1.5: React Query runtime, markdown, typing indicator.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   AssistantRuntimeProvider,
   ThreadPrimitive,
   ComposerPrimitive,
   MessagePrimitive,
 } from "@assistant-ui/react";
-// Markdown rendering handled by MessagePrimitive.Content defaults
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCompany } from "../../context/CompanyContext";
+import { useQuery } from "@tanstack/react-query";
 import { agentsApi } from "../../api/agents";
 import { issuesApi } from "../../api/issues";
-import { heartbeatsApi } from "../../api/heartbeats";
 import { queryKeys } from "../../lib/queryKeys";
 import { usePaperclipChat } from "./paperclip-runtime";
 import { ChatSidebar } from "./ChatSidebar";
 import { ChatDebugPanel } from "./ChatDebugPanel";
 import { ChatLearningBanner } from "./ChatLearningBanner";
+import { TypingIndicator } from "./TypingIndicator";
 import { Button } from "@/components/ui/button";
-import { Send, Loader2 } from "lucide-react";
-import { cn } from "../../lib/utils";
+import { Send } from "lucide-react";
 
 type ChatViewProps = {
   initialAgentId?: string;
@@ -44,7 +44,6 @@ export function ChatView({ initialAgentId, initialIssueId }: ChatViewProps) {
   const [lessons, setLessons] = useState<
     { type: "lesson" | "rule" | "knowledge"; text: string }[]
   >([]);
-  const [activeRunId, setActiveRunId] = useState<string | null>(null);
 
   const { data: agents = [] } = useQuery({
     queryKey: queryKeys.agents.list(companyId!),
@@ -80,29 +79,12 @@ export function ChatView({ initialAgentId, initialIssueId }: ChatViewProps) {
     },
   });
 
-  const { runtime, isRunning } = usePaperclipChat({
+  const { runtime, isRunning, activeRunId } = usePaperclipChat({
     issueId: selectedIssueId ?? "",
     companyId: companyId ?? "",
     agentId: selectedAgentId ?? "",
     currentUserId: null,
   });
-
-  useEffect(() => {
-    if (!selectedIssueId) return;
-    const pollRun = async () => {
-      try {
-        const run = await heartbeatsApi.activeRunForIssue(selectedIssueId);
-        if (run?.id) setActiveRunId(run.id);
-      } catch {
-        // no run
-      }
-    };
-    pollRun();
-    if (isRunning) {
-      const interval = setInterval(pollRun, 3000);
-      return () => clearInterval(interval);
-    }
-  }, [selectedIssueId, isRunning]);
 
   const handleNewConversation = useCallback(() => {
     if (selectedAgentId) {
@@ -160,9 +142,10 @@ export function ChatView({ initialAgentId, initialIssueId }: ChatViewProps) {
                 }}
               />
               {isRunning && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground px-4">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Agent is working...
+                <div className="flex justify-start mb-3">
+                  <div className="max-w-[70%] rounded-2xl rounded-bl-md bg-muted px-4 py-2.5">
+                    <TypingIndicator />
+                  </div>
                 </div>
               )}
             </div>
@@ -208,6 +191,8 @@ export function ChatView({ initialAgentId, initialIssueId }: ChatViewProps) {
           isRunning={isRunning}
           collapsed={debugCollapsed}
           onToggleCollapse={() => setDebugCollapsed((c) => !c)}
+          agentId={selectedAgentId}
+          companyId={companyId}
         />
       )}
     </div>

@@ -2,28 +2,28 @@
  * ChatModal — Floating chat button with 3 modes:
  *   FAB → Popup (small, bottom-right) → Full Panel (sidebar)
  *
- * Inspired by Sanad AI's 3-mode chat widget pattern.
+ * Phase 1.5: All features wired — markdown, slash commands, voice,
+ * attachments, copy, history, export, clear, suggestions, typing indicator.
  */
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { AssistantRuntimeProvider } from "@assistant-ui/react";
-import * as ThreadPrimitive from "@assistant-ui/react";
-import * as ComposerPrimitive from "@assistant-ui/react";
 import { useCompany } from "../../context/CompanyContext";
 import { agentsApi } from "../../api/agents";
 import { issuesApi } from "../../api/issues";
+import { heartbeatsApi } from "../../api/heartbeats";
 import { queryKeys } from "../../lib/queryKeys";
-import { usePaperclipChat } from "./paperclip-runtime";
 import { cn } from "../../lib/utils";
 import { MarkdownBody } from "../MarkdownBody";
+import { TypingIndicator } from "./TypingIndicator";
+import { QuickSuggestions } from "./QuickSuggestions";
+import { SlashCommandMenu, type SlashCommand } from "./SlashCommandMenu";
+import { VoiceRecorder } from "./VoiceRecorder";
 import {
   MessageSquare,
   X,
   Maximize2,
   Minimize2,
   Send,
-  Loader2,
-  Mic,
   Paperclip as PaperclipIcon,
   History,
   Wrench,
@@ -41,6 +41,8 @@ import {
   Zap,
   Trash2,
   Download,
+  Copy,
+  Check,
 } from "lucide-react";
 
 type ChatMode = "closed" | "popup" | "panel";
@@ -57,6 +59,24 @@ const ROLE_COLORS: Record<string, string> = {
   general: "bg-indigo-500", researcher: "bg-emerald-500",
 };
 
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <button
+      onClick={handleCopy}
+      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-background/50 text-muted-foreground hover:text-foreground"
+      title="Copy message"
+    >
+      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+    </button>
+  );
+}
+
 export function ChatModal() {
   const { selectedCompanyId: companyId } = useCompany();
   const queryClient = useQueryClient();
@@ -64,7 +84,13 @@ export function ChatModal() {
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState("");
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const [slashOpen, setSlashOpen] = useState(false);
+  const [slashSearch, setSlashSearch] = useState("");
+  const [attachments, setAttachments] = useState<File[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: agents = [] } = useQuery({
     queryKey: queryKeys.agents.list(companyId!),
@@ -82,10 +108,25 @@ export function ChatModal() {
   });
 
   const { data: comments = [] } = useQuery({
-    queryKey: ["chat-comments", selectedIssueId],
+    queryKey: queryKeys.issues.comments(selectedIssueId!),
     queryFn: () => issuesApi.listComments(selectedIssueId!),
     enabled: !!selectedIssueId,
-    refetchInterval: 3000,
+    refetchInterval: 5000,
+  });
+
+  const { data: activeRun } = useQuery({
+    queryKey: queryKeys.issues.activeRun(selectedIssueId!),
+    queryFn: () => heartbeatsApi.activeRunForIssue(selectedIssueId!),
+    enabled: !!selectedIssueId,
+    refetchInterval: 5000,
+  });
+
+  const isAgentRunning = activeRun?.status === "running" || activeRun?.status === "queued";
+
+  const { data: agentConfig } = useQuery({
+    queryKey: ["agent-config", selectedAgentId],
+    queryFn: () => agentsApi.getConfiguration(selectedAgentId!),
+    enabled: !!selectedAgentId && toolsOpen,
   });
 
   const createConversation = useMutation({
@@ -117,7 +158,7 @@ export function ChatModal() {
       } catch { /* agent may be running */ }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["chat-comments", selectedIssueId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.issues.comments(selectedIssueId!) });
     },
   });
 
@@ -125,17 +166,93 @@ export function ChatModal() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [comments]);
 
-  const handleSend = () => {
-    if (!inputValue.trim()) return;
-    sendMessage.mutate(inputValue.trim());
+  const handleSend = useCallback(async () => {
+    if (!inputValue.trim() && attachments.length === 0) return;
+
+    if (inputValue.trim()) {
+      sendMessage.mutate(inputValue.trim());
+    }
+
+    for (const file of attachments) {
+      await issuesApi.uploadAttachment(companyId!, selectedIssueId!, file);
+    }
+
+    if (attachments.length > 0) {
+      queryClient.invalidateQueries({ queryKey: queryKeys.issues.attachments(selectedIssueId!) });
+    }
+
     setInputValue("");
-  };
+    setAttachments([]);
+  }, [inputValue, attachments, selectedIssueId, companyId, sendMessage, queryClient]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
+    if (e.key === "Escape" && slashOpen) {
+      setSlashOpen(false);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setInputValue(val);
+    if (val.startsWith("/")) {
+      setSlashOpen(true);
+      setSlashSearch(val);
+    } else {
+      setSlashOpen(false);
+    }
+  };
+
+  const handleSlashCommand = useCallback((cmd: SlashCommand) => {
+    setSlashOpen(false);
+    if (cmd.name === "status") {
+      setInputValue("What is your current status?");
+    } else if (cmd.name === "clear") {
+      if (selectedIssueId) {
+        queryClient.setQueryData(queryKeys.issues.comments(selectedIssueId), []);
+      }
+      setInputValue("");
+    } else if (cmd.name === "help") {
+      setInputValue("");
+    } else if (cmd.name === "retry") {
+      if (selectedAgentId) {
+        agentsApi.wakeup(selectedAgentId, { source: "on_demand", triggerDetail: "manual", reason: "Retry from chat" });
+      }
+      setInputValue("");
+    }
+  }, [selectedIssueId, selectedAgentId, queryClient]);
+
+  const handleExport = useCallback(() => {
+    if (!comments.length) return;
+    const agent = agents.find((a: { id: string }) => a.id === selectedAgentId);
+    const lines = comments.map((c: { authorAgentId: string | null; body: string }) => {
+      const role = c.authorAgentId ? (agent?.name ?? "Agent") : "You";
+      return `**${role}:**\n${c.body}\n`;
+    });
+    const md = `# Chat with ${agent?.name ?? "Agent"}\n\n${lines.join("\n---\n\n")}`;
+    const blob = new Blob([md], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `chat-${agent?.name ?? "agent"}-${new Date().toISOString().slice(0, 10)}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [comments, agents, selectedAgentId]);
+
+  const handleClear = useCallback(() => {
+    if (!window.confirm("Clear this conversation display? (Messages are preserved in the issue)")) return;
+    if (selectedIssueId) {
+      queryClient.setQueryData(queryKeys.issues.comments(selectedIssueId), []);
+    }
+  }, [selectedIssueId, queryClient]);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    setAttachments((prev) => [...prev, ...files]);
+    e.target.value = "";
   };
 
   // --- FAB Button ---
@@ -169,7 +286,7 @@ export function ChatModal() {
           {selectedAgent ? (
             <>
               <button
-                onClick={() => { setSelectedAgentId(null); setSelectedIssueId(null); }}
+                onClick={() => { setSelectedAgentId(null); setSelectedIssueId(null); setHistoryOpen(false); setToolsOpen(false); }}
                 className="text-muted-foreground hover:text-foreground"
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -192,11 +309,33 @@ export function ChatModal() {
         <div className="flex items-center gap-1">
           {selectedIssueId && (
             <>
-              <button className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground" title="History">
+              <button
+                onClick={() => { setHistoryOpen(!historyOpen); setToolsOpen(false); }}
+                className={cn("p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground", historyOpen && "bg-muted text-foreground")}
+                title="History"
+              >
                 <History className="h-3.5 w-3.5" />
               </button>
-              <button className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground" title="Tools">
+              <button
+                onClick={() => { setToolsOpen(!toolsOpen); setHistoryOpen(false); }}
+                className={cn("p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground", toolsOpen && "bg-muted text-foreground")}
+                title="Tools"
+              >
                 <Wrench className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={handleExport}
+                className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground"
+                title="Export conversation"
+              >
+                <Download className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={handleClear}
+                className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground"
+                title="Clear conversation"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
               </button>
             </>
           )}
@@ -217,7 +356,62 @@ export function ChatModal() {
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto relative">
+        {/* History Drawer */}
+        {historyOpen && (
+          <div className="absolute inset-0 bg-card z-10 overflow-y-auto p-3 space-y-1 animate-in slide-in-from-left-2">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+              Conversation History
+            </p>
+            {conversations.map((conv: { id: string; identifier: string | null; title: string }) => (
+              <button
+                key={conv.id}
+                onClick={() => { setSelectedIssueId(conv.id); setHistoryOpen(false); }}
+                className={cn(
+                  "w-full text-left p-2.5 rounded-lg text-xs border transition-all",
+                  conv.id === selectedIssueId
+                    ? "border-primary/30 bg-primary/5"
+                    : "border-transparent hover:bg-muted",
+                )}
+              >
+                <div className="font-medium truncate">{conv.title}</div>
+                <div className="text-[10px] text-muted-foreground mt-0.5">
+                  {conv.identifier ?? conv.id.slice(0, 8)}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Tools Drawer */}
+        {toolsOpen && (
+          <div className="absolute inset-0 bg-card z-10 overflow-y-auto p-3 animate-in slide-in-from-right-2">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+              Agent Tools & Skills
+            </p>
+            {agentConfig ? (
+              <div className="space-y-1">
+                {Object.entries(agentConfig)
+                  .filter(([key]) => key.toLowerCase().includes("skill") || key.toLowerCase().includes("tool") || key.toLowerCase().includes("adapter"))
+                  .map(([key, value]) => (
+                    <button
+                      key={key}
+                      onClick={() => { setInputValue(`/skill ${key}`); setToolsOpen(false); }}
+                      className="w-full text-left p-2 rounded-lg hover:bg-muted text-xs border border-transparent hover:border-border"
+                    >
+                      <div className="font-medium">{key}</div>
+                      <div className="text-[10px] text-muted-foreground truncate">
+                        {typeof value === "string" ? value : JSON.stringify(value).slice(0, 60)}
+                      </div>
+                    </button>
+                  ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">Loading agent configuration...</p>
+            )}
+          </div>
+        )}
+
         {!selectedAgentId ? (
           /* Agent selection */
           <div className="p-3 space-y-1">
@@ -283,7 +477,8 @@ export function ChatModal() {
             {comments.map((comment: { id: string; body: string; authorAgentId: string | null; authorUserId: string | null }) => {
               const isAgent = !!comment.authorAgentId;
               return (
-                <div key={comment.id} className={cn("flex", isAgent ? "justify-start" : "justify-end")}>
+                <div key={comment.id} className={cn("flex group items-start gap-1", isAgent ? "justify-start" : "justify-end")}>
+                  {!isAgent && <CopyButton text={comment.body} />}
                   <div className={cn(
                     "max-w-[85%] rounded-2xl px-3.5 py-2 text-[13px] leading-relaxed",
                     isAgent
@@ -296,14 +491,14 @@ export function ChatModal() {
                       <div className="whitespace-pre-wrap break-words">{comment.body}</div>
                     )}
                   </div>
+                  {isAgent && <CopyButton text={comment.body} />}
                 </div>
               );
             })}
-            {sendMessage.isPending && (
+            {(sendMessage.isPending || isAgentRunning) && (
               <div className="flex justify-start">
-                <div className="bg-muted rounded-2xl rounded-bl-md px-3.5 py-2 flex items-center gap-2 text-xs text-muted-foreground">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  Agent is thinking...
+                <div className="bg-muted rounded-2xl rounded-bl-md px-3.5 py-2">
+                  <TypingIndicator />
                 </div>
               </div>
             )}
@@ -312,35 +507,74 @@ export function ChatModal() {
         )}
       </div>
 
-      {/* Input toolbar */}
+      {/* Quick Suggestions + Input toolbar */}
       {selectedIssueId && (
-        <div className="border-t p-3 shrink-0">
-          <div className="flex items-end gap-2">
-            <div className="flex-1 relative">
-              <textarea
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Type a message..."
-                rows={1}
-                className="w-full resize-none rounded-xl border bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 pr-20 min-h-[40px] max-h-[120px]"
-              />
-              <div className="absolute right-2 bottom-1.5 flex items-center gap-0.5">
-                <button className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground" title="Attach file">
-                  <PaperclipIcon className="h-3.5 w-3.5" />
-                </button>
-                <button className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground" title="Voice input">
-                  <Mic className="h-3.5 w-3.5" />
-                </button>
-              </div>
+        <div className="border-t shrink-0">
+          <QuickSuggestions
+            agentRole={selectedAgent?.role ?? "general"}
+            onSelect={(text) => setInputValue(text)}
+            visible={comments.length === 0 && !inputValue}
+          />
+
+          {/* Attachment chips */}
+          {attachments.length > 0 && (
+            <div className="flex flex-wrap gap-1 px-3 pb-1">
+              {attachments.map((file, i) => (
+                <span key={i} className="text-[10px] bg-muted px-2 py-0.5 rounded-full flex items-center gap-1">
+                  {file.name}
+                  <button onClick={() => setAttachments((prev) => prev.filter((_, j) => j !== i))}>
+                    <X className="h-2.5 w-2.5" />
+                  </button>
+                </span>
+              ))}
             </div>
-            <button
-              onClick={handleSend}
-              disabled={!inputValue.trim() || sendMessage.isPending}
-              className="h-10 w-10 rounded-xl bg-primary text-white flex items-center justify-center hover:bg-primary/90 disabled:opacity-50 shrink-0"
-            >
-              <Send className="h-4 w-4" />
-            </button>
+          )}
+
+          <div className="p-3 pt-1.5">
+            <div className="flex items-end gap-2">
+              <div className="flex-1 relative">
+                <SlashCommandMenu
+                  open={slashOpen}
+                  search={slashSearch}
+                  onSelect={handleSlashCommand}
+                  onClose={() => setSlashOpen(false)}
+                />
+                <textarea
+                  value={inputValue}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Type a message... (/ for commands)"
+                  rows={1}
+                  className="w-full resize-none rounded-xl border bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 pr-20 min-h-[40px] max-h-[120px]"
+                />
+                <div className="absolute right-2 bottom-1.5 flex items-center gap-0.5">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={handleFileSelect}
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground"
+                    title="Attach file"
+                  >
+                    <PaperclipIcon className="h-3.5 w-3.5" />
+                  </button>
+                  <VoiceRecorder
+                    onTranscript={(text) => setInputValue((prev) => prev + text)}
+                  />
+                </div>
+              </div>
+              <button
+                onClick={handleSend}
+                disabled={(!inputValue.trim() && attachments.length === 0) || sendMessage.isPending}
+                className="h-10 w-10 rounded-xl bg-primary text-white flex items-center justify-center hover:bg-primary/90 disabled:opacity-50 shrink-0"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
       )}
