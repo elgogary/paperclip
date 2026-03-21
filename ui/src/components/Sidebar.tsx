@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   DollarSign,
   History,
+  MessageSquare,
   Search,
   SquarePen,
   Network,
@@ -80,6 +81,7 @@ export function Sidebar() {
             badgeTone={inboxBadge.failedRuns > 0 ? "danger" : "default"}
             alert={inboxBadge.failedRuns > 0}
           />
+          <SidebarNavItem to="/chat" label="Chat" icon={MessageSquare} />
         </div>
 
         <SidebarSection label="Work">

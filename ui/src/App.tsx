@@ -27,6 +27,7 @@ import { InstanceSettings } from "./pages/InstanceSettings";
 import { RunTranscriptUxLab } from "./pages/RunTranscriptUxLab";
 import { OrgChart } from "./pages/OrgChart";
 import { NewAgent } from "./pages/NewAgent";
+import Chat from "./pages/Chat";
 import { AuthPage } from "./pages/Auth";
 import { BoardClaimPage } from "./pages/BoardClaim";
 import { InviteLandingPage } from "./pages/InviteLanding";
@@ -149,6 +150,9 @@ function boardRoutes() {
       <Route path="inbox/unread" element={<Inbox />} />
       <Route path="inbox/all" element={<Inbox />} />
       <Route path="inbox/new" element={<Navigate to="/inbox/recent" replace />} />
+      <Route path="chat" element={<Chat />} />
+      <Route path="chat/:agentId" element={<Chat />} />
+      <Route path="chat/:agentId/:issueId" element={<Chat />} />
       <Route path="design-guide" element={<DesignGuide />} />
       <Route path="tests/ux/runs" element={<RunTranscriptUxLab />} />
       <Route path="*" element={<NotFoundPage scope="board" />} />
