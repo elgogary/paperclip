@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { Db } from "@paperclipai/db";
-import { agentAccessService } from "../services/index.js";
+import { agentAccessService, agentService } from "../services/index.js";
 import { assertCompanyAccess, getActorInfo } from "./authz.js";
 
 export function agentAccessRoutes(db: Db) {
@@ -16,6 +16,13 @@ export function agentAccessRoutes(db: Db) {
 
   router.get("/agents/:agentId/access", async (req, res) => {
     const agentId = req.params.agentId as string;
+    const agents = agentService(db);
+    const agent = await agents.getById(agentId);
+    if (!agent) {
+      res.status(404).json({ error: "Agent not found" });
+      return;
+    }
+    assertCompanyAccess(req, agent.companyId);
     const grants = await svc.listByAgent(agentId);
     res.json(grants);
   });
@@ -46,8 +53,10 @@ export function agentAccessRoutes(db: Db) {
     res.status(201).json(grant);
   });
 
-  router.delete("/agent-access/:grantId", async (req, res) => {
+  router.delete("/companies/:companyId/agent-access/:grantId", async (req, res) => {
+    const companyId = req.params.companyId as string;
     const grantId = req.params.grantId as string;
+    assertCompanyAccess(req, companyId);
     const deleted = await svc.revoke(grantId);
     if (!deleted) {
       res.status(404).json({ error: "Grant not found" });

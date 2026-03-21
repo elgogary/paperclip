@@ -19,6 +19,6 @@ export const agentAccessApi = {
   grant: (companyId: string, agentId: string, userId: string) =>
     api.post<AgentUserAccess>(`/companies/${companyId}/agent-access`, { agentId, userId }),
 
-  revoke: (grantId: string) =>
-    api.delete<AgentUserAccess>(`/agent-access/${grantId}`),
+  revoke: (companyId: string, grantId: string) =>
+    api.delete<AgentUserAccess>(`/companies/${companyId}/agent-access/${grantId}`),
 };

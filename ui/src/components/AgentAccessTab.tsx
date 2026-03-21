@@ -34,7 +34,7 @@ export function AgentAccessTab({ agentId, companyId }: AgentAccessTabProps) {
   });
 
   const revokeMutation = useMutation({
-    mutationFn: (grantId: string) => agentAccessApi.revoke(grantId),
+    mutationFn: (grantId: string) => agentAccessApi.revoke(companyId, grantId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["agent-access", agentId] });
     },
