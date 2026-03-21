@@ -21,6 +21,7 @@ import {
 import { validate } from "../middleware/validate.js";
 import {
   agentService,
+  agentAccessService,
   accessService,
   approvalService,
   heartbeatService,
@@ -462,7 +463,18 @@ export function agentRoutes(db: Db) {
   router.get("/companies/:companyId/agents", async (req, res) => {
     const companyId = req.params.companyId as string;
     assertCompanyAccess(req, companyId);
-    const result = await svc.list(companyId);
+    let result = await svc.list(companyId);
+
+    // Per-agent ACL filtering for non-admin board users
+    if (req.actor.type === "board" && !req.actor.isInstanceAdmin && req.actor.userId) {
+      const accessSvc = agentAccessService(db);
+      const grants = await accessSvc.listByUser(companyId, req.actor.userId);
+      if (grants.length > 0) {
+        const allowedIds = new Set(grants.map((g) => g.agentId));
+        result = result.filter((agent) => allowedIds.has(agent.id));
+      }
+    }
+
     const canReadConfigs = await actorCanReadConfigurationsForCompany(req, companyId);
     if (canReadConfigs || req.actor.type === "board") {
       res.json(result);
