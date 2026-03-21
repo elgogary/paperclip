@@ -498,6 +498,7 @@ export function ChatModal() {
                     ref={fileInputRef}
                     type="file"
                     multiple
+                    accept="image/*"
                     className="hidden"
                     onChange={handleFileSelect}
                   />

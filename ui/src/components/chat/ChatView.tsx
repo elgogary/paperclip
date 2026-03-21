@@ -335,6 +335,7 @@ export function ChatView({ initialAgentId, initialIssueId }: ChatViewProps) {
                         ref={fileInputRef}
                         type="file"
                         multiple
+                        accept="image/*"
                         className="hidden"
                         onChange={handleFileSelect}
                       />
