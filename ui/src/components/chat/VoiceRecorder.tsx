@@ -2,6 +2,15 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { Mic, MicOff } from "lucide-react";
 import { cn } from "../../lib/utils";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnySpeechRecognition = any;
+
+function getSpeechRecognition(): AnySpeechRecognition | null {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const w = window as any;
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
+}
+
 type VoiceRecorderProps = {
   onTranscript: (text: string) => void;
   className?: string;
@@ -13,11 +22,10 @@ export function VoiceRecorder({ onTranscript, className }: VoiceRecorderProps) {
   const [recording, setRecording] = useState(false);
   const [lang, setLang] = useState(() => localStorage.getItem(LANG_KEY) ?? "en-US");
   const [supported, setSupported] = useState(true);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<AnySpeechRecognition | null>(null);
 
   useEffect(() => {
-    const SR = window.SpeechRecognition ?? (window as unknown as { webkitSpeechRecognition: typeof SpeechRecognition }).webkitSpeechRecognition;
-    if (!SR) setSupported(false);
+    if (!getSpeechRecognition()) setSupported(false);
   }, []);
 
   const toggleLang = useCallback(() => {
@@ -33,7 +41,7 @@ export function VoiceRecorder({ onTranscript, className }: VoiceRecorderProps) {
       return;
     }
 
-    const SR = window.SpeechRecognition ?? (window as unknown as { webkitSpeechRecognition: typeof SpeechRecognition }).webkitSpeechRecognition;
+    const SR = getSpeechRecognition();
     if (!SR) return;
 
     const recognition = new SR();
@@ -41,8 +49,9 @@ export function VoiceRecorder({ onTranscript, className }: VoiceRecorderProps) {
     recognition.interimResults = false;
     recognition.continuous = false;
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
-      const transcript = event.results[0]?.[0]?.transcript;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onresult = (event: any) => {
+      const transcript = event.results?.[0]?.[0]?.transcript as string | undefined;
       if (transcript) onTranscript(transcript);
       setRecording(false);
     };

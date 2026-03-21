@@ -83,8 +83,8 @@ export function ChatDebugPanel({
     enabled: !!agentId,
   });
 
-  const adapterType = (agent as Record<string, unknown>)?.adapterType as string | undefined;
-  const adapterConfig = (agent as Record<string, unknown>)?.adapterConfig as Record<string, unknown> | undefined;
+  const adapterType = (agent as unknown as Record<string, unknown>)?.adapterType as string | undefined;
+  const adapterConfig = (agent as unknown as Record<string, unknown>)?.adapterConfig as Record<string, unknown> | undefined;
   const currentModel = adapterConfig?.model as string | undefined;
 
   const { data: models = [] } = useQuery({

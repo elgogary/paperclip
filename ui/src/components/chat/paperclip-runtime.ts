@@ -89,12 +89,12 @@ export function usePaperclipChat({
     [issueId, agentId, queryClient],
   );
 
-  // @ts-expect-error -- adapter type mismatch with assistant-ui generics
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const runtime = useExternalStoreRuntime({
     messages: threadMessages,
     isRunning,
     onNew,
-  });
+  } as any);
 
   return {
     runtime,
