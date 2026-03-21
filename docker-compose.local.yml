@@ -1,0 +1,44 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: paperclip
+      POSTGRES_USER: paperclip
+      POSTGRES_PASSWORD: paperclip123
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: always
+
+  paperclip:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3100:3100"
+    depends_on:
+      - db
+    environment:
+      HOST: "0.0.0.0"
+      PAPERCLIP_HOME: "/paperclip"
+      DATABASE_URL: "postgresql://paperclip:paperclip123@db:5432/paperclip"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+      PAPERCLIP_DEPLOYMENT_MODE: "authenticated"
+      PAPERCLIP_DEPLOYMENT_EXPOSURE: "private"
+      PAPERCLIP_PUBLIC_URL: "http://100.109.59.30:3100"
+      BETTER_AUTH_SECRET: "a1b2c3d4e5f6789supersecretkey"
+    volumes:
+      - paperclip-data:/paperclip
+      - /home/eslam/.claude/skills:/paperclip/.claude/skills:ro
+      - /home/eslam/.claude/hooks:/paperclip/.claude/hooks:ro
+      - /home/eslam/.claude/rules:/paperclip/.claude/rules:ro
+      - /home/eslam/.claude/CLAUDE.md:/paperclip/.claude/CLAUDE.md:ro
+      - /home/eslam/.claude/settings.json:/paperclip/.claude/settings.json:ro
+      - /home/eslam/optiflow:/workspace
+      - /home/eslam/data:/data:ro
+      - /home/eslam/paperclip-projects:/projects
+      - /home/eslam/.paperclip-claude-auth.json:/paperclip/.claude.json
+    restart: always
+
+volumes:
+  pgdata:
+  paperclip-data:

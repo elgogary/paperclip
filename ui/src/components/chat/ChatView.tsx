@@ -126,7 +126,7 @@ export function ChatView({ initialAgentId, initialIssueId }: ChatViewProps) {
         agents={agents}
         selectedAgentId={selectedAgentId}
         onSelectAgent={(id) => {
-          setSelectedAgentId(id);
+          setSelectedAgentId(id || null);
           setSelectedIssueId(null);
         }}
         conversations={convItems}
