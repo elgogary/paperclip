@@ -61,6 +61,7 @@ export type {
   JoinRequest,
   InstanceUserRoleGrant,
 } from "./access.js";
+export type { AgentUserAccess } from "./agent-access.js";
 export type {
   CompanyPortabilityInclude,
   CompanyPortabilitySecretRequirement,
