@@ -15,6 +15,7 @@ import { issuesApi } from "../../api/issues";
 import { queryKeys } from "../../lib/queryKeys";
 import { usePaperclipChat } from "./paperclip-runtime";
 import { cn } from "../../lib/utils";
+import { MarkdownBody } from "../MarkdownBody";
 import {
   MessageSquare,
   X,
@@ -289,7 +290,11 @@ export function ChatModal() {
                       ? "bg-muted rounded-bl-md"
                       : "bg-primary text-primary-foreground rounded-br-md"
                   )}>
-                    <div className="whitespace-pre-wrap break-words">{comment.body}</div>
+                    {isAgent ? (
+                      <MarkdownBody className="text-[13px] [&_pre]:text-[11px]">{comment.body}</MarkdownBody>
+                    ) : (
+                      <div className="whitespace-pre-wrap break-words">{comment.body}</div>
+                    )}
                   </div>
                 </div>
               );

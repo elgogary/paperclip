@@ -152,7 +152,7 @@ export function ChatView({ initialAgentId, initialIssueId }: ChatViewProps) {
                   ),
                   AssistantMessage: () => (
                     <MessagePrimitive.Root className="flex justify-start mb-3">
-                      <div className="max-w-[70%] rounded-2xl rounded-bl-md bg-muted px-4 py-2.5 text-sm">
+                      <div className="max-w-[70%] rounded-2xl rounded-bl-md bg-muted px-4 py-2.5 text-sm prose prose-sm max-w-none break-words prose-pre:whitespace-pre-wrap prose-code:break-all dark:prose-invert">
                         <MessagePrimitive.Content />
                       </div>
                     </MessagePrimitive.Root>
