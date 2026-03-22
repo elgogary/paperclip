@@ -3,12 +3,31 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { agentAccessApi } from "../api/agentAccess";
 import { accessApi } from "../api/access";
 import { Button } from "@/components/ui/button";
-import { Plus, X, Shield, AlertTriangle } from "lucide-react";
+import { Plus, X, Shield, AlertTriangle, User } from "lucide-react";
 
 type AgentAccessTabProps = {
   agentId: string;
   companyId: string;
 };
+
+type Member = {
+  principalType: string;
+  principalId: string;
+  status: string;
+  membershipRole: string | null;
+  user?: { name: string | null; email: string | null } | null;
+};
+
+function userLabel(userId: string, members: Member[]): { name: string; detail: string } {
+  const member = members.find((m) => m.principalId === userId);
+  if (member?.user?.name) {
+    return { name: member.user.name, detail: member.user.email ?? member.membershipRole ?? "member" };
+  }
+  if (member?.user?.email) {
+    return { name: member.user.email, detail: member.membershipRole ?? "member" };
+  }
+  return { name: userId.slice(0, 12) + "...", detail: member?.membershipRole ?? "member" };
+}
 
 export function AgentAccessTab({ agentId, companyId }: AgentAccessTabProps) {
   const queryClient = useQueryClient();
@@ -22,7 +41,6 @@ export function AgentAccessTab({ agentId, companyId }: AgentAccessTabProps) {
   const { data: members = [], isError: membersError } = useQuery({
     queryKey: ["company-members", companyId],
     queryFn: () => accessApi.listMembers(companyId),
-    enabled: showAddUser,
   });
 
   const grantMutation = useMutation({
@@ -41,9 +59,8 @@ export function AgentAccessTab({ agentId, companyId }: AgentAccessTabProps) {
   });
 
   const grantedUserIds = new Set(grants.map((g) => g.userId));
-  const humanMembers = members.filter(
-    (m: { principalType: string; principalId: string; status: string }) =>
-      m.principalType === "user" && m.status === "active" && !grantedUserIds.has(m.principalId),
+  const humanMembers = (members as Member[]).filter(
+    (m) => m.principalType === "user" && m.status === "active" && !grantedUserIds.has(m.principalId),
   );
 
   return (
@@ -79,24 +96,35 @@ export function AgentAccessTab({ agentId, companyId }: AgentAccessTabProps) {
           <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
             Granted Users
           </h3>
-          {grants.map((grant) => (
-            <div
-              key={grant.id}
-              className="flex items-center justify-between p-2.5 rounded-lg border bg-card"
-            >
-              <span className="text-sm font-medium font-mono">{grant.userId}</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs text-destructive hover:text-destructive"
-                onClick={() => revokeMutation.mutate(grant.id)}
-                disabled={revokeMutation.isPending}
+          {grants.map((grant) => {
+            const { name, detail } = userLabel(grant.userId, members as Member[]);
+            return (
+              <div
+                key={grant.id}
+                className="flex items-center justify-between p-2.5 rounded-lg border bg-card"
               >
-                <X className="h-3.5 w-3.5 mr-1" />
-                Remove
-              </Button>
-            </div>
-          ))}
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
+                    <User className="h-3.5 w-3.5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">{name}</div>
+                    <div className="text-[10px] text-muted-foreground">{detail}</div>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs text-destructive hover:text-destructive"
+                  onClick={() => revokeMutation.mutate(grant.id)}
+                  disabled={revokeMutation.isPending}
+                >
+                  <X className="h-3.5 w-3.5 mr-1" />
+                  Remove
+                </Button>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -125,17 +153,30 @@ export function AgentAccessTab({ agentId, companyId }: AgentAccessTabProps) {
             </p>
           ) : (
             <div className="space-y-1 max-h-48 overflow-y-auto">
-              {humanMembers.map((member: { principalId: string; membershipRole: string | null }) => (
-                <button
-                  key={member.principalId}
-                  onClick={() => grantMutation.mutate(member.principalId)}
-                  disabled={grantMutation.isPending}
-                  className="w-full flex items-center justify-between p-2 rounded-md hover:bg-muted text-xs text-left"
-                >
-                  <span className="font-mono">{member.principalId}</span>
-                  <span className="text-muted-foreground">{member.membershipRole ?? "member"}</span>
-                </button>
-              ))}
+              {humanMembers.map((member) => {
+                const name = member.user?.name ?? member.user?.email ?? member.principalId.slice(0, 12) + "...";
+                return (
+                  <button
+                    key={member.principalId}
+                    onClick={() => grantMutation.mutate(member.principalId)}
+                    disabled={grantMutation.isPending}
+                    className="w-full flex items-center justify-between p-2.5 rounded-md hover:bg-muted text-xs text-left"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                        <User className="h-3 w-3 text-primary" />
+                      </div>
+                      <div>
+                        <div className="font-medium">{name}</div>
+                        {member.user?.email && member.user?.name && (
+                          <div className="text-[10px] text-muted-foreground">{member.user.email}</div>
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-muted-foreground capitalize">{member.membershipRole ?? "member"}</span>
+                  </button>
+                );
+              })}
             </div>
           )}
           <Button variant="ghost" size="sm" onClick={() => setShowAddUser(false)}>
