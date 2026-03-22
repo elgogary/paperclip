@@ -16,6 +16,7 @@ import { queryKeys } from "../lib/queryKeys";
 import { AgentConfigForm } from "../components/AgentConfigForm";
 import { PageTabBar } from "../components/PageTabBar";
 import { AgentAccessTab } from "../components/AgentAccessTab";
+import { AgentInstructionsTab } from "../components/AgentInstructionsTab";
 import { adapterLabels, roleLabels } from "../components/agent-config-primitives";
 import { getUIAdapter, buildTranscript } from "../adapters";
 import { StatusBadge } from "../components/StatusBadge";
@@ -176,12 +177,13 @@ function scrollToContainerBottom(container: ScrollContainer, behavior: ScrollBeh
   container.scrollTo({ top: container.scrollHeight, behavior });
 }
 
-type AgentDetailView = "dashboard" | "configuration" | "runs" | "access";
+type AgentDetailView = "dashboard" | "configuration" | "runs" | "access" | "instructions";
 
 function parseAgentDetailView(value: string | null): AgentDetailView {
   if (value === "configure" || value === "configuration") return "configuration";
   if (value === "runs") return value;
   if (value === "access") return value;
+  if (value === "instructions") return value;
   return "dashboard";
 }
 
@@ -575,6 +577,7 @@ export function AgentDetail() {
               { value: "configuration", label: "Configuration" },
               { value: "runs", label: "Runs" },
               { value: "access", label: "Access" },
+              { value: "instructions", label: "Instructions" },
             ]}
             value={activeView}
             onValueChange={(value) => navigate(`/agents/${canonicalAgentRef}/${value}`)}
@@ -682,6 +685,9 @@ export function AgentDetail() {
       )}
       {activeView === "access" && (
         <AgentAccessTab agentId={agent.id} companyId={resolvedCompanyId!} />
+      )}
+      {activeView === "instructions" && (
+        <AgentInstructionsTab agentId={agent.id} companyId={resolvedCompanyId!} />
       )}
     </div>
   );

@@ -21,4 +21,25 @@ export const agentAccessApi = {
 
   revoke: (companyId: string, grantId: string) =>
     api.delete<AgentUserAccess>(`/companies/${companyId}/agent-access/${grantId}`),
+
+  getInstructions: (agentId: string) =>
+    api.get<{ path: string | null; content: string | null; error?: string }>(`/agents/${agentId}/instructions`),
+
+  listNotes: (agentId: string) =>
+    api.get<AgentNote[]>(`/agents/${agentId}/notes`),
+
+  addNote: (agentId: string, body: string) =>
+    api.post<AgentNote>(`/agents/${agentId}/notes`, { body }),
+
+  deleteNote: (agentId: string, noteId: string) =>
+    api.delete<AgentNote>(`/agents/${agentId}/notes/${noteId}`),
+};
+
+export type AgentNote = {
+  id: string;
+  companyId: string;
+  agentId: string;
+  authorUserId: string;
+  body: string;
+  createdAt: string;
 };
