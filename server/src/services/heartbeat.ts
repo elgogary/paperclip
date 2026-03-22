@@ -641,8 +641,16 @@ export function heartbeatService(db: Db) {
       }
     }
 
-    const cwd = resolveDefaultAgentWorkspaceDir(agent.id);
-    await fs.mkdir(cwd, { recursive: true });
+    // Prefer agent's own configured cwd over the generic fallback directory
+    const agentAdapterConfig = (agent as unknown as Record<string, unknown>).adapterConfig as Record<string, unknown> | null;
+    const agentCwd = readNonEmptyString(agentAdapterConfig?.cwd);
+    const agentCwdExists = agentCwd
+      ? await fs.stat(agentCwd).then((s) => s.isDirectory()).catch(() => false)
+      : false;
+    const cwd = agentCwdExists ? agentCwd! : resolveDefaultAgentWorkspaceDir(agent.id);
+    if (!agentCwdExists) {
+      await fs.mkdir(cwd, { recursive: true });
+    }
     const warnings: string[] = [];
     if (sessionCwd) {
       warnings.push(
@@ -652,11 +660,8 @@ export function heartbeatService(db: Db) {
       warnings.push(
         `No project workspace directory is currently available for this issue. Using fallback workspace "${cwd}" for this run.`,
       );
-    } else {
-      warnings.push(
-        `No project or prior session workspace was available. Using fallback workspace "${cwd}" for this run.`,
-      );
     }
+    // No warning for general chats without a project — agent's own cwd is fine
     return {
       cwd,
       source: "agent_home" as const,
