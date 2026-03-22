@@ -18,7 +18,7 @@
     <link rel="manifest" href="/site.webmanifest" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital@1&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital@1&display=swap" rel="stylesheet" />
     <script>
       (() => {
         const key = "sanad-eoi.theme";
@@ -60,60 +60,77 @@
       #sanad-splash svg {
         animation: sanad-pulse 1.5s ease-in-out infinite;
       }
-      #sanad-splash .sanad-sparkle {
-        animation: sanad-sparkle-rotate 2s linear infinite;
-        transform-origin: 20px 5.9px;
+      #sanad-splash .sanad-dots circle,
+      #sanad-splash .sanad-dots line {
+        animation: sanad-dots-fade 2s ease-in-out infinite;
+      }
+      #sanad-splash .sanad-dots circle:nth-child(2) { animation-delay: 0.3s; }
+      #sanad-splash .sanad-dots circle:nth-child(3) { animation-delay: 0.6s; }
+      #sanad-splash .sanad-dots circle:nth-child(4) { animation-delay: 0.9s; }
+      #sanad-splash .sanad-sparkle-path {
+        animation: sanad-sparkle-pulse 1.5s ease-in-out infinite alternate;
       }
       #sanad-splash .sanad-brand {
-        margin-top: 10px;
+        margin-top: 12px;
         font-family: system-ui, -apple-system, sans-serif;
         font-size: 18px;
         font-weight: 700;
-        letter-spacing: 1px;
+        letter-spacing: 2px;
         opacity: 0.9;
       }
       #sanad-splash .sanad-tagline {
-        margin-top: 4px;
-        font-family: 'Playfair Display', serif;
-        font-size: 14px;
+        margin-top: 6px;
+        font-family: 'Libre Baskerville', serif;
+        font-size: 12px;
         font-style: italic;
         font-weight: 400;
-        letter-spacing: 0.5px;
-        opacity: 0.6;
+        letter-spacing: 0.3px;
+        opacity: 0.45;
       }
       .dark #sanad-splash .sanad-brand { color: #fafafa; }
       :not(.dark) #sanad-splash .sanad-brand { color: #18181b; }
       .dark #sanad-splash .sanad-tagline { color: #a1a1aa; }
       :not(.dark) #sanad-splash .sanad-tagline { color: #71717a; }
-      .dark #sanad-splash .sanad-letter { fill: #fafafa; }
-      :not(.dark) #sanad-splash .sanad-letter { fill: #18181b; }
+      .dark #sanad-splash .sanad-letter { fill: #fafafa; stroke: #fafafa; }
+      :not(.dark) #sanad-splash .sanad-letter { fill: #18181b; stroke: #18181b; }
       .dark #sanad-splash .sanad-sparkle-path { fill: #fafafa; }
       :not(.dark) #sanad-splash .sanad-sparkle-path { fill: #18181b; }
       @keyframes sanad-pulse {
         0%, 100% { transform: scale(1); opacity: 1; }
         50% { transform: scale(1.05); opacity: 0.85; }
       }
-      @keyframes sanad-sparkle-rotate {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+      @keyframes sanad-dots-fade {
+        0%, 100% { opacity: 0.3; }
+        50% { opacity: 0.9; }
+      }
+      @keyframes sanad-sparkle-pulse {
+        0% { opacity: 0.3; }
+        100% { opacity: 0.8; }
       }
     </style>
   </head>
   <body>
     <!-- Splash screen — removed by React on mount -->
     <div id="sanad-splash">
-      <svg viewBox="0 0 24 24" fill="none" width="64" height="64">
-        <text class="sanad-letter" x="11.5" y="18.5" text-anchor="middle"
+      <svg viewBox="0 0 72 72" fill="none" width="72" height="72">
+        <text class="sanad-letter" x="36" y="46" text-anchor="middle"
           font-family="system-ui,-apple-system,sans-serif" font-weight="900"
-          font-size="19" letter-spacing="-0.5">S</text>
-        <g class="sanad-sparkle">
-          <path class="sanad-sparkle-path"
-            d="M20 3.5 L20.6 5.3 L22.4 5.9 L20.6 6.5 L20 8.3 L19.4 6.5 L17.6 5.9 L19.4 5.3Z"
-            opacity="0.75"/>
+          font-size="40">S</text>
+        <g class="sanad-dots">
+          <circle class="sanad-letter" cx="58" cy="12" r="2" opacity="0.8"/>
+          <circle class="sanad-letter" cx="64" cy="22" r="1.2" opacity="0.5"/>
+          <circle class="sanad-letter" cx="54" cy="6" r="1" opacity="0.4"/>
+          <circle class="sanad-letter" cx="62" cy="16" r="0.8" opacity="0.3"/>
+          <line class="sanad-letter" x1="58" y1="12" x2="64" y2="22" stroke-width="0.5" opacity="0.2"/>
+          <line class="sanad-letter" x1="58" y1="12" x2="54" y2="6" stroke-width="0.5" opacity="0.2"/>
+          <line class="sanad-letter" x1="64" y1="22" x2="62" y2="16" stroke-width="0.5" opacity="0.15"/>
         </g>
+        <path class="sanad-sparkle-path"
+          d="M60 8 L60.5 9.5 L62 10 L60.5 10.5 L60 12 L59.5 10.5 L58 10 L59.5 9.5Z"
+          opacity="0.6"/>
       </svg>
-      <div class="sanad-brand">Sanad AI</div>
-      <div class="sanad-tagline">Your Enterprise Operations Intelligence Assistant</div>
+      <div class="sanad-brand">SANAD AI</div>
+      <div class="sanad-tagline">Intelligent Enterprise Operations</div>
     </div>
 
     <div id="root"></div>
