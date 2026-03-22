@@ -147,6 +147,7 @@ export function ChatModal() {
           source: "on_demand",
           triggerDetail: "manual",
           reason: "Chat message",
+          payload: { issueId: selectedIssueId },
         });
       } catch { /* agent may be running */ }
     },
@@ -215,7 +216,7 @@ export function ChatModal() {
       setInputValue("/help — show commands\n/clear — clear chat\n/status — ask status\n/retry — re-run heartbeat");
     } else if (cmd.name === "retry") {
       if (selectedAgentId) {
-        try { await agentsApi.wakeup(selectedAgentId, { source: "on_demand", triggerDetail: "manual", reason: "Retry from chat" }); } catch { /* agent may be running */ }
+        try { await agentsApi.wakeup(selectedAgentId, { source: "on_demand", triggerDetail: "manual", reason: "Retry from chat", payload: { issueId: selectedIssueId } }); } catch { /* agent may be running */ }
       }
       setInputValue("");
     }

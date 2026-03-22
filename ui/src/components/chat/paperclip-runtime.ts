@@ -81,6 +81,7 @@ export function usePaperclipChat({
           source: "on_demand",
           triggerDetail: "manual",
           reason: "Chat message on issue",
+          payload: { issueId },
         });
       } catch {
         // agent might already be running
