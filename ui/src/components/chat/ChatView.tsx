@@ -19,6 +19,7 @@ import { QuickSuggestions } from "./QuickSuggestions";
 import { SlashCommandMenu, type SlashCommand } from "./SlashCommandMenu";
 import { VoiceRecorder } from "./VoiceRecorder";
 import { MarkdownBody } from "../MarkdownBody";
+import { SanadLogo } from "../SanadLogo";
 import {
   Send,
   Paperclip as PaperclipIcon,
@@ -379,8 +380,8 @@ export function ChatView({ initialAgentId, initialIssueId }: ChatViewProps) {
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center space-y-3">
-              <div className="text-4xl">💬</div>
-              <h2 className="text-lg font-semibold">Optiflow Chat</h2>
+              <SanadLogo size={48} className="text-primary mx-auto" />
+              <h2 className="text-lg font-semibold">Sanad AI</h2>
               <p className="text-sm text-muted-foreground max-w-sm">
                 Select an agent from the sidebar, then start or continue a
                 conversation.

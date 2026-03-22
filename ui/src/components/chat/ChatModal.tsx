@@ -15,6 +15,7 @@ import { heartbeatsApi } from "../../api/heartbeats";
 import { queryKeys } from "../../lib/queryKeys";
 import { cn } from "../../lib/utils";
 import { MarkdownBody } from "../MarkdownBody";
+import { SanadLogo } from "../SanadLogo";
 import { TypingIndicator } from "./TypingIndicator";
 import { QuickSuggestions } from "./QuickSuggestions";
 import { SlashCommandMenu, type SlashCommand } from "./SlashCommandMenu";
@@ -23,7 +24,6 @@ import { ChatHistoryDrawer } from "./ChatHistoryDrawer";
 import { ChatToolsDrawer } from "./ChatToolsDrawer";
 import { AGENT_ICONS, ROLE_COLORS, DEFAULT_ICON } from "./chat-constants";
 import {
-  MessageSquare,
   X,
   Maximize2,
   Minimize2,
@@ -259,7 +259,7 @@ export function ChatModal() {
         onClick={() => setMode("popup")}
         className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center"
       >
-        <MessageSquare className="h-6 w-6" />
+        <SanadLogo size={28} className="text-white" />
       </button>
     );
   }
@@ -298,8 +298,8 @@ export function ChatModal() {
             </>
           ) : (
             <>
-              <MessageSquare className="h-5 w-5 text-primary" />
-              <span className="text-sm font-semibold">Optiflow Chat</span>
+              <SanadLogo size={20} className="text-primary" />
+              <span className="text-sm font-semibold">Sanad AI</span>
             </>
           )}
         </div>
