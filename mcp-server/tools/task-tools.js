@@ -4,6 +4,16 @@
 import { z } from "zod";
 import { api, API_URL, COMPANY_ID } from "./api-client.js";
 
+let cachedProjectId = null;
+
+async function getProjectId() {
+  if (cachedProjectId) return cachedProjectId;
+  const projects = await api(`/companies/${COMPANY_ID}/projects`);
+  cachedProjectId = projects[0]?.id;
+  if (!cachedProjectId) throw new Error("No project found in company");
+  return cachedProjectId;
+}
+
 export function registerTaskTools(server) {
   server.tool(
     "create_task",
@@ -15,9 +25,7 @@ export function registerTaskTools(server) {
       priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
     },
     async ({ title, body, agentId, priority }) => {
-      const projects = await api(`/companies/${COMPANY_ID}/projects`);
-      const projectId = projects[0]?.id;
-      if (!projectId) throw new Error("No project found in company");
+      const projectId = await getProjectId();
       const issue = await api(`/companies/${COMPANY_ID}/issues`, {
         method: "POST",
         body: JSON.stringify({
@@ -108,6 +116,9 @@ export function registerTaskTools(server) {
       if (status) updates.status = status;
       if (priority) updates.priority = priority;
       if (assigneeAgentId) updates.assigneeAgentId = assigneeAgentId;
+      if (Object.keys(updates).length === 0) {
+        return { content: [{ type: "text", text: "No updates provided — nothing changed." }] };
+      }
       const issue = await api(`/issues/${issueId}`, {
         method: "PATCH", body: JSON.stringify(updates),
       });
@@ -132,9 +143,7 @@ export function registerTaskTools(server) {
         const agent = await api(`/agents/${agentId}?companyId=${COMPANY_ID}`);
         resolvedAgentId = agent.id;
       }
-      const projects = await api(`/companies/${COMPANY_ID}/projects`);
-      const projectId = projects[0]?.id;
-      if (!projectId) throw new Error("No project found");
+      const projectId = await getProjectId();
 
       const body = `## Board Instructions\n\n${context}\n\n---\n*Delegated from Claude Code session*`;
       const issue = await api(`/companies/${COMPANY_ID}/issues`, {

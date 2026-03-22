@@ -31,7 +31,7 @@ async function login() {
 
 export async function api(path, opts = {}) {
   await login();
-  const res = await fetch(`${API_URL}/api${path}`, {
+  let res = await fetch(`${API_URL}/api${path}`, {
     ...opts,
     headers: {
       "Content-Type": "application/json",
@@ -40,6 +40,20 @@ export async function api(path, opts = {}) {
       ...(opts.headers || {}),
     },
   });
+  // Re-auth on 401 (expired session) and retry once
+  if (res.status === 401) {
+    sessionCookie = "";
+    await login();
+    res = await fetch(`${API_URL}/api${path}`, {
+      ...opts,
+      headers: {
+        "Content-Type": "application/json",
+        Origin: API_URL,
+        Cookie: sessionCookie,
+        ...(opts.headers || {}),
+      },
+    });
+  }
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`API ${opts.method || "GET"} ${path}: ${res.status} ${text.slice(0, 300)}`);
