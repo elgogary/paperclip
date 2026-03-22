@@ -4,17 +4,21 @@
  * Connects Claude Code to the Sanad AI agent crew.
  *
  * Tools:
- *   list_agents        — List all agents with status, role, budget
- *   get_agent_detail   — Full agent info including capabilities and config
- *   list_runs          — Recent heartbeat runs for an agent
- *   read_run_log       — Full stdout/stderr log from a run
- *   read_run_events    — Structured events (lifecycle, tool calls, etc.)
- *   wakeup_agent       — Trigger an agent's heartbeat
- *   create_task        — Create an issue and assign to an agent
- *   list_tasks         — List tasks assigned to an agent
- *   read_instructions  — Read agent's SOUL.md file
- *   list_notes         — List board improvement notes for an agent
- *   add_note           — Add a board improvement note
+ *   list_agents         — List all agents with status, role, budget
+ *   get_agent_detail    — Full agent info including capabilities and config
+ *   list_runs           — Recent heartbeat runs for an agent
+ *   read_run_log        — Full stdout/stderr log from a run
+ *   read_run_events     — Structured events (lifecycle, tool calls, etc.)
+ *   wakeup_agent        — Trigger an agent's heartbeat
+ *   create_task         — Create an issue and assign to an agent
+ *   list_tasks          — List tasks assigned to an agent
+ *   read_task_comments  — See agent replies on a task
+ *   comment_on_task     — Post board instructions on a task
+ *   get_task_detail     — Full task info
+ *   update_task         — Change status, priority, or assignee
+ *   read_instructions   — Read agent's SOUL.md file
+ *   list_notes          — List board improvement notes for an agent
+ *   add_note            — Add a board improvement note
  *
  * Config (env vars):
  *   SANAD_API_URL      — Base URL (default: http://100.109.59.30:3100)
@@ -276,7 +280,79 @@ server.tool(
   },
 );
 
-// 9. Read instructions
+// 9. Read task comments (see agent replies)
+server.tool(
+  "read_task_comments",
+  "Read comments on a task — see agent replies and board instructions",
+  { issueId: z.string().describe("Issue/task UUID") },
+  async ({ issueId }) => {
+    const comments = await api(`/issues/${issueId}/comments`);
+    const formatted = comments.map((c) => ({
+      id: c.id,
+      author: c.authorAgentId ? `agent:${c.authorAgentId}` : `user:${c.authorUserId}`,
+      body: c.body,
+      createdAt: c.createdAt,
+    }));
+    return { content: [{ type: "text", text: JSON.stringify(formatted, null, 2) }] };
+  },
+);
+
+// 10. Comment on task (give agent instructions)
+server.tool(
+  "comment_on_task",
+  "Post a comment on a task — agents read these as board instructions",
+  {
+    issueId: z.string().describe("Issue/task UUID"),
+    body: z.string().describe("Comment body (markdown)"),
+  },
+  async ({ issueId, body }) => {
+    const comment = await api(`/issues/${issueId}/comments`, {
+      method: "POST",
+      body: JSON.stringify({ body }),
+    });
+    return {
+      content: [{ type: "text", text: `Comment posted: ${comment.id}` }],
+    };
+  },
+);
+
+// 11. Get task detail
+server.tool(
+  "get_task_detail",
+  "Get full details of a task including body, status, assignee",
+  { issueId: z.string().describe("Issue/task UUID") },
+  async ({ issueId }) => {
+    const issue = await api(`/issues/${issueId}`);
+    return { content: [{ type: "text", text: JSON.stringify(issue, null, 2) }] };
+  },
+);
+
+// 12. Update task status
+server.tool(
+  "update_task",
+  "Update a task's status, priority, or assignee",
+  {
+    issueId: z.string().describe("Issue/task UUID"),
+    status: z.enum(["todo", "in_progress", "done", "blocked", "cancelled"]).optional(),
+    priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
+    assigneeAgentId: z.string().optional().describe("Reassign to different agent UUID"),
+  },
+  async ({ issueId, status, priority, assigneeAgentId }) => {
+    const updates = {};
+    if (status) updates.status = status;
+    if (priority) updates.priority = priority;
+    if (assigneeAgentId) updates.assigneeAgentId = assigneeAgentId;
+    const issue = await api(`/issues/${issueId}`, {
+      method: "PATCH",
+      body: JSON.stringify(updates),
+    });
+    return {
+      content: [{ type: "text", text: `Task updated: ${issue.issueNumber || issue.id} → ${JSON.stringify(updates)}` }],
+    };
+  },
+);
+
+// 13. Read instructions (SOUL.md)
 server.tool(
   "read_instructions",
   "Read an agent's SOUL.md instructions file",
