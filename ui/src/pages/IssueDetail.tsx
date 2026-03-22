@@ -856,13 +856,13 @@ export function IssueDetail() {
             <p className="text-sm text-muted-foreground">
               Open full chat view for this issue
             </p>
-            <a
-              href={`chat/${issue.assigneeAgentId}/${issue.id}`}
+            <Link
+              to={`/chat/${issue.assigneeAgentId}/${issue.id}`}
               className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
             >
               <MessageCircle className="h-4 w-4" />
               Open Chat
-            </a>
+            </Link>
           </div>
         </TabsContent>
       </Tabs>
