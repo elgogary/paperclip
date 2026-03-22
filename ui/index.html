@@ -37,8 +37,70 @@
         }
       })();
     </script>
+    <style>
+      #sanad-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        transition: opacity 0.4s ease-out;
+      }
+      .dark #sanad-splash { background: #18181b; }
+      :not(.dark) #sanad-splash { background: #ffffff; }
+      #sanad-splash.fade-out {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #sanad-splash svg {
+        animation: sanad-pulse 1.5s ease-in-out infinite;
+      }
+      #sanad-splash .sanad-sparkle {
+        animation: sanad-sparkle-rotate 2s linear infinite;
+        transform-origin: 20px 5.9px;
+      }
+      #sanad-splash .sanad-text {
+        margin-top: 16px;
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        opacity: 0.6;
+      }
+      .dark #sanad-splash .sanad-text { color: #a1a1aa; }
+      :not(.dark) #sanad-splash .sanad-text { color: #71717a; }
+      .dark #sanad-splash .sanad-letter { fill: #fafafa; }
+      :not(.dark) #sanad-splash .sanad-letter { fill: #18181b; }
+      .dark #sanad-splash .sanad-sparkle-path { fill: #fafafa; }
+      :not(.dark) #sanad-splash .sanad-sparkle-path { fill: #18181b; }
+      @keyframes sanad-pulse {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.05); opacity: 0.85; }
+      }
+      @keyframes sanad-sparkle-rotate {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
   </head>
   <body>
+    <!-- Splash screen — removed by React on mount -->
+    <div id="sanad-splash">
+      <svg viewBox="0 0 24 24" fill="none" width="64" height="64">
+        <text class="sanad-letter" x="11.5" y="18.5" text-anchor="middle"
+          font-family="system-ui,-apple-system,sans-serif" font-weight="900"
+          font-size="19" letter-spacing="-0.5">S</text>
+        <g class="sanad-sparkle">
+          <path class="sanad-sparkle-path"
+            d="M20 3.5 L20.6 5.3 L22.4 5.9 L20.6 6.5 L20 8.3 L19.4 6.5 L17.6 5.9 L19.4 5.3Z"
+            opacity="0.75"/>
+        </g>
+      </svg>
+      <div class="sanad-text">Sanad AI</div>
+    </div>
+
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

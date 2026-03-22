@@ -21,6 +21,15 @@ if ("serviceWorker" in navigator) {
   });
 }
 
+// Remove splash screen after React mounts
+requestAnimationFrame(() => {
+  const splash = document.getElementById("sanad-splash");
+  if (splash) {
+    splash.classList.add("fade-out");
+    setTimeout(() => splash.remove(), 500);
+  }
+});
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
