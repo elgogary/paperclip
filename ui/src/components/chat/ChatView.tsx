@@ -380,7 +380,7 @@ export function ChatView({ initialAgentId, initialIssueId }: ChatViewProps) {
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center space-y-3">
-              <SanadLogo size={48} color="#3B82F6" className="mx-auto" />
+              <SanadLogo size={48} className="text-foreground mx-auto" />
               <h2 className="text-lg font-semibold">Sanad AI</h2>
               <p className="text-sm text-muted-foreground max-w-sm">
                 Select an agent from the sidebar, then start or continue a

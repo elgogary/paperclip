@@ -75,7 +75,7 @@ export function Docs() {
       {/* Sidebar */}
       <div className="w-[260px] shrink-0 border-r bg-card overflow-y-auto">
         <div className="flex items-center gap-2 p-4 border-b">
-          <SanadLogo size={20} color="#3B82F6" />
+          <SanadLogo size={20} className="text-foreground" />
           <div>
             <span className="text-sm font-semibold">Documentation</span>
             <span className="text-[10px] text-muted-foreground ml-2">{totalPages} pages</span>
