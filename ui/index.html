@@ -61,16 +61,26 @@
         animation: sanad-sparkle-rotate 2s linear infinite;
         transform-origin: 20px 5.9px;
       }
-      #sanad-splash .sanad-text {
-        margin-top: 16px;
+      #sanad-splash .sanad-brand {
+        margin-top: 20px;
         font-family: system-ui, -apple-system, sans-serif;
-        font-size: 14px;
-        font-weight: 600;
-        letter-spacing: 0.5px;
-        opacity: 0.6;
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        opacity: 0.9;
       }
-      .dark #sanad-splash .sanad-text { color: #a1a1aa; }
-      :not(.dark) #sanad-splash .sanad-text { color: #71717a; }
+      #sanad-splash .sanad-tagline {
+        margin-top: 8px;
+        font-family: 'Georgia', 'Times New Roman', serif;
+        font-size: 13px;
+        font-style: italic;
+        letter-spacing: 0.3px;
+        opacity: 0.5;
+      }
+      .dark #sanad-splash .sanad-brand { color: #fafafa; }
+      :not(.dark) #sanad-splash .sanad-brand { color: #18181b; }
+      .dark #sanad-splash .sanad-tagline { color: #a1a1aa; }
+      :not(.dark) #sanad-splash .sanad-tagline { color: #71717a; }
       .dark #sanad-splash .sanad-letter { fill: #fafafa; }
       :not(.dark) #sanad-splash .sanad-letter { fill: #18181b; }
       .dark #sanad-splash .sanad-sparkle-path { fill: #fafafa; }
@@ -98,7 +108,8 @@
             opacity="0.75"/>
         </g>
       </svg>
-      <div class="sanad-text">Sanad AI</div>
+      <div class="sanad-brand">Sanad AI</div>
+      <div class="sanad-tagline">Your Enterprise Operations, In Hand</div>
     </div>
 
     <div id="root"></div>
