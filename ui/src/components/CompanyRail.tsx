@@ -274,7 +274,7 @@ export function CompanyRail() {
         className="flex items-center justify-center h-12 w-full shrink-0 hover:bg-muted/50 transition-colors"
         title="Home"
       >
-        <SanadLogo size={22} className="text-foreground" />
+        <SanadLogo size={28} className="text-foreground" />
       </button>
 
       {/* Company list */}

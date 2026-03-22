@@ -259,7 +259,7 @@ export function ChatModal() {
         onClick={() => setMode("popup")}
         className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center"
       >
-        <SanadLogo size={28} color="white" />
+        <SanadLogo size={32} color="white" />
       </button>
     );
   }
@@ -298,7 +298,7 @@ export function ChatModal() {
             </>
           ) : (
             <>
-              <SanadLogo size={20} className="text-foreground" />
+              <SanadLogo size={24} className="text-foreground" />
               <span className="text-sm font-semibold">Sanad AI</span>
             </>
           )}
