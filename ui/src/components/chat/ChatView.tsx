@@ -8,6 +8,7 @@ import { useCompany } from "../../context/CompanyContext";
 import { agentsApi } from "../../api/agents";
 import { issuesApi } from "../../api/issues";
 import { heartbeatsApi } from "../../api/heartbeats";
+import { projectsApi } from "../../api/projects";
 import { queryKeys } from "../../lib/queryKeys";
 import { cn } from "../../lib/utils";
 import { ChatSidebar } from "./ChatSidebar";
@@ -90,14 +91,22 @@ export function ChatView({ initialAgentId, initialIssueId }: ChatViewProps) {
     enabled: !!selectedAgentId && !!companyId,
   });
 
+  const { data: projects = [] } = useQuery({
+    queryKey: queryKeys.projects.list(companyId ?? ""),
+    queryFn: () => projectsApi.list(companyId!),
+    enabled: !!companyId,
+  });
+
   const createConversation = useMutation({
     mutationFn: async () => {
       const agent = agents.find((a: { id: string }) => a.id === selectedAgentId);
+      const defaultProjectId = projects[0]?.id;
       return issuesApi.create(companyId!, {
         title: `Chat with ${agent?.name ?? "Agent"}`,
         description: "Conversation started from Chat UI",
         status: "todo",
         assigneeAgentId: selectedAgentId!,
+        ...(defaultProjectId ? { projectId: defaultProjectId } : {}),
       });
     },
     onSuccess: (issue: { id: string }) => {

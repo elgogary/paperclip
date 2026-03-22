@@ -10,6 +10,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCompany } from "../../context/CompanyContext";
 import { agentsApi } from "../../api/agents";
 import { issuesApi } from "../../api/issues";
+import { projectsApi } from "../../api/projects";
 import { heartbeatsApi } from "../../api/heartbeats";
 import { queryKeys } from "../../lib/queryKeys";
 import { cn } from "../../lib/utils";
@@ -113,14 +114,22 @@ export function ChatModal() {
     enabled: !!selectedAgentId && toolsOpen,
   });
 
+  const { data: projects = [] } = useQuery({
+    queryKey: queryKeys.projects.list(companyId ?? ""),
+    queryFn: () => projectsApi.list(companyId!),
+    enabled: !!companyId,
+  });
+
   const createConversation = useMutation({
     mutationFn: async () => {
       const agent = agents.find((a: { id: string }) => a.id === selectedAgentId);
+      const defaultProjectId = projects[0]?.id;
       return issuesApi.create(companyId!, {
         title: `Chat with ${agent?.name ?? "Agent"}`,
         description: "Conversation started from Chat modal",
         status: "todo",
         assigneeAgentId: selectedAgentId!,
+        ...(defaultProjectId ? { projectId: defaultProjectId } : {}),
       });
     },
     onSuccess: (issue: { id: string }) => {
