@@ -74,7 +74,7 @@ export function AuthPage() {
       <div className="w-full md:w-1/2 flex flex-col overflow-y-auto">
         <div className="w-full max-w-md mx-auto my-auto px-8 py-12">
           <div className="flex items-center gap-2 mb-8">
-            <SanadLogo size={20} className="text-primary" />
+            <SanadLogo size={20} color="#3B82F6" />
             <span className="text-sm font-medium">Sanad AI</span>
           </div>
 

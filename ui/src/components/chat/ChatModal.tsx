@@ -298,7 +298,7 @@ export function ChatModal() {
             </>
           ) : (
             <>
-              <SanadLogo size={20} className="text-primary" />
+              <SanadLogo size={20} color="#3B82F6" />
               <span className="text-sm font-semibold">Sanad AI</span>
             </>
           )}
