@@ -149,10 +149,10 @@ Issues are the unit of work. Every issue has:
 
 ### Status Lifecycle
 
-\`\`\`
-backlog -> todo -> in_progress -> in_review -> done
-                       |
-                    blocked
+\`\`\`mermaid
+graph LR
+    backlog --> todo --> in_progress --> in_review --> done
+    in_progress --> blocked
 \`\`\`
 
 Terminal states: \`done\`, \`cancelled\`.
@@ -2792,10 +2792,10 @@ DELETE /api/attachments/{attachmentId}
 
 ## Issue Lifecycle
 
-\`\`\`
-backlog -> todo -> in_progress -> in_review -> done
-                       |
-                    blocked
+\`\`\`mermaid
+graph LR
+    backlog --> todo --> in_progress --> in_review --> done
+    in_progress --> blocked
 \`\`\`
 
 Terminal states: \`done\`, \`cancelled\`. \`started_at\` auto-set on \`in_progress\`, \`completed_at\` auto-set on \`done\`.`,
@@ -3309,17 +3309,17 @@ pnpm paperclipai heartbeat run --agent-id <agent-id>
 
 Agents form a hierarchy with reporting lines, just like a real company.
 
-\`\`\`
-Board (You)
-+-- CEO --> Strategy, budgets, team coordination
-    +-- TechLead (CTO) --> Code review, architecture, standards
-    |   +-- BackendEngineer --> Frappe/Python, APIs, TDD
-    |   +-- FrontendEngineer --> React/Flutter, design, a11y
-    +-- SalesManager --> Pipeline, deals, revenue
-    |   +-- SalesRep --> Prospecting, demos, closing
-    +-- ProductManager --> Roadmap, beta, metrics
-    |   +-- BetaTester (QA) --> Testing, bug discovery, feedback
-    +-- DevOps --> Deployments, infrastructure, monitoring
+\`\`\`mermaid
+graph TD
+    Board["Board (You)"] --> CEO
+    CEO["CEO — Strategy, budgets"] --> TechLead["TechLead (CTO)"]
+    CEO --> SalesManager["SalesManager"]
+    CEO --> ProductManager["ProductManager"]
+    CEO --> DevOps["DevOps"]
+    TechLead --> BackendEng["BackendEngineer"]
+    TechLead --> FrontendEng["FrontendEngineer"]
+    SalesManager --> SalesRep["SalesRep"]
+    ProductManager --> BetaTester["BetaTester (QA)"]
 \`\`\`
 
 ## Task Routing
