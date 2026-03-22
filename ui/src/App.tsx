@@ -28,6 +28,7 @@ import { RunTranscriptUxLab } from "./pages/RunTranscriptUxLab";
 import { OrgChart } from "./pages/OrgChart";
 import { NewAgent } from "./pages/NewAgent";
 import Chat from "./pages/Chat";
+import { Docs } from "./pages/Docs";
 import { AuthPage } from "./pages/Auth";
 import { BoardClaimPage } from "./pages/BoardClaim";
 import { InviteLandingPage } from "./pages/InviteLanding";
@@ -153,6 +154,7 @@ function boardRoutes() {
       <Route path="chat" element={<Chat />} />
       <Route path="chat/:agentId" element={<Chat />} />
       <Route path="chat/:agentId/:issueId" element={<Chat />} />
+      <Route path="docs" element={<Docs />} />
       <Route path="design-guide" element={<DesignGuide />} />
       <Route path="tests/ux/runs" element={<RunTranscriptUxLab />} />
       <Route path="*" element={<NotFoundPage scope="board" />} />
@@ -322,6 +324,7 @@ export function App() {
           <Route path="chat" element={<UnprefixedBoardRedirect />} />
           <Route path="chat/:agentId" element={<UnprefixedBoardRedirect />} />
           <Route path="chat/:agentId/:issueId" element={<UnprefixedBoardRedirect />} />
+          <Route path="docs" element={<UnprefixedBoardRedirect />} />
           <Route path="tests/ux/runs" element={<UnprefixedBoardRedirect />} />
           <Route path=":companyPrefix" element={<Layout />}>
             {boardRoutes()}

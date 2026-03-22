@@ -6,6 +6,7 @@ import {
   DollarSign,
   History,
   MessageSquare,
+  BookOpen,
   Search,
   SquarePen,
   Network,
@@ -82,6 +83,7 @@ export function Sidebar() {
             alert={inboxBadge.failedRuns > 0}
           />
           <SidebarNavItem to="/chat" label="Chat" icon={MessageSquare} />
+          <SidebarNavItem to="/docs" label="Docs" icon={BookOpen} />
         </div>
 
         <SidebarSection label="Work">
