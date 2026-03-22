@@ -24,30 +24,30 @@ export function SanadLogo({ className, size = 24, color }: SanadLogoProps) {
     >
       {/* Bold S */}
       <text
-        x="36"
-        y="46"
+        x="34"
+        y="48"
         textAnchor="middle"
         fontFamily="system-ui,-apple-system,sans-serif"
         fontWeight="900"
-        fontSize="40"
+        fontSize="44"
         fill={f}
       >
         S
       </text>
-      {/* Constellation dots */}
-      <circle cx="58" cy="12" r="2" fill={f} opacity="0.8" />
-      <circle cx="64" cy="22" r="1.2" fill={f} opacity="0.5" />
-      <circle cx="54" cy="6" r="1" fill={f} opacity="0.4" />
-      <circle cx="62" cy="16" r="0.8" fill={f} opacity="0.3" />
-      {/* Connection lines */}
-      <line x1="58" y1="12" x2="64" y2="22" stroke={f} strokeWidth="0.5" opacity="0.2" />
-      <line x1="58" y1="12" x2="54" y2="6" stroke={f} strokeWidth="0.5" opacity="0.2" />
-      <line x1="64" y1="22" x2="62" y2="16" stroke={f} strokeWidth="0.5" opacity="0.15" />
-      {/* Sparkle */}
+      {/* Constellation dots — large enough to see at 24px */}
+      <circle cx="56" cy="10" r="3.5" fill={f} opacity="0.85" />
+      <circle cx="65" cy="24" r="2.5" fill={f} opacity="0.6" />
+      <circle cx="50" cy="3" r="2" fill={f} opacity="0.5" />
+      <circle cx="64" cy="14" r="1.5" fill={f} opacity="0.4" />
+      {/* Connection lines — thicker for visibility */}
+      <line x1="56" y1="10" x2="65" y2="24" stroke={f} strokeWidth="1" opacity="0.25" />
+      <line x1="56" y1="10" x2="50" y2="3" stroke={f} strokeWidth="1" opacity="0.25" />
+      <line x1="65" y1="24" x2="64" y2="14" stroke={f} strokeWidth="0.8" opacity="0.2" />
+      {/* Sparkle — bigger */}
       <path
-        d="M60 8 L60.5 9.5 L62 10 L60.5 10.5 L60 12 L59.5 10.5 L58 10 L59.5 9.5Z"
+        d="M58 6 L59 9 L62 10 L59 11 L58 14 L57 11 L54 10 L57 9Z"
         fill={f}
-        opacity="0.6"
+        opacity="0.55"
       />
     </svg>
   );
