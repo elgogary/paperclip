@@ -1,21 +1,15 @@
 /**
  * ChatView — 3-panel chat layout (Sidebar + Chat + Debug)
- * Uses assistant-ui for message rendering, custom composer for full feature parity with ChatModal.
  * Phase 1.5: markdown, typing indicator, voice, attachments, slash commands, suggestions, copy.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  AssistantRuntimeProvider,
-  ThreadPrimitive,
-  MessagePrimitive,
-} from "@assistant-ui/react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useCompany } from "../../context/CompanyContext";
 import { agentsApi } from "../../api/agents";
 import { issuesApi } from "../../api/issues";
+import { heartbeatsApi } from "../../api/heartbeats";
 import { queryKeys } from "../../lib/queryKeys";
 import { cn } from "../../lib/utils";
-import { usePaperclipChat } from "./paperclip-runtime";
 import { ChatSidebar } from "./ChatSidebar";
 import { ChatDebugPanel } from "./ChatDebugPanel";
 import { ChatLearningBanner } from "./ChatLearningBanner";
@@ -114,12 +108,22 @@ export function ChatView({ initialAgentId, initialIssueId }: ChatViewProps) {
     },
   });
 
-  const { runtime, isRunning, activeRunId, comments } = usePaperclipChat({
-    issueId: selectedIssueId ?? "",
-    companyId: companyId ?? "",
-    agentId: selectedAgentId ?? "",
-    currentUserId: null,
+  const { data: comments = [] } = useQuery({
+    queryKey: queryKeys.issues.comments(selectedIssueId ?? ""),
+    queryFn: () => issuesApi.listComments(selectedIssueId!),
+    enabled: !!selectedIssueId,
+    refetchInterval: 5000,
   });
+
+  const { data: activeRun } = useQuery({
+    queryKey: queryKeys.issues.activeRun(selectedIssueId ?? ""),
+    queryFn: () => heartbeatsApi.activeRunForIssue(selectedIssueId!),
+    enabled: !!selectedIssueId,
+    refetchInterval: 5000,
+  });
+
+  const isRunning = activeRun?.status === "running" || activeRun?.status === "queued";
+  const activeRunId = activeRun?.id ?? null;
 
   const sendMessage = useMutation({
     mutationFn: async (text: string) => {
@@ -376,16 +380,14 @@ export function ChatView({ initialAgentId, initialIssueId }: ChatViewProps) {
         )}
       </div>
 
-      {showChat && (
-        <ChatDebugPanel
-          runId={activeRunId}
-          isRunning={isRunning}
-          collapsed={debugCollapsed}
-          onToggleCollapse={() => setDebugCollapsed((c) => !c)}
-          agentId={selectedAgentId}
-          companyId={companyId}
-        />
-      )}
+      <ChatDebugPanel
+        runId={showChat ? activeRunId : null}
+        isRunning={showChat ? isRunning : false}
+        collapsed={!showChat || debugCollapsed}
+        onToggleCollapse={() => setDebugCollapsed((c) => !c)}
+        agentId={selectedAgentId}
+        companyId={companyId}
+      />
     </div>
   );
 }
