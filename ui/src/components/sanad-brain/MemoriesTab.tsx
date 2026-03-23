@@ -10,7 +10,11 @@ import type { Memory } from "../../api/sanad-brain";
 
 export function MemoriesTab() {
   const { selectedCompany } = useCompany();
-  const companyId = selectedCompany?.name?.split(" ")[0]?.toLowerCase() ?? "default";
+  // Map Paperclip company to Sanad Brain company_id
+  // Paperclip uses issuePrefix (OPT), Brain uses first word of name (optiflow)
+  const companyId = selectedCompany
+    ? (selectedCompany.name?.split(" ")[0]?.toLowerCase() || selectedCompany.issuePrefix?.toLowerCase() || "optiflow")
+    : "optiflow";
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
