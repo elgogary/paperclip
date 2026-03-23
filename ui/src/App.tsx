@@ -112,7 +112,7 @@ function boardRoutes() {
       <Route index element={<Navigate to="dashboard" replace />} />
       <Route path="dashboard" element={<Dashboard />} />
       <Route path="brain" element={<SanadBrain />} />
-      <Route path="brain/*" element={<SanadBrain />} />
+      <Route path="brain/:tab" element={<SanadBrain />} />
       <Route path="onboarding" element={<OnboardingRoutePage />} />
       <Route path="companies" element={<Companies />} />
       <Route path="company/settings" element={<CompanySettings />} />

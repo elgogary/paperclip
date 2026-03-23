@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { NavLink, Route, Routes, Navigate } from "@/lib/router";
+import { NavLink, Navigate, useParams } from "@/lib/router";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { Brain } from "lucide-react";
 import { cn } from "../lib/utils";
@@ -9,18 +9,30 @@ import { HealthTab } from "../components/sanad-brain/HealthTab";
 import { AuditTab } from "../components/sanad-brain/AuditTab";
 
 const TABS = [
-  { path: "live", label: "Live" },
-  { path: "memories", label: "Memories" },
-  { path: "health", label: "Health" },
-  { path: "audit", label: "Audit" },
+  { path: "live", label: "Live", component: LiveTab },
+  { path: "memories", label: "Memories", component: MemoriesTab },
+  { path: "health", label: "Health", component: HealthTab },
+  { path: "audit", label: "Audit", component: AuditTab },
 ] as const;
 
 export function SanadBrain() {
   const { setBreadcrumbs } = useBreadcrumbs();
+  const { tab } = useParams<{ tab?: string }>();
+  const activeTab = tab || "live";
 
   useEffect(() => {
     setBreadcrumbs([{ label: "Brain" }]);
   }, [setBreadcrumbs]);
+
+  const TabComponent = TABS.find((t) => t.path === activeTab)?.component;
+
+  if (!tab) {
+    return <Navigate to="/brain/live" replace />;
+  }
+
+  if (!TabComponent) {
+    return <Navigate to="/brain/live" replace />;
+  }
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -30,10 +42,10 @@ export function SanadBrain() {
       </div>
 
       <div className="flex gap-1 border-b border-border">
-        {TABS.map((tab) => (
+        {TABS.map((t) => (
           <NavLink
-            key={tab.path}
-            to={`/brain/${tab.path}`}
+            key={t.path}
+            to={`/brain/${t.path}`}
             className={({ isActive }) =>
               cn(
                 "px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px",
@@ -43,18 +55,12 @@ export function SanadBrain() {
               )
             }
           >
-            {tab.label}
+            {t.label}
           </NavLink>
         ))}
       </div>
 
-      <Routes>
-        <Route index element={<Navigate to="live" replace />} />
-        <Route path="live" element={<LiveTab />} />
-        <Route path="memories" element={<MemoriesTab />} />
-        <Route path="health" element={<HealthTab />} />
-        <Route path="audit" element={<AuditTab />} />
-      </Routes>
+      <TabComponent />
     </div>
   );
 }
