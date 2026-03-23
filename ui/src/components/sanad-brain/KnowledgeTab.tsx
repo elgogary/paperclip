@@ -158,13 +158,13 @@ export function KnowledgeTab() {
                       }`}>
                         {String(src.status)}
                       </span>
-                      {src.last_sync && (
+                      {src.last_sync ? (
                         <span>Last sync: {new Date(String(src.last_sync)).toLocaleString()}</span>
-                      )}
+                      ) : null}
                     </div>
-                    {src.error && (
+                    {src.error ? (
                       <p className="text-xs text-destructive mt-1">{String(src.error)}</p>
-                    )}
+                    ) : null}
                   </div>
                   <Button
                     variant="ghost" size="icon" className="h-7 w-7 text-destructive shrink-0"
