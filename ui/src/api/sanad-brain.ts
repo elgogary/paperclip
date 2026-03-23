@@ -131,15 +131,13 @@ export const sanadBrainApi = {
     api.delete<{ ok: boolean }>(`/brain/knowledge/sources/${sourceId}`),
 
   uploadDocument: async (companyId: string, file: File) => {
-    const formData = new FormData();
-    formData.append("company_id", companyId);
-    formData.append("file", file);
-    const resp = await fetch("/api/brain/knowledge/upload", {
-      method: "POST",
-      body: formData,
-    });
-    if (!resp.ok) throw new Error(`Upload failed: ${resp.status}`);
-    return resp.json() as Promise<{ ok: boolean; filename: string; chunks: number; elapsed_seconds: number }>;
+    // Upload via base64 JSON to avoid multipart proxy issues
+    const buffer = await file.arrayBuffer();
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+    return api.post<{ ok: boolean; filename: string; chunks: number; elapsed_seconds: number }>(
+      "/brain/knowledge/upload-base64",
+      { company_id: companyId, filename: file.name, content_base64: base64 },
+    );
   },
 
   knowledgeSearch: (companyId: string, query: string, sourceId?: string) =>
