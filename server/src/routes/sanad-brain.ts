@@ -17,7 +17,8 @@ export function sanadBrainRoutes(_db: Db) {
   }
 
   router.all("/brain/*path", async (req, res) => {
-    const path = req.params.path.replace(/^\/+/, "").replace(/\.\./g, "");
+    const rawPath = Array.isArray(req.params.path) ? req.params.path.join("/") : String(req.params.path);
+    const path = rawPath.replace(/^\/+/, "").replace(/\.\./g, "");
     if (!ALLOWED_PREFIXES.some((prefix) => path.startsWith(prefix))) {
       res.status(403).json({ error: "Path not allowed" });
       return;
