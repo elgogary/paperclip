@@ -1,4 +1,4 @@
-import { Router, raw } from "express";
+import express, { Router } from "express";
 import type { Db } from "@paperclipai/db";
 
 const BRAIN_URL = process.env.SANAD_BRAIN_URL || "";
@@ -17,7 +17,7 @@ export function sanadBrainRoutes(_db: Db) {
   }
 
   // File upload route — raw body passthrough (before JSON middleware)
-  router.post("/brain/knowledge/upload", raw({ type: "multipart/form-data", limit: "50mb" }), async (req, res) => {
+  router.post("/brain/knowledge/upload", express.raw({ type: "multipart/form-data", limit: "50mb" }), async (req, res) => {
     const url = `${BRAIN_URL}/knowledge/upload`;
     try {
       const headers: Record<string, string> = {};
