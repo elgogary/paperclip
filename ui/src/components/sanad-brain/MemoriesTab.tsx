@@ -2,41 +2,50 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { sanadBrainApi } from "../../api/sanad-brain";
 import { queryKeys } from "../../lib/queryKeys";
+import { useCompany } from "../../context/CompanyContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Search, Trash2, ThumbsUp, ThumbsDown } from "lucide-react";
 import type { Memory } from "../../api/sanad-brain";
 
-const COMPANY = "optiflow";
-const USER = "board";
-
 export function MemoriesTab() {
+  const { selectedCompany } = useCompany();
+  const companyId = selectedCompany?.issuePrefix?.toLowerCase() ?? "optiflow";
+  const userId = "board";
+
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
-  const { data: allMemories, isLoading } = useQuery({
-    queryKey: queryKeys.brain.memories(COMPANY, USER),
-    queryFn: () => sanadBrainApi.allMemories(COMPANY, USER, 200),
+  const { data: allMemories, isLoading, error } = useQuery({
+    queryKey: queryKeys.brain.memories(companyId, userId),
+    queryFn: () => sanadBrainApi.allMemories(companyId, userId, 200),
+    staleTime: 60_000,
   });
 
-  const { data: searchResults } = useQuery({
-    queryKey: ["brain", "search", searchQuery],
-    queryFn: () => sanadBrainApi.search(COMPANY, USER, searchQuery, 20),
+  const { data: searchResults, error: searchError } = useQuery({
+    queryKey: queryKeys.brain.stats(companyId, searchQuery),
+    queryFn: () => sanadBrainApi.search(companyId, userId, searchQuery, 20),
     enabled: isSearching && searchQuery.length > 2,
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (memoryId: string) => sanadBrainApi.deleteMemory(COMPANY, USER, memoryId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.brain.memories(COMPANY, USER) }),
+    mutationFn: (memoryId: string) => sanadBrainApi.deleteMemory(companyId, userId, memoryId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.brain.memories(companyId, userId) });
+      setDeleteConfirm(null);
+    },
+    onError: () => setDeleteConfirm(null),
   });
 
   const feedbackMutation = useMutation({
     mutationFn: ({ memoryId, signal }: { memoryId: string; signal: string }) =>
-      sanadBrainApi.feedback(COMPANY, USER, memoryId, signal),
+      sanadBrainApi.feedback(companyId, userId, memoryId, signal),
   });
 
   const memories = isSearching && searchResults ? searchResults.results : (allMemories?.results ?? []);
+  const displayError = error || searchError;
 
   return (
     <div className="flex flex-col gap-4">
@@ -46,6 +55,7 @@ export function MemoriesTab() {
           <input
             type="text"
             placeholder="Search memories..."
+            aria-label="Search memories"
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
@@ -60,6 +70,10 @@ export function MemoriesTab() {
           </Button>
         )}
       </div>
+
+      {displayError && (
+        <p className="text-sm text-destructive">{(displayError as Error).message}</p>
+      )}
 
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading memories...</p>
@@ -99,22 +113,35 @@ export function MemoriesTab() {
                   <div className="flex items-center gap-1 shrink-0">
                     <Button
                       variant="ghost" size="icon" className="h-7 w-7"
+                      aria-label="Positive feedback"
                       onClick={() => feedbackMutation.mutate({ memoryId: mem.id, signal: "positive" })}
                     >
                       <ThumbsUp className="h-3.5 w-3.5" />
                     </Button>
                     <Button
                       variant="ghost" size="icon" className="h-7 w-7"
+                      aria-label="Negative feedback"
                       onClick={() => feedbackMutation.mutate({ memoryId: mem.id, signal: "negative" })}
                     >
                       <ThumbsDown className="h-3.5 w-3.5" />
                     </Button>
-                    <Button
-                      variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"
-                      onClick={() => { if (confirm("Delete this memory?")) deleteMutation.mutate(mem.id); }}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    {deleteConfirm === mem.id ? (
+                      <Button
+                        variant="destructive" size="sm" className="h-7 text-xs"
+                        onClick={() => deleteMutation.mutate(mem.id)}
+                        disabled={deleteMutation.isPending}
+                      >
+                        Confirm
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"
+                        aria-label="Delete memory"
+                        onClick={() => setDeleteConfirm(mem.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardContent>

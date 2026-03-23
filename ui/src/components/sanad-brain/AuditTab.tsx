@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { sanadBrainApi } from "../../api/sanad-brain";
 import { queryKeys } from "../../lib/queryKeys";
 import { Card, CardContent } from "@/components/ui/card";
+import { getActionBadgeClass } from "./shared";
 
 const ACTION_OPTIONS = ["", "WRITE", "READ", "DELETE", "FEEDBACK", "CONSOLIDATE"];
 
@@ -10,7 +11,7 @@ export function AuditTab() {
   const [actionFilter, setActionFilter] = useState("");
   const [limit, setLimit] = useState(50);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: [...queryKeys.brain.audit(limit), actionFilter],
     queryFn: () => sanadBrainApi.audit(limit, actionFilter || undefined),
     refetchInterval: 15000,
@@ -20,6 +21,7 @@ export function AuditTab() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-3">
         <select
+          aria-label="Filter by action"
           value={actionFilter}
           onChange={(e) => setActionFilter(e.target.value)}
           className="text-sm bg-background border border-border rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-ring"
@@ -29,6 +31,7 @@ export function AuditTab() {
           ))}
         </select>
         <select
+          aria-label="Rows per page"
           value={limit}
           onChange={(e) => setLimit(Number(e.target.value))}
           className="text-sm bg-background border border-border rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-ring"
@@ -42,10 +45,12 @@ export function AuditTab() {
         </span>
       </div>
 
+      {error && <p className="text-sm text-destructive">{(error as Error).message}</p>}
+
       <Card>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm" aria-label="Audit log">
               <thead>
                 <tr className="border-b border-border">
                   <th className="text-left py-2 px-3 text-xs font-medium text-muted-foreground">Time</th>
@@ -62,12 +67,7 @@ export function AuditTab() {
                       {new Date(entry.ts * 1000).toLocaleString()}
                     </td>
                     <td className="py-2 px-3">
-                      <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
-                        entry.action === "WRITE" ? "bg-green-500/10 text-green-500" :
-                        entry.action === "READ" ? "bg-blue-500/10 text-blue-500" :
-                        entry.action === "DELETE" ? "bg-red-500/10 text-red-500" :
-                        "bg-gray-500/10 text-gray-400"
-                      }`}>
+                      <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${getActionBadgeClass(entry.action)}`}>
                         {entry.action}
                       </span>
                     </td>
@@ -79,7 +79,7 @@ export function AuditTab() {
               </tbody>
             </table>
           </div>
-          {isLoading && <p className="text-sm text-muted-foreground p-4">Loading...</p>}
+          {isLoading && !data && <p className="text-sm text-muted-foreground p-4">Loading...</p>}
           {!isLoading && (data?.entries ?? []).length === 0 && (
             <p className="text-sm text-muted-foreground p-4 text-center">No audit entries</p>
           )}

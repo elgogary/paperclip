@@ -11,13 +11,14 @@ const STATUS_CONFIG = {
 } as const;
 
 export function HealthTab() {
-  const { data: health, isLoading } = useQuery({
+  const { data: health, isLoading, error } = useQuery({
     queryKey: queryKeys.brain.health,
     queryFn: () => sanadBrainApi.health(),
     refetchInterval: 30000,
   });
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Checking services...</p>;
+  if (error) return <p className="text-sm text-destructive">Failed to check health: {(error as Error).message}</p>;
 
   const services = health?.services ?? {};
 
