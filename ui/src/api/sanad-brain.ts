@@ -52,6 +52,20 @@ export interface AuditEntry {
   endpoint: string | null;
 }
 
+export interface GraphNode {
+  id: string;
+  label: string;
+  type: string;
+  properties: Record<string, unknown>;
+}
+
+export interface GraphEdge {
+  source: string;
+  target: string;
+  type: string;
+  properties: Record<string, unknown>;
+}
+
 export interface ConsolidationReport {
   total_memories: number;
   duplicates_found: number;
@@ -109,4 +123,10 @@ export const sanadBrainApi = {
 
   agentActivity: (limit = 20) =>
     api.get<{ activity: AuditEntry[] }>(`/brain/admin/agents/activity?limit=${limit}`),
+
+  graph: (companyId?: string, limit = 200) => {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (companyId) params.set("company_id", companyId);
+    return api.get<{ nodes: GraphNode[]; edges: GraphEdge[]; error?: string }>(`/brain/admin/graph?${params}`);
+  },
 };

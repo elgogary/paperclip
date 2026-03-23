@@ -7,10 +7,12 @@ import { LiveTab } from "../components/sanad-brain/LiveTab";
 import { MemoriesTab } from "../components/sanad-brain/MemoriesTab";
 import { HealthTab } from "../components/sanad-brain/HealthTab";
 import { AuditTab } from "../components/sanad-brain/AuditTab";
+import { GraphTab } from "../components/sanad-brain/GraphTab";
 
 const TABS = [
   { path: "live", label: "Live", component: LiveTab },
   { path: "memories", label: "Memories", component: MemoriesTab },
+  { path: "graph", label: "Graph", component: GraphTab },
   { path: "health", label: "Health", component: HealthTab },
   { path: "audit", label: "Audit", component: AuditTab },
 ] as const;
