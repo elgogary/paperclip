@@ -10,8 +10,8 @@ import type { Memory } from "../../api/sanad-brain";
 
 export function MemoriesTab() {
   const { selectedCompany } = useCompany();
-  const companyId = selectedCompany?.issuePrefix?.toLowerCase() ?? "optiflow";
-  const userId = "board";
+  const companyId = selectedCompany?.issuePrefix?.toLowerCase() ?? "default";
+  const userId = "all";
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -22,6 +22,7 @@ export function MemoriesTab() {
     queryKey: queryKeys.brain.memories(companyId, userId),
     queryFn: () => sanadBrainApi.allMemories(companyId, userId, 200),
     staleTime: 60_000,
+    enabled: !!companyId,
   });
 
   const { data: searchResults, error: searchError } = useQuery({
@@ -49,6 +50,10 @@ export function MemoriesTab() {
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <span>Company: {companyId}</span>
+      </div>
+
       <div className="flex gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -96,6 +101,9 @@ export function MemoriesTab() {
                       </span>
                       <span className="text-xs px-1.5 py-0.5 rounded bg-gray-500/10 text-gray-400">
                         {mem.metadata?.sensitivity ?? "internal"}
+                      </span>
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-gray-500/10 text-gray-400">
+                        {mem.user_id}
                       </span>
                       {mem.score !== undefined && (
                         <span className="text-xs text-muted-foreground">score: {mem.score.toFixed(2)}</span>

@@ -2,11 +2,15 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { sanadBrainApi } from "../../api/sanad-brain";
 import { queryKeys } from "../../lib/queryKeys";
+import { useCompany } from "../../context/CompanyContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Activity, Database, Users, HardDrive } from "lucide-react";
 import { getActionBadgeClass, timeAgo } from "./shared";
 
 export function LiveTab() {
+  const { selectedCompany } = useCompany();
+  const companyId = selectedCompany?.issuePrefix?.toLowerCase() ?? "default";
+
   const { data: health, error: healthError } = useQuery({
     queryKey: queryKeys.brain.health,
     queryFn: () => sanadBrainApi.health(),

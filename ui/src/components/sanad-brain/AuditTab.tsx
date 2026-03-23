@@ -2,18 +2,22 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { sanadBrainApi } from "../../api/sanad-brain";
 import { queryKeys } from "../../lib/queryKeys";
+import { useCompany } from "../../context/CompanyContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { getActionBadgeClass } from "./shared";
 
 const ACTION_OPTIONS = ["", "WRITE", "READ", "DELETE", "FEEDBACK", "CONSOLIDATE"];
 
 export function AuditTab() {
+  const { selectedCompany } = useCompany();
+  const companyId = selectedCompany?.issuePrefix?.toLowerCase() ?? undefined;
+
   const [actionFilter, setActionFilter] = useState("");
   const [limit, setLimit] = useState(50);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: [...queryKeys.brain.audit(limit), actionFilter],
-    queryFn: () => sanadBrainApi.audit(limit, actionFilter || undefined),
+    queryKey: [...queryKeys.brain.audit(limit), actionFilter, companyId],
+    queryFn: () => sanadBrainApi.audit(limit, actionFilter || undefined, companyId),
     refetchInterval: 15000,
   });
 
