@@ -146,24 +146,24 @@ export function KnowledgeTab() {
                 <CardContent className="p-4 flex items-center gap-3">
                   <Icon className="h-5 w-5 text-muted-foreground shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{src.name as string}</p>
+                    <p className="text-sm font-medium truncate">{String(src.name)}</p>
                     <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
-                      <span className="capitalize">{src.source_type as string}</span>
-                      <span>{src.chunk_count as number} chunks</span>
+                      <span className="capitalize">{String(src.source_type)}</span>
+                      <span>{Number(src.chunk_count)} chunks</span>
                       <span className={`px-1.5 py-0.5 rounded ${
                         src.status === "synced" ? "bg-green-500/10 text-green-500" :
                         src.status === "error" ? "bg-red-500/10 text-red-500" :
                         src.status === "syncing" ? "bg-yellow-500/10 text-yellow-500" :
                         "bg-gray-500/10 text-gray-400"
                       }`}>
-                        {src.status as string}
+                        {String(src.status)}
                       </span>
                       {src.last_sync && (
-                        <span>Last sync: {new Date(src.last_sync as string).toLocaleString()}</span>
+                        <span>Last sync: {new Date(String(src.last_sync)).toLocaleString()}</span>
                       )}
                     </div>
                     {src.error && (
-                      <p className="text-xs text-destructive mt-1">{src.error as string}</p>
+                      <p className="text-xs text-destructive mt-1">{String(src.error)}</p>
                     )}
                   </div>
                   <Button
