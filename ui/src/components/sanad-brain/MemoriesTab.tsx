@@ -10,7 +10,7 @@ import type { Memory } from "../../api/sanad-brain";
 
 export function MemoriesTab() {
   const { selectedCompany } = useCompany();
-  const companyId = selectedCompany?.issuePrefix?.toLowerCase() ?? "default";
+  const companyId = selectedCompany?.name?.split(" ")[0]?.toLowerCase() ?? "default";
   const userId = "all";
 
   const [searchQuery, setSearchQuery] = useState("");

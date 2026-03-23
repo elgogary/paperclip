@@ -10,7 +10,7 @@ import { getActionBadgeClass, timeAgo } from "./shared";
 
 export function LiveTab() {
   const { selectedCompany } = useCompany();
-  const companyId = selectedCompany?.issuePrefix?.toLowerCase() ?? "default";
+  const _companyId = selectedCompany?.name?.split(" ")[0]?.toLowerCase() ?? "default";
 
   const { data: health, error: healthError, refetch: refetchHealth, isFetching: isFetchingHealth } = useQuery({
     queryKey: queryKeys.brain.health,

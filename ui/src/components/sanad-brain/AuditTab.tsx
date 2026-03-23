@@ -12,7 +12,7 @@ const ACTION_OPTIONS = ["", "WRITE", "READ", "DELETE", "FEEDBACK", "CONSOLIDATE"
 
 export function AuditTab() {
   const { selectedCompany } = useCompany();
-  const companyId = selectedCompany?.issuePrefix?.toLowerCase() ?? undefined;
+  const companyId = selectedCompany?.name?.split(" ")[0]?.toLowerCase() ?? undefined;
 
   const [actionFilter, setActionFilter] = useState("");
   const [limit, setLimit] = useState(50);
