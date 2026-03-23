@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { sanadBrainApi } from "../../api/sanad-brain";
 import { queryKeys } from "../../lib/queryKeys";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle, XCircle, MinusCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CheckCircle, XCircle, MinusCircle, RefreshCw } from "lucide-react";
 
 const STATUS_CONFIG = {
   up: { icon: CheckCircle, color: "text-green-500", bg: "bg-green-500/10", label: "Online" },
@@ -11,7 +12,7 @@ const STATUS_CONFIG = {
 } as const;
 
 export function HealthTab() {
-  const { data: health, isLoading, error } = useQuery({
+  const { data: health, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: queryKeys.brain.health,
     queryFn: () => sanadBrainApi.health(),
     refetchInterval: 30000,
@@ -24,6 +25,13 @@ export function HealthTab() {
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold">Service Status</h3>
+        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+          <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isFetching ? "animate-spin" : ""}`} />
+          {isFetching ? "Refreshing..." : "Refresh"}
+        </Button>
+      </div>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {Object.entries(services).map(([name, svc]) => {
           const config = STATUS_CONFIG[svc.status] ?? STATUS_CONFIG.down;

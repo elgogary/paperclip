@@ -5,7 +5,7 @@ import { queryKeys } from "../../lib/queryKeys";
 import { useCompany } from "../../context/CompanyContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Search, Trash2, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Search, Trash2, ThumbsUp, ThumbsDown, RefreshCw } from "lucide-react";
 import type { Memory } from "../../api/sanad-brain";
 
 export function MemoriesTab() {
@@ -18,7 +18,7 @@ export function MemoriesTab() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
-  const { data: allMemories, isLoading, error } = useQuery({
+  const { data: allMemories, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: queryKeys.brain.memories(companyId, userId),
     queryFn: () => sanadBrainApi.allMemories(companyId, userId, 200),
     staleTime: 60_000,
@@ -55,6 +55,10 @@ export function MemoriesTab() {
       </div>
 
       <div className="flex gap-2">
+        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+          <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isFetching ? "animate-spin" : ""}`} />
+          {isFetching ? "Refreshing..." : "Refresh"}
+        </Button>
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input

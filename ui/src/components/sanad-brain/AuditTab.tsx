@@ -4,6 +4,8 @@ import { sanadBrainApi } from "../../api/sanad-brain";
 import { queryKeys } from "../../lib/queryKeys";
 import { useCompany } from "../../context/CompanyContext";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
 import { getActionBadgeClass } from "./shared";
 
 const ACTION_OPTIONS = ["", "WRITE", "READ", "DELETE", "FEEDBACK", "CONSOLIDATE"];
@@ -15,7 +17,7 @@ export function AuditTab() {
   const [actionFilter, setActionFilter] = useState("");
   const [limit, setLimit] = useState(50);
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: [...queryKeys.brain.audit(limit), actionFilter, companyId],
     queryFn: () => sanadBrainApi.audit(limit, actionFilter || undefined, companyId),
     refetchInterval: 15000,
@@ -47,6 +49,10 @@ export function AuditTab() {
         <span className="text-xs text-muted-foreground">
           {data?.total ?? 0} total entries
         </span>
+        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} className="ml-auto">
+          <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isFetching ? "animate-spin" : ""}`} />
+          {isFetching ? "Refreshing..." : "Refresh"}
+        </Button>
       </div>
 
       {error && <p className="text-sm text-destructive">{(error as Error).message}</p>}

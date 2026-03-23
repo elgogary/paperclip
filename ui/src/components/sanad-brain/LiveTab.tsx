@@ -4,20 +4,21 @@ import { sanadBrainApi } from "../../api/sanad-brain";
 import { queryKeys } from "../../lib/queryKeys";
 import { useCompany } from "../../context/CompanyContext";
 import { Card, CardContent } from "@/components/ui/card";
-import { Activity, Database, Users, HardDrive } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Activity, Database, Users, HardDrive, RefreshCw } from "lucide-react";
 import { getActionBadgeClass, timeAgo } from "./shared";
 
 export function LiveTab() {
   const { selectedCompany } = useCompany();
   const companyId = selectedCompany?.issuePrefix?.toLowerCase() ?? "default";
 
-  const { data: health, error: healthError } = useQuery({
+  const { data: health, error: healthError, refetch: refetchHealth, isFetching: isFetchingHealth } = useQuery({
     queryKey: queryKeys.brain.health,
     queryFn: () => sanadBrainApi.health(),
     refetchInterval: 30000,
   });
 
-  const { data: activity, error: activityError } = useQuery({
+  const { data: activity, error: activityError, refetch: refetchActivity } = useQuery({
     queryKey: queryKeys.brain.activity,
     queryFn: () => sanadBrainApi.agentActivity(20),
     refetchInterval: 10000,
@@ -36,6 +37,14 @@ export function LiveTab() {
       {displayError && (
         <p className="text-sm text-destructive">{(displayError as Error).message}</p>
       )}
+
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold">Overview</h3>
+        <Button variant="outline" size="sm" onClick={() => { refetchHealth(); refetchActivity(); }} disabled={isFetchingHealth}>
+          <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isFetchingHealth ? "animate-spin" : ""}`} />
+          {isFetchingHealth ? "Refreshing..." : "Refresh"}
+        </Button>
+      </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <Card>
