@@ -4,7 +4,7 @@ import type { Db } from "@paperclipai/db";
 const BRAIN_URL = process.env.SANAD_BRAIN_URL || "";
 const BRAIN_API_KEY = process.env.SANAD_BRAIN_API_KEY || "";
 
-const ALLOWED_PREFIXES = ["memory/", "admin/", "mcp/", "health", "metrics"];
+const ALLOWED_PREFIXES = ["memory/", "admin/", "mcp/", "knowledge/", "health", "metrics"];
 
 export function sanadBrainRoutes(_db: Db) {
   const router = Router();
