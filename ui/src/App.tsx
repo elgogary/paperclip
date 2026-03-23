@@ -26,6 +26,7 @@ import { DesignGuide } from "./pages/DesignGuide";
 import { InstanceSettings } from "./pages/InstanceSettings";
 import { RunTranscriptUxLab } from "./pages/RunTranscriptUxLab";
 import { OrgChart } from "./pages/OrgChart";
+import { SanadBrain } from "./pages/SanadBrain";
 import { NewAgent } from "./pages/NewAgent";
 import Chat from "./pages/Chat";
 import { Docs } from "./pages/Docs";
@@ -110,6 +111,8 @@ function boardRoutes() {
     <>
       <Route index element={<Navigate to="dashboard" replace />} />
       <Route path="dashboard" element={<Dashboard />} />
+      <Route path="brain" element={<SanadBrain />} />
+      <Route path="brain/*" element={<SanadBrain />} />
       <Route path="onboarding" element={<OnboardingRoutePage />} />
       <Route path="companies" element={<Companies />} />
       <Route path="company/settings" element={<CompanySettings />} />
