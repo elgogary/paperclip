@@ -70,6 +70,9 @@ export const sanadBrainApi = {
   allMemories: (companyId: string, userId: string, limit = 100) =>
     api.get<{ results: Memory[] }>(`/brain/memory/all/${companyId}/${userId}?limit=${limit}`),
 
+  companyMemories: (companyId: string, limit = 200) =>
+    api.get<{ results: Memory[] }>(`/brain/memory/company/${companyId}?limit=${limit}`),
+
   search: (companyId: string, userId: string, query: string, limit = 10) =>
     api.post<{ results: Memory[] }>("/brain/memory/search", {
       company_id: companyId, user_id: userId, query, limit,

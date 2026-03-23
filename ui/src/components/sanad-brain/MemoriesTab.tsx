@@ -11,7 +11,6 @@ import type { Memory } from "../../api/sanad-brain";
 export function MemoriesTab() {
   const { selectedCompany } = useCompany();
   const companyId = selectedCompany?.name?.split(" ")[0]?.toLowerCase() ?? "default";
-  const userId = "all";
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -19,22 +18,22 @@ export function MemoriesTab() {
   const queryClient = useQueryClient();
 
   const { data: allMemories, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: queryKeys.brain.memories(companyId, userId),
-    queryFn: () => sanadBrainApi.allMemories(companyId, userId, 200),
+    queryKey: queryKeys.brain.memories(companyId, "all"),
+    queryFn: () => sanadBrainApi.companyMemories(companyId, 200),
     staleTime: 60_000,
     enabled: !!companyId,
   });
 
   const { data: searchResults, error: searchError } = useQuery({
     queryKey: queryKeys.brain.stats(companyId, searchQuery),
-    queryFn: () => sanadBrainApi.search(companyId, userId, searchQuery, 20),
+    queryFn: () => sanadBrainApi.search(companyId, "board", searchQuery, 20),
     enabled: isSearching && searchQuery.length > 2,
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (memoryId: string) => sanadBrainApi.deleteMemory(companyId, userId, memoryId),
+    mutationFn: (memoryId: string) => sanadBrainApi.deleteMemory(companyId, "board", memoryId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.brain.memories(companyId, userId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.brain.memories(companyId, "all") });
       setDeleteConfirm(null);
     },
     onError: () => setDeleteConfirm(null),
@@ -42,7 +41,7 @@ export function MemoriesTab() {
 
   const feedbackMutation = useMutation({
     mutationFn: ({ memoryId, signal }: { memoryId: string; signal: string }) =>
-      sanadBrainApi.feedback(companyId, userId, memoryId, signal),
+      sanadBrainApi.feedback(companyId, "board", memoryId, signal),
   });
 
   const memories = isSearching && searchResults ? searchResults.results : (allMemories?.results ?? []);
