@@ -8,10 +8,12 @@ import { MemoriesTab } from "../components/sanad-brain/MemoriesTab";
 import { HealthTab } from "../components/sanad-brain/HealthTab";
 import { AuditTab } from "../components/sanad-brain/AuditTab";
 import { GraphTab } from "../components/sanad-brain/GraphTab";
+import { KnowledgeTab } from "../components/sanad-brain/KnowledgeTab";
 
 const TABS = [
   { path: "live", label: "Live", component: LiveTab },
   { path: "memories", label: "Memories", component: MemoriesTab },
+  { path: "knowledge", label: "Knowledge", component: KnowledgeTab },
   { path: "graph", label: "Graph", component: GraphTab },
   { path: "health", label: "Health", component: HealthTab },
   { path: "audit", label: "Audit", component: AuditTab },

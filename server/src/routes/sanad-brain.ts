@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, raw } from "express";
 import type { Db } from "@paperclipai/db";
 
 const BRAIN_URL = process.env.SANAD_BRAIN_URL || "";
@@ -16,6 +16,28 @@ export function sanadBrainRoutes(_db: Db) {
     return router;
   }
 
+  // File upload route — raw body passthrough (before JSON middleware)
+  router.post("/brain/knowledge/upload", raw({ type: "multipart/form-data", limit: "50mb" }), async (req, res) => {
+    const url = `${BRAIN_URL}/knowledge/upload`;
+    try {
+      const headers: Record<string, string> = {};
+      if (BRAIN_API_KEY) headers["X-Api-Key"] = BRAIN_API_KEY;
+      const ct = req.headers["content-type"];
+      if (ct) headers["Content-Type"] = ct;
+
+      const resp = await fetch(url, {
+        method: "POST",
+        headers,
+        body: req.body as Buffer,
+      });
+      const data = await resp.json();
+      res.status(resp.status).json(data);
+    } catch {
+      res.status(502).json({ error: "Sanad Brain unreachable" });
+    }
+  });
+
+  // All other routes — JSON proxy
   router.all("/brain/*path", async (req, res) => {
     const rawPath = Array.isArray(req.params.path) ? req.params.path.join("/") : String(req.params.path);
     const path = rawPath.replace(/^\/+/, "").replace(/\.\./g, "");

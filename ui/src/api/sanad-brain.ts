@@ -124,6 +124,29 @@ export const sanadBrainApi = {
   agentActivity: (limit = 20) =>
     api.get<{ activity: AuditEntry[] }>(`/brain/admin/agents/activity?limit=${limit}`),
 
+  knowledgeSources: (companyId?: string) =>
+    api.get<{ sources: Record<string, unknown>[] }>(`/brain/knowledge/sources${companyId ? `?company_id=${companyId}` : ""}`),
+
+  deleteKnowledgeSource: (sourceId: string) =>
+    api.delete<{ ok: boolean }>(`/brain/knowledge/sources/${sourceId}`),
+
+  uploadDocument: async (companyId: string, file: File) => {
+    const formData = new FormData();
+    formData.append("company_id", companyId);
+    formData.append("file", file);
+    const resp = await fetch("/api/brain/knowledge/upload", {
+      method: "POST",
+      body: formData,
+    });
+    if (!resp.ok) throw new Error(`Upload failed: ${resp.status}`);
+    return resp.json() as Promise<{ ok: boolean; filename: string; chunks: number; elapsed_seconds: number }>;
+  },
+
+  knowledgeSearch: (companyId: string, query: string, sourceId?: string) =>
+    api.post<{ results: Array<{ text: string; score: number; filename: string }> }>("/brain/knowledge/search", {
+      company_id: companyId, query, source_id: sourceId,
+    }),
+
   graph: (companyId?: string, limit = 200) => {
     const params = new URLSearchParams({ limit: String(limit) });
     if (companyId) params.set("company_id", companyId);
