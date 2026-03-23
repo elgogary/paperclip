@@ -13,3 +13,4 @@ export { sidebarBadgeRoutes } from "./sidebar-badges.js";
 export { llmRoutes } from "./llms.js";
 export { accessRoutes } from "./access.js";
 export { agentAccessRoutes } from "./agent-access.js";
+export { sanadBrainRoutes } from "./sanad-brain.js";

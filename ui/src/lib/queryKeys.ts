@@ -59,6 +59,13 @@ export const queryKeys = {
   instance: {
     schedulerHeartbeats: ["instance", "scheduler-heartbeats"] as const,
   },
+  brain: {
+    health: ["brain", "health"] as const,
+    stats: (companyId: string, userId: string) => ["brain", "stats", companyId, userId] as const,
+    memories: (companyId: string, userId: string) => ["brain", "memories", companyId, userId] as const,
+    audit: (limit: number) => ["brain", "audit", limit] as const,
+    activity: ["brain", "activity"] as const,
+  },
   health: ["health"] as const,
   secrets: {
     list: (companyId: string) => ["secrets", companyId] as const,
