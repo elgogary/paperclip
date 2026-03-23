@@ -924,7 +924,6 @@ export function agentRoutes(db: Db) {
         };
       })
       .filter((item) =>
-        item.intervalSec > 0 &&
         item.status !== "paused" &&
         item.status !== "terminated" &&
         item.status !== "pending_approval",
