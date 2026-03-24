@@ -34,3 +34,5 @@ export { companySecrets } from "./company_secrets.js";
 export { companySecretVersions } from "./company_secret_versions.js";
 export { agentUserAccess } from "./agent_user_access.js";
 export { agentNotes } from "./agent_notes.js";
+export { scheduledJobs } from "./scheduled_jobs.js";
+export { scheduledJobRuns } from "./scheduled_job_runs.js";
