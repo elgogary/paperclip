@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
 import {
+  activityLog,
   agents,
   assets,
   companies,
@@ -19,7 +20,7 @@ import {
   projectWorkspaces,
   projects,
 } from "@paperclipai/db";
-import { extractProjectMentionIds } from "@paperclipai/shared";
+import { extractAgentMentionIds, extractProjectMentionIds } from "@paperclipai/shared";
 import { conflict, notFound, unprocessable } from "../errors.js";
 import {
   defaultIssueExecutionWorkspaceSettingsForProject,
@@ -62,6 +63,7 @@ function applyStatusSideEffects(
 export interface IssueFilters {
   status?: string;
   assigneeAgentId?: string;
+  participantAgentId?: string;
   assigneeUserId?: string;
   touchedByUserId?: string;
   unreadForUserId?: string;
@@ -134,6 +136,30 @@ function touchedByUserCondition(companyId: string, userId: string) {
   `;
 }
 
+function participatedByAgentCondition(companyId: string, agentId: string) {
+  return sql<boolean>`
+    (
+      ${issues.createdByAgentId} = ${agentId}
+      OR ${issues.assigneeAgentId} = ${agentId}
+      OR EXISTS (
+        SELECT 1
+        FROM ${issueComments}
+        WHERE ${issueComments.issueId} = ${issues.id}
+          AND ${issueComments.companyId} = ${companyId}
+          AND ${issueComments.authorAgentId} = ${agentId}
+      )
+      OR EXISTS (
+        SELECT 1
+        FROM ${activityLog}
+        WHERE ${activityLog.companyId} = ${companyId}
+          AND ${activityLog.entityType} = 'issue'
+          AND ${activityLog.entityId} = ${issues.id}::text
+          AND ${activityLog.agentId} = ${agentId}
+      )
+    )
+  `;
+}
+
 function myLastCommentAtExpr(companyId: string, userId: string) {
   return sql<Date | null>`
     (
@@ -192,10 +218,11 @@ function unreadForUserCondition(companyId: string, userId: string) {
   `;
 }
 
-/** Named entities the rich-text editor may emit in issue bodies; unknown names are left unchanged. */
+/** Named entities commonly emitted in saved issue bodies; unknown `&name;` sequences are left unchanged. */
 const WELL_KNOWN_NAMED_HTML_ENTITIES: Readonly<Record<string, string>> = {
   amp: "&",
   apos: "'",
+  copy: "\u00A9",
   gt: ">",
   lt: "<",
   nbsp: "\u00A0",
@@ -215,7 +242,7 @@ function decodeNumericHtmlEntity(digits: string, radix: 16 | 10): string | null 
   }
 }
 
-/** Decodes HTML entities in a raw @mention capture so UI-encoded bodies still match agent names. */
+/** Decodes HTML character references in a raw @mention capture so UI-encoded bodies match agent names. */
 export function normalizeAgentMentionToken(raw: string): string {
   let s = raw.replace(/&#x([0-9a-fA-F]+);/gi, (full, hex: string) => decodeNumericHtmlEntity(hex, 16) ?? full);
   s = s.replace(/&#([0-9]+);/g, (full, dec: string) => decodeNumericHtmlEntity(dec, 10) ?? full);
@@ -541,6 +568,9 @@ export function issueService(db: Db) {
       }
       if (filters?.assigneeAgentId) {
         conditions.push(eq(issues.assigneeAgentId, filters.assigneeAgentId));
+      }
+      if (filters?.participantAgentId) {
+        conditions.push(participatedByAgentCondition(companyId, filters.participantAgentId));
       }
       if (filters?.assigneeUserId) {
         conditions.push(eq(issues.assigneeUserId, filters.assigneeUserId));
@@ -1495,11 +1525,22 @@ export function issueService(db: Db) {
       const re = /\B@([^\s@,!?.]+)/g;
       const tokens = new Set<string>();
       let m: RegExpExecArray | null;
-      while ((m = re.exec(body)) !== null) tokens.add(m[1].toLowerCase());
-      if (tokens.size === 0) return [];
+      while ((m = re.exec(body)) !== null) {
+        const normalized = normalizeAgentMentionToken(m[1]);
+        if (normalized) tokens.add(normalized.toLowerCase());
+      }
+
+      const explicitAgentMentionIds = extractAgentMentionIds(body);
+      if (tokens.size === 0 && explicitAgentMentionIds.length === 0) return [];
       const rows = await db.select({ id: agents.id, name: agents.name })
         .from(agents).where(eq(agents.companyId, companyId));
-      return rows.filter(a => tokens.has(a.name.toLowerCase())).map(a => a.id);
+      const resolved = new Set<string>(explicitAgentMentionIds);
+      for (const agent of rows) {
+        if (tokens.has(agent.name.toLowerCase())) {
+          resolved.add(agent.id);
+        }
+      }
+      return [...resolved];
     },
 
     findMentionedProjectIds: async (issueId: string) => {
