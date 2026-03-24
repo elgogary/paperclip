@@ -5,14 +5,17 @@ import { queryKeys } from "../../lib/queryKeys";
 import { useCompany } from "../../context/CompanyContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Plus, Trash2, Search, Upload, FileText, Database, Globe, Code } from "lucide-react";
+import { RefreshCw, Plus, Trash2, Search, Upload, FileText, Database, Globe, Code, GitBranch } from "lucide-react";
 
 const SOURCE_ICONS: Record<string, typeof FileText> = {
   document: FileText,
   frappe: Database,
   web: Globe,
   codebase: Code,
+  codegraph: GitBranch,
 };
+
+const SYNCABLE_TYPES = new Set(["frappe", "codebase", "web", "codegraph"]);
 
 export function KnowledgeTab() {
   const { selectedCompany } = useCompany();
@@ -37,6 +40,18 @@ export function KnowledgeTab() {
   const deleteMutation = useMutation({
     mutationFn: (sourceId: string) => sanadBrainApi.deleteKnowledgeSource(sourceId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.brain.stats(companyId, "knowledge-sources") }),
+  });
+
+  const syncMutation = useMutation({
+    mutationFn: (sourceId: string) => sanadBrainApi.syncKnowledgeSource(sourceId, companyId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.brain.stats(companyId, "knowledge-sources") });
+      if (data.ok) {
+        setUploadStatus(`Synced: ${data.chunks} chunks in ${data.elapsed_seconds}s`);
+      } else {
+        setUploadStatus(`Sync failed: ${data.error}`);
+      }
+    },
   });
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -166,6 +181,16 @@ export function KnowledgeTab() {
                       <p className="text-xs text-destructive mt-1">{String(src.error)}</p>
                     ) : null}
                   </div>
+                  {SYNCABLE_TYPES.has(src.source_type as string) && (
+                    <Button
+                      variant="ghost" size="icon" className="h-7 w-7 shrink-0"
+                      title="Re-sync source"
+                      onClick={() => syncMutation.mutate(src.id as string)}
+                      disabled={syncMutation.isPending || src.status === "syncing"}
+                    >
+                      <RefreshCw className={`h-3.5 w-3.5 ${syncMutation.isPending ? "animate-spin" : ""}`} />
+                    </Button>
+                  )}
                   <Button
                     variant="ghost" size="icon" className="h-7 w-7 text-destructive shrink-0"
                     onClick={() => deleteMutation.mutate(src.id as string)}

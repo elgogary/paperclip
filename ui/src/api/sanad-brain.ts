@@ -140,6 +140,17 @@ export const sanadBrainApi = {
     );
   },
 
+  addKnowledgeSource: (companyId: string, name: string, sourceType: string, config: Record<string, unknown>) =>
+    api.post<{ ok: boolean; source: Record<string, unknown> }>("/brain/knowledge/sources", {
+      company_id: companyId, name, source_type: sourceType, config,
+    }),
+
+  syncKnowledgeSource: (sourceId: string, companyId: string) =>
+    api.post<{ ok: boolean; chunks?: number; nodes?: number; elapsed_seconds?: number; error?: string }>(
+      `/brain/knowledge/sync/${sourceId}`,
+      { company_id: companyId },
+    ),
+
   knowledgeSearch: (companyId: string, query: string, sourceId?: string) =>
     api.post<{ results: Array<{ text: string; score: number; filename: string }> }>("/brain/knowledge/search", {
       company_id: companyId, query, source_id: sourceId,
