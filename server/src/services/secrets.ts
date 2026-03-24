@@ -364,5 +364,14 @@ export function secretService(db: Db) {
       resolved.env = env;
       return { config: resolved, secretKeys };
     },
+
+    // Resolve a secret value by ID — used by scheduled job executors
+    resolveById: async (companyId: string, secretId: string): Promise<string | null> => {
+      try {
+        return await resolveSecretValue(companyId, secretId, "latest");
+      } catch {
+        return null;
+      }
+    },
   };
 }
