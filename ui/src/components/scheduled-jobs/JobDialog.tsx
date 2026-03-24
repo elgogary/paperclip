@@ -8,6 +8,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "../../lib/utils";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import { JobTypeConfigFields } from "./JobTypeConfigFields";
 
 const JOB_TYPES: { value: ScheduledJobType; label: string; description: string; defaultTimeout: string }[] = [
   {
@@ -54,7 +55,7 @@ export function JobDialog({ open, onClose, job }: Props) {
   const [jobType, setJobType] = useState<ScheduledJobType>("webhook");
   const [cronExpression, setCronExpression] = useState("0 9 * * 1");
   const [timezone, setTimezone] = useState("UTC");
-  const [config, setConfig] = useState<Record<string, string>>({});
+  const [config, setConfig] = useState<Record<string, unknown>>({});
 
   // Execution settings
   const [timeoutMode, setTimeoutMode] = useState<"auto" | "custom">("auto");
@@ -91,7 +92,7 @@ export function JobDialog({ open, onClose, job }: Props) {
       setJobType(job.jobType);
       setCronExpression(job.cronExpression);
       setTimezone(job.timezone);
-      setConfig(job.config as Record<string, string>);
+      setConfig(job.config as Record<string, unknown>);
       setTimeoutMode(job.timeoutSeconds ? "custom" : "auto");
       setTimeoutSeconds(job.timeoutSeconds ?? 300);
       setOverlapPolicy(job.overlapPolicy as "skip" | "queue");
@@ -176,7 +177,6 @@ export function JobDialog({ open, onClose, job }: Props) {
 
   const isPending = createJob.isPending || updateJob.isPending;
   const isError = createJob.isError || updateJob.isError;
-
   const selectedTypeInfo = JOB_TYPES.find((t) => t.value === jobType);
 
   return (
@@ -237,8 +237,13 @@ export function JobDialog({ open, onClose, job }: Props) {
             </div>
           </div>
 
-          {/* Job type config */}
-          <JobTypeConfig jobType={jobType} config={config} onChange={setConfig} secrets={secrets} />
+          {/* Job type config fields */}
+          <JobTypeConfigFields
+            jobType={jobType}
+            config={config}
+            onChange={setConfig}
+            secrets={secrets}
+          />
 
           {/* Cron */}
           <div className="grid grid-cols-2 gap-3">
@@ -309,16 +314,10 @@ export function JobDialog({ open, onClose, job }: Props) {
               <div>
                 <p className="text-xs text-muted-foreground mb-1.5">If run was missed</p>
                 <div className="flex gap-2">
-                  <PillButton
-                    active={missedRunPolicy === "skip"}
-                    onClick={() => setMissedRunPolicy("skip")}
-                  >
+                  <PillButton active={missedRunPolicy === "skip"} onClick={() => setMissedRunPolicy("skip")}>
                     Skip
                   </PillButton>
-                  <PillButton
-                    active={missedRunPolicy === "run_once"}
-                    onClick={() => setMissedRunPolicy("run_once")}
-                  >
+                  <PillButton active={missedRunPolicy === "run_once"} onClick={() => setMissedRunPolicy("run_once")}>
                     Run once
                   </PillButton>
                 </div>
@@ -425,7 +424,7 @@ export function JobDialog({ open, onClose, job }: Props) {
   );
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+// ── Dialog primitives ─────────────────────────────────────────────────────────
 
 function Accordion({
   title,
@@ -500,122 +499,4 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
       />
     </button>
   );
-}
-
-function JobTypeConfig({
-  jobType,
-  config,
-  onChange,
-  secrets,
-}: {
-  jobType: ScheduledJobType;
-  config: Record<string, string>;
-  onChange: (c: Record<string, string>) => void;
-  secrets: { id: string; name: string }[];
-}) {
-  function set(key: string, value: string) {
-    onChange({ ...config, [key]: value });
-  }
-
-  if (jobType === "knowledge_sync") {
-    return (
-      <div>
-        <label className="text-xs text-muted-foreground">Brain Source ID</label>
-        <input
-          className="w-full rounded-md border border-border bg-transparent px-2 py-1.5 text-xs font-mono outline-none mt-1"
-          placeholder="source-uuid"
-          value={config.source_id ?? ""}
-          onChange={(e) => set("source_id", e.target.value)}
-        />
-      </div>
-    );
-  }
-
-  if (jobType === "webhook") {
-    return (
-      <div className="space-y-2">
-        <div>
-          <label className="text-xs text-muted-foreground">URL</label>
-          <input
-            className="w-full rounded-md border border-border bg-transparent px-2 py-1.5 text-xs outline-none mt-1"
-            placeholder="https://example.com/hook"
-            value={config.url ?? ""}
-            onChange={(e) => set("url", e.target.value)}
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="text-xs text-muted-foreground">Method</label>
-            <select
-              className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs outline-none mt-1"
-              value={config.method ?? "POST"}
-              onChange={(e) => set("method", e.target.value)}
-            >
-              {["POST", "GET", "PUT", "PATCH"].map((m) => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground">Auth secret</label>
-            <select
-              className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs outline-none mt-1"
-              value={config.auth_secret_id ?? ""}
-              onChange={(e) => set("auth_secret_id", e.target.value)}
-            >
-              <option value="">None</option>
-              {secrets.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <div>
-          <label className="text-xs text-muted-foreground">Request body (JSON)</label>
-          <textarea
-            className="w-full rounded-md border border-border bg-transparent px-2 py-1.5 text-xs font-mono outline-none mt-1 h-16 resize-none"
-            placeholder="{}"
-            value={config.body ?? ""}
-            onChange={(e) => set("body", e.target.value)}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  if (jobType === "agent_run") {
-    return (
-      <div className="space-y-2">
-        <div>
-          <label className="text-xs text-muted-foreground">Agent ID</label>
-          <input
-            className="w-full rounded-md border border-border bg-transparent px-2 py-1.5 text-xs font-mono outline-none mt-1"
-            placeholder="agent-uuid"
-            value={config.agent_id ?? ""}
-            onChange={(e) => set("agent_id", e.target.value)}
-          />
-        </div>
-        <div>
-          <label className="text-xs text-muted-foreground">Task title</label>
-          <input
-            className="w-full rounded-md border border-border bg-transparent px-2 py-1.5 text-xs outline-none mt-1"
-            placeholder="Scheduled task"
-            value={config.task_title ?? ""}
-            onChange={(e) => set("task_title", e.target.value)}
-          />
-        </div>
-        <div>
-          <label className="text-xs text-muted-foreground">Task description (optional)</label>
-          <textarea
-            className="w-full rounded-md border border-border bg-transparent px-2 py-1.5 text-xs outline-none mt-1 h-16 resize-none"
-            placeholder="What should the agent do?"
-            value={config.task_description ?? ""}
-            onChange={(e) => set("task_description", e.target.value)}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  return null;
 }
