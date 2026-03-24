@@ -17,12 +17,14 @@ import { StatusBadge } from "../components/StatusBadge";
 import { IssuesList } from "../components/IssuesList";
 import { PageSkeleton } from "../components/PageSkeleton";
 import { PageTabBar } from "../components/PageTabBar";
+import { ProjectGraphTab } from "../components/ProjectGraphTab";
+import { ProjectAccessTab } from "../components/ProjectAccessTab";
 import { projectRouteRef, cn } from "../lib/utils";
 import { Tabs } from "@/components/ui/tabs";
 
 /* ── Top-level tab types ── */
 
-type ProjectTab = "overview" | "list" | "configuration";
+type ProjectTab = "overview" | "list" | "configuration" | "graph" | "access";
 
 function resolveProjectTab(pathname: string, projectId: string): ProjectTab | null {
   const segments = pathname.split("/").filter(Boolean);
@@ -32,6 +34,8 @@ function resolveProjectTab(pathname: string, projectId: string): ProjectTab | nu
   if (tab === "overview") return "overview";
   if (tab === "configuration") return "configuration";
   if (tab === "issues") return "list";
+  if (tab === "graph") return "graph";
+  if (tab === "access") return "access";
   return null;
 }
 
@@ -269,6 +273,14 @@ export function ProjectDetail() {
       navigate(`/projects/${canonicalProjectRef}/configuration`, { replace: true });
       return;
     }
+    if (activeTab === "graph") {
+      navigate(`/projects/${canonicalProjectRef}/graph`, { replace: true });
+      return;
+    }
+    if (activeTab === "access") {
+      navigate(`/projects/${canonicalProjectRef}/access`, { replace: true });
+      return;
+    }
     if (activeTab === "list") {
       if (filter) {
         navigate(`/projects/${canonicalProjectRef}/issues/${filter}`, { replace: true });
@@ -342,6 +354,10 @@ export function ProjectDetail() {
       navigate(`/projects/${canonicalProjectRef}/overview`);
     } else if (tab === "configuration") {
       navigate(`/projects/${canonicalProjectRef}/configuration`);
+    } else if (tab === "graph") {
+      navigate(`/projects/${canonicalProjectRef}/graph`);
+    } else if (tab === "access") {
+      navigate(`/projects/${canonicalProjectRef}/access`);
     } else {
       navigate(`/projects/${canonicalProjectRef}/issues`);
     }
@@ -370,6 +386,8 @@ export function ProjectDetail() {
             { value: "overview", label: "Overview" },
             { value: "list", label: "List" },
             { value: "configuration", label: "Configuration" },
+            { value: "graph", label: "Graph" },
+            { value: "access", label: "Access" },
           ]}
           align="start"
           value={activeTab ?? "list"}
@@ -401,6 +419,14 @@ export function ProjectDetail() {
             getFieldSaveState={(field) => fieldSaveStates[field] ?? "idle"}
           />
         </div>
+      )}
+
+      {activeTab === "graph" && (
+        <ProjectGraphTab project={project} />
+      )}
+
+      {activeTab === "access" && (
+        <ProjectAccessTab project={project} />
       )}
     </div>
   );
