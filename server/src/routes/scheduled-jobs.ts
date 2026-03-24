@@ -23,12 +23,13 @@ async function getJobOrNotFound(
 
 export function scheduledJobRoutes(db: Db) {
   const router = Router();
+  const svc = scheduledJobsService(db);
 
   router.get("/companies/:companyId/scheduled-jobs", async (req, res) => {
     assertBoard(req);
     const { companyId } = req.params as { companyId: string };
     assertCompanyAccess(req, companyId);
-    const svc = scheduledJobsService(db);
+
     const jobs = await svc.list(companyId);
     res.json({ jobs });
   });
@@ -37,7 +38,7 @@ export function scheduledJobRoutes(db: Db) {
     assertBoard(req);
     const { companyId } = req.params as { companyId: string };
     assertCompanyAccess(req, companyId);
-    const svc = scheduledJobsService(db);
+
     const {
       name, description, scope, scopeTargetId, jobType, config, cronExpression, timezone,
       timeoutSeconds, overlapPolicy, missedRunPolicy, retryMax, retryDelaySeconds,
@@ -63,7 +64,7 @@ export function scheduledJobRoutes(db: Db) {
     assertBoard(req);
     const { companyId, jobId } = req.params as { companyId: string; jobId: string };
     assertCompanyAccess(req, companyId);
-    const svc = scheduledJobsService(db);
+
     const job = await getJobOrNotFound(svc, jobId, companyId, res);
     if (!job) return;
     res.json({ job });
@@ -73,7 +74,7 @@ export function scheduledJobRoutes(db: Db) {
     assertBoard(req);
     const { companyId, jobId } = req.params as { companyId: string; jobId: string };
     assertCompanyAccess(req, companyId);
-    const svc = scheduledJobsService(db);
+
     const existing = await getJobOrNotFound(svc, jobId, companyId, res);
     if (!existing) return;
     const job = await svc.update(jobId, req.body);
@@ -84,7 +85,7 @@ export function scheduledJobRoutes(db: Db) {
     assertBoard(req);
     const { companyId, jobId } = req.params as { companyId: string; jobId: string };
     assertCompanyAccess(req, companyId);
-    const svc = scheduledJobsService(db);
+
     const existing = await getJobOrNotFound(svc, jobId, companyId, res);
     if (!existing) return;
     await svc.delete(jobId);
@@ -95,7 +96,7 @@ export function scheduledJobRoutes(db: Db) {
     assertBoard(req);
     const { companyId, jobId } = req.params as { companyId: string; jobId: string };
     assertCompanyAccess(req, companyId);
-    const svc = scheduledJobsService(db);
+
     const existing = await getJobOrNotFound(svc, jobId, companyId, res);
     if (!existing) return;
     const job = await svc.setEnabled(jobId, false);
@@ -106,7 +107,7 @@ export function scheduledJobRoutes(db: Db) {
     assertBoard(req);
     const { companyId, jobId } = req.params as { companyId: string; jobId: string };
     assertCompanyAccess(req, companyId);
-    const svc = scheduledJobsService(db);
+
     const existing = await getJobOrNotFound(svc, jobId, companyId, res);
     if (!existing) return;
     const job = await svc.setEnabled(jobId, true);
@@ -118,7 +119,7 @@ export function scheduledJobRoutes(db: Db) {
     assertBoard(req);
     const { companyId, jobId } = req.params as { companyId: string; jobId: string };
     assertCompanyAccess(req, companyId);
-    const svc = scheduledJobsService(db);
+
     const job = await getJobOrNotFound(svc, jobId, companyId, res);
     if (!job) return;
 
@@ -154,7 +155,7 @@ export function scheduledJobRoutes(db: Db) {
     assertBoard(req);
     const { companyId, jobId } = req.params as { companyId: string; jobId: string };
     assertCompanyAccess(req, companyId);
-    const svc = scheduledJobsService(db);
+
     const existing = await getJobOrNotFound(svc, jobId, companyId, res);
     if (!existing) return;
     const limit = Math.min(Number(req.query.limit ?? 20), 100);

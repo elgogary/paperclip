@@ -42,7 +42,8 @@ export function scheduledJobsService(db: Db) {
         .select()
         .from(scheduledJobs)
         .where(eq(scheduledJobs.companyId, companyId))
-        .orderBy(asc(scheduledJobs.createdAt));
+        .orderBy(asc(scheduledJobs.createdAt))
+        .limit(500);
     },
 
     async get(jobId: string): Promise<ScheduledJob | null> {
