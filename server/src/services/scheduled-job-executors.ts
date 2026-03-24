@@ -11,8 +11,9 @@ export function isPrivateUrl(raw: string): boolean {
   } catch {
     return true; // unparseable = treat as unsafe
   }
+  // URL.hostname includes brackets for IPv6: "[::1]"
   const host = parsed.hostname.toLowerCase();
-  if (host === "localhost" || host === "127.0.0.1" || host === "::1") return true;
+  if (host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "[::1]") return true;
   const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
   if (ipv4) {
     const [a, b] = [Number(ipv4[1]), Number(ipv4[2])];
