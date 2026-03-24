@@ -27,6 +27,10 @@ import { assetRoutes } from "./routes/assets.js";
 import { accessRoutes } from "./routes/access.js";
 import { agentAccessRoutes } from "./routes/agent-access.js";
 import { scheduledJobRoutes } from "./routes/scheduled-jobs.js";
+import { skillRoutes } from "./routes/skills.js";
+import { mcpServerRoutes } from "./routes/mcp-servers.js";
+import { connectorRoutes } from "./routes/connectors.js";
+import { pluginRoutes } from "./routes/plugins.js";
 import { applyUiBranding } from "./ui-branding.js";
 import type { BetterAuthSessionResult } from "./auth/better-auth.js";
 
@@ -120,6 +124,10 @@ export async function createApp(
   api.use(sanadBrainRoutes(db));
   api.use(sidebarBadgeRoutes(db));
   api.use(scheduledJobRoutes(db));
+  api.use(skillRoutes(db));
+  api.use(mcpServerRoutes(db));
+  api.use(connectorRoutes(db));
+  api.use(pluginRoutes(db));
   api.use(
     accessRoutes(db, {
       deploymentMode: opts.deploymentMode,
