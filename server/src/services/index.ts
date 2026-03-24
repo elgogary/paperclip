@@ -22,3 +22,7 @@ export { reconcilePersistedRuntimeServicesOnStartup } from "./workspace-runtime.
 export { createStorageServiceFromConfig, getStorageService } from "../storage/index.js";
 export { scheduledJobsService, type ScheduledJob, type ScheduledJobRun, type CreateJobInput } from "./scheduled-jobs.js";
 export { startSchedulerLoop, stopSchedulerLoop } from "./scheduler-loop.js";
+export { skillsService, type Skill, type SkillAgentAccess, type CreateSkillInput } from "./skills.js";
+export { mcpServersService, type McpServerConfig, type McpAgentAccess, type McpCatalogEntry, type CreateMcpServerInput } from "./mcp-servers.js";
+export { connectorsService, type Connector, type CreateConnectorInput } from "./connectors.js";
+export { pluginsService, type Plugin, type PluginAgentAccess, type CreatePluginInput } from "./plugins.js";
