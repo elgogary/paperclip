@@ -219,7 +219,7 @@ export function JobDialog({ open, onClose, job }: Props) {
                 <button
                   key={t.value}
                   type="button"
-                  onClick={() => setJobType(t.value)}
+                  onClick={() => { setJobType(t.value); if (!isEdit) setConfig({}); }}
                   className={cn(
                     "rounded-lg border px-3 py-2.5 text-left transition-colors",
                     jobType === t.value

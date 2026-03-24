@@ -3,6 +3,28 @@ import type { Db } from "@paperclipai/db";
 import { agentWakeupRequests, heartbeatRuns } from "@paperclipai/db";
 import type { ScheduledJob } from "./scheduled-jobs.js";
 
+// SSRF guard — rejects private/loopback addresses to prevent internal network probing
+export function isPrivateUrl(raw: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    return true; // unparseable = treat as unsafe
+  }
+  const host = parsed.hostname.toLowerCase();
+  if (host === "localhost" || host === "127.0.0.1" || host === "::1") return true;
+  const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4) {
+    const [a, b] = [Number(ipv4[1]), Number(ipv4[2])];
+    if (a === 10) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 169 && b === 254) return true;
+    if (a === 0) return true;
+  }
+  return false;
+}
+
 // Default timeouts by job type (seconds)
 const DEFAULT_TIMEOUTS: Record<string, number> = {
   webhook: 5 * 60,
@@ -60,6 +82,7 @@ export async function executeWebhook(
   const authSecretId = config.auth_secret_id as string | undefined;
 
   if (!url) return { output: "", error: "Missing webhook URL in job config" };
+  if (isPrivateUrl(url)) return { output: "", error: "Webhook URL targets a private or internal address" };
 
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (authSecretId) {

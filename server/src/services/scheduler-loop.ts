@@ -1,7 +1,7 @@
 import type { Db } from "@paperclipai/db";
 import { logger } from "../middleware/logger.js";
 import { scheduledJobsService, type ScheduledJob } from "./scheduled-jobs.js";
-import { executeKnowledgeSync, executeWebhook, executeAgentRun } from "./scheduled-job-executors.js";
+import { executeKnowledgeSync, executeWebhook, executeAgentRun, isPrivateUrl } from "./scheduled-job-executors.js";
 import { secretService } from "./secrets.js";
 import { logActivity } from "./activity-log.js";
 
@@ -43,6 +43,13 @@ async function runSchedulerTick(db: Db): Promise<void> {
 
   const dueJobs = await svc.claimDueJobs();
   if (dueJobs.length === 0) return;
+
+  // NOTE: missedRunPolicy "skip" is not yet enforced — overdue jobs always run once.
+  // Implementing true skip requires comparing nextRunAt against the previous cron interval.
+  const skippedCount = dueJobs.filter((j) => j.missedRunPolicy === "skip").length;
+  if (skippedCount > 0) {
+    logger.debug({ skippedCount }, "Scheduler: missedRunPolicy=skip not enforced — running overdue jobs anyway");
+  }
 
   logger.info({ count: dueJobs.length }, "Scheduler: dispatching due jobs");
   await Promise.allSettled(dueJobs.map((job) => runJobWithRetry(db, svc, job, 1)));
@@ -123,27 +130,31 @@ async function sendFailureNotifications(
   }
 
   if (job.onFailureWebhookUrl) {
-    try {
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (job.onFailureWebhookSecretId) {
-        const secret = await secSvc.resolveById(job.companyId, job.onFailureWebhookSecretId);
-        if (secret) headers["Authorization"] = `Bearer ${secret}`;
+    if (isPrivateUrl(job.onFailureWebhookUrl)) {
+      logger.warn({ jobId: job.id }, "Skipping failure webhook — URL targets a private address");
+    } else {
+      try {
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (job.onFailureWebhookSecretId) {
+          const secret = await secSvc.resolveById(job.companyId, job.onFailureWebhookSecretId);
+          if (secret) headers["Authorization"] = `Bearer ${secret}`;
+        }
+        await fetch(job.onFailureWebhookUrl, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            event: "scheduled_job.failed",
+            job_id: job.id,
+            job_name: job.name,
+            error: errorMessage,
+            attempts: finalAttempt,
+            company_id: job.companyId,
+          }),
+          signal: AbortSignal.timeout(10_000),
+        });
+      } catch (err) {
+        logger.error({ err, jobId: job.id }, "Failed to deliver failure webhook");
       }
-      await fetch(job.onFailureWebhookUrl, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          event: "scheduled_job.failed",
-          job_id: job.id,
-          job_name: job.name,
-          error: errorMessage,
-          attempts: finalAttempt,
-          company_id: job.companyId,
-        }),
-        signal: AbortSignal.timeout(10_000),
-      });
-    } catch (err) {
-      logger.error({ err, jobId: job.id }, "Failed to deliver failure webhook");
     }
   }
 }
