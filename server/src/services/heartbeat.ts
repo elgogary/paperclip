@@ -42,7 +42,6 @@ import {
 import { issueService } from "./issues.js";
 import { executionWorkspaceService } from "./execution-workspaces.js";
 import { workspaceOperationService } from "./workspace-operations.js";
-import { mcpServersService } from "./mcp-servers.js";
 import {
   buildExecutionWorkspaceAdapterConfig,
   gateProjectExecutionWorkspacePolicy,
@@ -739,7 +738,6 @@ export function heartbeatService(db: Db) {
     cancelWorkForScope: cancelBudgetScopeWork,
   };
   const budgets = budgetService(db, budgetHooks);
-  const mcpServersSvc = mcpServersService(db);
 
   async function getAgent(agentId: string) {
     return db
@@ -2409,28 +2407,6 @@ export function heartbeatService(db: Db) {
             "Failed to build attachment context for agent run (non-fatal)",
           );
         }
-      // Inject MCP server configs into context for the adapter
-      try {
-        const agentMcpServers = await mcpServersSvc.listForAgent(agent.id, agent.companyId);
-        if (agentMcpServers.length > 0) {
-          context.mcpServers = agentMcpServers.map((s) => ({
-            name: s.name,
-            command: s.command || "npx",
-            args: (s.args as string[] | null) ?? undefined,
-            env: (s.env as Record<string, string> | null) ?? undefined,
-            transport: s.transport || "stdio",
-            url: s.url || undefined,
-          }));
-          logger.info(
-            { agentId: agent.id, runId: run.id, mcpServerCount: agentMcpServers.length },
-            "injected MCP server configs into run context",
-          );
-        }
-      } catch (err) {
-        await onLog(
-          "stderr",
-          `[paperclip] Failed to load MCP servers: ${err instanceof Error ? err.message : String(err)}; continuing without MCP.\n`,
-        );
       }
 
       const adapter = getServerAdapter(agent.adapterType);
