@@ -63,10 +63,10 @@ export async function convertToHtml(inputPath, workDir) {
     }
 
     const htmlPath = join(workDir, "input.html");
-    const html = await readFile(htmlPath);
-    return { htmlBase64: html.toString("base64") };
+    const htmlBuffer = await readFile(htmlPath);
+    return { htmlBuffer };
   } catch (err) {
-    return { htmlBase64: null, error: err.message || "Conversion failed" };
+    return { htmlBuffer: null, error: err.message || "Conversion failed" };
   } finally {
     try {
       await fs.rm(workDir, { recursive: true, force: true });
