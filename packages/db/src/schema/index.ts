@@ -44,7 +44,6 @@ export { approvalComments } from "./approval_comments.js";
 export { activityLog } from "./activity_log.js";
 export { companySecrets } from "./company_secrets.js";
 export { companySecretVersions } from "./company_secret_versions.js";
-<<<<<<< HEAD
 export { companySkills } from "./company_skills.js";
 export { plugins } from "./plugins.js";
 export { pluginConfig } from "./plugin_config.js";
@@ -55,7 +54,5 @@ export { pluginJobs, pluginJobRuns } from "./plugin_jobs.js";
 export { pluginWebhookDeliveries } from "./plugin_webhooks.js";
 export { pluginLogs } from "./plugin_logs.js";
 export { attachments } from "./attachments.js";
-=======
 export { agentUserAccess } from "./agent_user_access.js";
 export { agentNotes } from "./agent_notes.js";
->>>>>>> feature/chat-ui

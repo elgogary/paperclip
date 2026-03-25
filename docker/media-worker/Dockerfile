@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libreoffice-writer \
     libreoffice-calc \
     libreoffice-impress \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -16,5 +17,5 @@ RUN npm ci --omit=dev
 
 COPY src/ ./src/
 
-EXPOSE 8200
+EXPOSE 3200
 CMD ["node", "src/index.js"]

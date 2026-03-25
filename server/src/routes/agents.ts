@@ -29,11 +29,8 @@ import {
 import { validate } from "../middleware/validate.js";
 import {
   agentService,
-<<<<<<< HEAD
   agentInstructionsService,
-=======
   agentAccessService,
->>>>>>> feature/chat-ui
   accessService,
   approvalService,
   companySkillService,

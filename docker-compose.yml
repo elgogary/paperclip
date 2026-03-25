@@ -29,12 +29,16 @@ services:
       PAPERCLIP_DEPLOYMENT_EXPOSURE: "private"
       PAPERCLIP_PUBLIC_URL: "${PAPERCLIP_PUBLIC_URL:-http://localhost:3100}"
       BETTER_AUTH_SECRET: "${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET must be set}"
-<<<<<<< HEAD
+      SANAD_BRAIN_URL: "${SANAD_BRAIN_URL:-}"
+      SANAD_BRAIN_API_KEY: "${SANAD_BRAIN_API_KEY:-}"
       PAPERCLIP_MEDIA_WORKER_URL: "http://paperclip-media-worker:3200"
-=======
-      SANAD_BRAIN_URL: "http://100.109.59.30:8100"
-      SANAD_BRAIN_API_KEY: "c246f4294bf4a99ccfb2883f68352a9889789076414b7cf93cbd3fb01f735d4e"
->>>>>>> feature/chat-ui
+      PAPERCLIP_STORAGE_PROVIDER: "s3"
+      PAPERCLIP_STORAGE_S3_ENDPOINT: "http://minio:9000"
+      PAPERCLIP_STORAGE_S3_BUCKET: "paperclip-files"
+      PAPERCLIP_STORAGE_S3_REGION: "us-east-1"
+      PAPERCLIP_STORAGE_S3_FORCE_PATH_STYLE: "true"
+      AWS_ACCESS_KEY_ID: "${MINIO_ACCESS_KEY:-paperclip-minio}"
+      AWS_SECRET_ACCESS_KEY: "${MINIO_SECRET_KEY:?MINIO_SECRET_KEY must be set}"
     volumes:
       - paperclip-data:/paperclip
     depends_on:
@@ -42,6 +46,27 @@ services:
         condition: service_healthy
       media-worker:
         condition: service_healthy
+    networks:
+      - paperclip-internal
+
+  minio:
+    image: minio/minio:latest
+    container_name: paperclip-minio
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-paperclip-minio}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:?MINIO_SECRET_KEY must be set}
+    volumes:
+      - minio-data:/data
+    expose:
+      - "9000"
+      - "9001"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     networks:
       - paperclip-internal
 
@@ -60,6 +85,9 @@ services:
       - /workspace:/workspace:ro
     expose:
       - "3200"
+    depends_on:
+      minio:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:3200/health || exit 1"]
       interval: 10s
@@ -76,3 +104,4 @@ networks:
 volumes:
   pgdata:
   paperclip-data:
+  minio-data:

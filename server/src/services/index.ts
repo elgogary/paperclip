@@ -19,11 +19,8 @@ export { heartbeatService } from "./heartbeat.js";
 export { dashboardService } from "./dashboard.js";
 export { sidebarBadgeService } from "./sidebar-badges.js";
 export { accessService } from "./access.js";
-<<<<<<< HEAD
 export { instanceSettingsService } from "./instance-settings.js";
-=======
 export { agentAccessService } from "./agent-access.js";
->>>>>>> feature/chat-ui
 export { companyPortabilityService } from "./company-portability.js";
 export { executionWorkspaceService } from "./execution-workspaces.js";
 export { workspaceOperationService } from "./workspace-operations.js";
