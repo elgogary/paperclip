@@ -4,6 +4,8 @@ import remarkGfm from "remark-gfm";
 import { parseProjectMentionHref } from "@paperclipai/shared";
 import { cn } from "../lib/utils";
 import { useTheme } from "../context/ThemeContext";
+import { AttachmentCard } from "./attachments/AttachmentCard";
+import { attachmentsApi, type AttachmentMeta } from "../api/attachments";
 
 interface MarkdownBodyProps {
   children: string;
@@ -114,6 +116,49 @@ function MermaidDiagramBlock({ source, darkMode }: { source: string; darkMode: b
   );
 }
 
+function parseAttachmentHref(href: string): string | null {
+  if (!href.startsWith("attachment:")) return null;
+  return href.slice("attachment:".length) || null;
+}
+
+function InlineAttachment({ attachmentId, label }: { attachmentId: string; label: string }) {
+  const [meta, setMeta] = useState<AttachmentMeta | null>(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    attachmentsApi.get(attachmentId).then(
+      (data) => { if (active) setMeta(data); },
+      () => { if (active) setError(true); },
+    );
+    return () => { active = false; };
+  }, [attachmentId]);
+
+  if (error) {
+    return (
+      <span className="text-xs text-muted-foreground italic">[attachment unavailable]</span>
+    );
+  }
+
+  if (!meta) {
+    return (
+      <span className="text-xs text-muted-foreground">{label || "Loading attachment..."}</span>
+    );
+  }
+
+  return (
+    <AttachmentCard
+      attachmentId={meta.id}
+      filename={meta.filename}
+      mimeType={meta.mimeType}
+      sizeBytes={meta.sizeBytes}
+      thumbnailUrl={meta.thumbnailUrl}
+      downloadUrl={meta.downloadUrl}
+      status={meta.status === "ready" ? "ready" : meta.status === "error" ? "error" : "processing"}
+    />
+  );
+}
+
 export function MarkdownBody({ children, className, resolveImageSrc }: MarkdownBodyProps) {
   const { theme } = useTheme();
   const components: Components = {
@@ -125,6 +170,15 @@ export function MarkdownBody({ children, className, resolveImageSrc }: MarkdownB
       return <pre {...preProps}>{preChildren}</pre>;
     },
     a: ({ href, children: linkChildren }) => {
+      const attachmentId = href ? parseAttachmentHref(href) : null;
+      if (attachmentId) {
+        return (
+          <InlineAttachment
+            attachmentId={attachmentId}
+            label={flattenText(linkChildren)}
+          />
+        );
+      }
       const parsed = href ? parseProjectMentionHref(href) : null;
       if (parsed) {
         const label = linkChildren;
