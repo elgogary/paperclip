@@ -27,7 +27,6 @@ import { Toolkit } from "./pages/Toolkit";
 import { Skills } from "./pages/Skills";
 import { Inbox } from "./pages/Inbox";
 import { CompanySettings } from "./pages/CompanySettings";
-import { CompanySkills } from "./pages/CompanySkills";
 import { CompanyExport } from "./pages/CompanyExport";
 import { CompanyImport } from "./pages/CompanyImport";
 import { DesignGuide } from "./pages/DesignGuide";
@@ -132,7 +131,6 @@ function boardRoutes() {
       <Route path="company/settings" element={<CompanySettings />} />
       <Route path="company/export/*" element={<CompanyExport />} />
       <Route path="company/import" element={<CompanyImport />} />
-      <Route path="skills/*" element={<CompanySkills />} />
       <Route path="settings" element={<LegacySettingsRedirect />} />
       <Route path="settings/*" element={<LegacySettingsRedirect />} />
       <Route path="plugins/:pluginId" element={<PluginPage />} />
