@@ -712,11 +712,480 @@ When something goes wrong, the activity log is your first stop:
 3. Walk through the timeline to understand what happened
 4. Check for missed status updates, failed checkouts, or unexpected assignments`,
       },
+      {
+        id: "scheduled-jobs",
+        title: "Scheduled Jobs",
+        content: `# Scheduled Jobs
+
+Scheduled Jobs let you automate recurring actions on a cron schedule — without writing code. Use them to keep Brain knowledge sources fresh, call external webhooks, or wake up agents on a regular cadence.
+
+## Accessing Scheduled Jobs
+
+Navigate to **Scheduled Jobs** in the sidebar. The page shows all jobs for your company in a table with columns: Name, Scope, Type, Schedule, Last Run, Next Run, Status, and Actions.
+
+- Use the **search bar** to filter by job name or description.
+- Use the **Type** and **Status** dropdowns to narrow the list.
+- Toggle between **table view** and **card view** using the icons at the right end of the filter bar.
+
+## Creating a Job
+
+Click **New job** and fill in:
+
+1. **Name** — a clear label (e.g. "Sync product docs — weekly")
+2. **Description** — optional context
+3. **Job type** — one of three types (see below)
+4. **Type-specific config** — source ID, webhook URL, or agent details
+5. **Cron expression** — standard 5-field cron (e.g. \`0 9 * * 1\` = every Monday at 9am)
+6. **Timezone** — defaults to UTC
+
+Expand **Execution settings**, **Retry on failure**, and **On failure notifications** for advanced control.
+
+## Job Types
+
+### Knowledge Sync
+
+Triggers a Brain knowledge source to re-index its content. Requires a **Brain Source ID**.
+
+### Webhook
+
+Makes an HTTP request to an external URL. Configure the URL, method (POST/GET/PUT/PATCH), request body, and an optional auth secret. Private/loopback IP ranges are blocked (SSRF protection).
+
+### Agent Run
+
+Creates a wakeup request for one of your agents with a specific task title and description.
+
+## Cron Expressions
+
+Standard 5-field syntax: \`minute hour day-of-month month day-of-week\`
+
+| Expression | Meaning |
+|-----------|---------|
+| \`0 9 * * 1\` | Every Monday at 9am |
+| \`0 */6 * * *\` | Every 6 hours |
+| \`30 8 * * 1-5\` | Weekdays at 8:30am |
+| \`0 0 1 * *\` | First day of every month |
+
+## Overlap & Missed Run Policies
+
+| Setting | Options |
+|---------|---------|
+| If already running | \`skip\` (default) — new run is skipped; \`queue\` — run alongside |
+| If run was missed | \`skip\` (default) — ignored; \`run_once\` — one catch-up run fires |
+
+## Retry on Failure
+
+Set max retries (0–5) and retry delay (1 min – 1 hr). Each retry is recorded as a separate run entry.
+
+## Pausing and Resuming
+
+Use **⋯ → Pause** to stop a job without deleting it (the row dims). Use **Resume** to re-enable it.
+
+## Run Now
+
+Use **⋯ → Run now** to trigger a job immediately. A toast confirms the trigger and the result appears in the run log within seconds.
+
+## Run History
+
+Click the **logs icon** on any row to open the run history drawer showing the last 50 runs:
+
+- Status: \`success\` / \`failed\` / \`running\` / \`timed_out\` / \`cancelled\`
+- Triggered by: scheduler / manual / retry
+- Duration and output or error message
+- Link to agent transcript (for agent_run jobs)
+
+Run logs are kept for **90 days** then automatically purged.
+
+## Deleting a Job
+
+**⋯ → Delete** opens a confirmation dialog. Deletion is permanent and removes all run history.`,
+      },
     ],
   },
 
   // ─────────────────────────────────────────────────────────────
-  // 3. AGENT DEVELOPER
+  // 3. SANAD BRAIN
+  // ─────────────────────────────────────────────────────────────
+  {
+    id: "sanad-brain",
+    title: "Sanad Brain",
+    icon: "Brain",
+    pages: [
+      {
+        id: "brain-overview",
+        title: "Overview",
+        content: `# Sanad Brain
+
+Sanad Brain is the persistent memory and knowledge layer for your agent crew. It stores everything agents learn — from raw conversation snippets to structured facts — and makes that knowledge searchable and retrievable at runtime.
+
+Navigate to **Brain** in the sidebar. The page has six tabs:
+
+| Tab | Purpose |
+|-----|---------|
+| **Live** | Real-time metrics and recent activity feed |
+| **Memories** | Browse, search, and manage stored memories |
+| **Knowledge** | Upload documents and manage knowledge sources |
+| **Graph** | Visual knowledge graph of extracted entities |
+| **Health** | Service status for all Brain backend services |
+| **Audit** | Full audit log of all Brain operations |`,
+      },
+      {
+        id: "brain-live",
+        title: "Live Tab",
+        content: `# Live Tab
+
+The Live tab gives you a real-time snapshot of Brain activity.
+
+## Metric Cards
+
+| Metric | What it shows |
+|--------|--------------|
+| **Total Memories** | Number of vector points stored in Qdrant |
+| **Recent Ops** | Count of operations in the last activity window |
+| **Active Users** | Unique agent/user IDs seen in recent activity |
+| **Version** | Sanad Brain service version |
+
+## Recent Activity Feed
+
+Shows the last 20 operations with:
+- **Action badge** — color-coded by type (WRITE, READ, DELETE, FEEDBACK, CONSOLIDATE)
+- **User ID** — the agent or user that triggered the operation
+- **Endpoint** — the API path called
+- **Timestamp** — relative time ago
+
+The feed auto-refreshes every 10 seconds. Use the **Refresh** button to force an immediate update.`,
+      },
+      {
+        id: "brain-memories",
+        title: "Memories Tab",
+        content: `# Memories Tab
+
+The Memories tab lets you browse and manage all memories stored by your agents.
+
+## Browsing Memories
+
+Memories are displayed as cards showing the content, tags, and creation time. Use the **search bar** to filter by keyword.
+
+## Feedback
+
+Each memory has thumbs-up / thumbs-down buttons. Positive feedback signals high-quality memories; negative feedback marks them for review or removal. This feedback is recorded in the audit log.
+
+## Deleting Memories
+
+Click the delete icon on any memory card. A confirmation prompt appears before the memory is permanently removed. Deleted memories cannot be recovered.`,
+      },
+      {
+        id: "brain-knowledge",
+        title: "Knowledge Tab",
+        content: `# Knowledge Tab
+
+The Knowledge tab manages the documents and data sources that agents can retrieve via RAG (Retrieval-Augmented Generation).
+
+## RAG Search
+
+Use the search bar at the top to test retrieval — type a query and see which chunks Brain would return to an agent.
+
+## Knowledge Sources
+
+Each source has a **type** that determines how it's indexed:
+
+| Type | Description |
+|------|-------------|
+| **document** | Uploaded files (.pdf, .md, .txt, .rst, .csv) |
+| **frappe** | Frappe/ERPNext data synced from a connected instance |
+| **web** | Web pages crawled and indexed |
+| **codebase** | Source code files indexed for code-aware retrieval |
+| **codegraph** | Code graph data (call graphs, dependency maps) |
+
+Each source shows its chunk count, sync status, and last sync time.
+
+## Uploading a Document
+
+1. Click **Upload document**
+2. Select a file (.pdf, .md, .txt, .rst, or .csv)
+3. Brain chunks and embeds it automatically
+4. The source appears in the list with status **indexed**
+
+## Syncing a Source
+
+For syncable source types (frappe, web, codebase, codegraph), click the **sync icon** on the source row to trigger a fresh re-index. The status changes to **syncing** while in progress.
+
+## Deleting a Source
+
+Click the **delete icon** on the source row. This removes the source and all its indexed chunks from the vector store. Deletion is permanent.`,
+      },
+      {
+        id: "brain-graph",
+        title: "Graph Tab",
+        content: `# Graph Tab
+
+The Graph tab renders a force-directed knowledge graph of entities extracted from stored memories.
+
+## Node Types
+
+| Color | Type | Examples |
+|-------|------|---------|
+| Blue | Entity | Organizations, products, systems |
+| Purple | Person | Names, roles |
+| Green | Concept | Abstract ideas, topics |
+| Amber | Fact | Statements, data points |
+| Red | Event | Meetings, incidents, milestones |
+
+## Interacting with the Graph
+
+- **Hover** over a node to see its label, type, and up to 5 properties in a tooltip
+- **Fullscreen** button expands the canvas to fill the window
+- **Refresh** reloads graph data from Brain
+
+The node count and edge count are shown in the toolbar. A color legend lists all node types present in the current graph.
+
+## Enabling the Graph
+
+The graph requires **ENABLE_GRAPH=true** in your Brain server configuration and memories stored with LLM entity extraction enabled. If the graph is empty, the tab shows a setup hint.`,
+      },
+      {
+        id: "brain-health",
+        title: "Health Tab",
+        content: `# Health Tab
+
+The Health tab shows the operational status of every service that Sanad Brain depends on.
+
+## Service Cards
+
+Each service is shown as a card with:
+- **Status badge** — Online (green), Offline (red), or Disabled (gray)
+- **Service-specific details** — e.g., Qdrant shows point count; Ollama shows loaded models and healthy model count
+- **Error message** — shown in red if the service reported an error
+
+The health data auto-refreshes every 30 seconds. Use **Refresh** to check immediately.
+
+## Common Services
+
+| Service | Role |
+|---------|------|
+| **qdrant** | Vector database — stores memory embeddings |
+| **ollama** | Local LLM provider — powers embedding and extraction |
+| **postgres** | Relational store — audit logs, metadata |
+
+If a service shows Offline, agents may fail to store or retrieve memories. Check the Brain server logs for the root cause.`,
+      },
+      {
+        id: "brain-audit",
+        title: "Audit Tab",
+        content: `# Audit Tab
+
+The Audit tab records every operation performed against Sanad Brain — who did what and when.
+
+## Audit Log Columns
+
+| Column | Description |
+|--------|-------------|
+| **Time** | Full timestamp of the operation |
+| **Action** | Operation type (see below) |
+| **User** | Agent ID or user ID that triggered the operation |
+| **Company** | Company scope of the operation |
+| **Endpoint** | API endpoint called |
+
+## Action Types
+
+| Action | Meaning |
+|--------|---------|
+| WRITE | Memory stored or updated |
+| READ | Memory or knowledge retrieved |
+| DELETE | Memory or source deleted |
+| FEEDBACK | Thumbs up/down recorded on a memory |
+| CONSOLIDATE | Memory consolidation job ran |
+
+## Filtering
+
+Use the **Action** dropdown to show only a specific action type. Use the **rows** dropdown to set page size (25, 50, or 100 rows). The total entry count is shown next to the filters.
+
+The log auto-refreshes every 15 seconds.`,
+      },
+      {
+        id: "brain-tool-loading",
+        title: "Tool Lazy Loading",
+        content: `# Tool Lazy Loading
+
+Tool Lazy Loading reduces LLM context usage by ~90%. Instead of passing all 115+ tool definitions to the LLM on every call, Brain embeds tool descriptions in a dedicated Qdrant collection and retrieves only the top 5-10 relevant tools via cosine search.
+
+## How It Works
+
+1. **Registration** — tool descriptions are embedded with nomic-embed-text (768-dim) and stored in the \`sanad_tool_descriptions\` Qdrant collection
+2. **Search** — at query time, the user's message is embedded and cosine-searched against tool descriptions
+3. **Injection** — only the top matching tools (with their full schemas) are injected into the LLM prompt
+
+## Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| \`/tools/register\` | POST | Register a single tool |
+| \`/tools/register/batch\` | POST | Register multiple tools at once |
+| \`/tools/search\` | POST | Search tools by query text |
+| \`/tools/list\` | GET | List all registered tools |
+| \`/tools/{tool_id}\` | DELETE | Remove a tool |
+
+## Search Filters
+
+- **category** — narrow results to a domain (memory, knowledge, tasks, agents, infra, sales, dev, ops)
+- **company_id** — filter to company-specific tools
+- **enabled** — only active tools are returned (always applied)
+
+## Deduplication
+
+Tools are identified by \`tool_id\`. Re-registering a tool with the same ID updates it in place (upsert). No duplicates are created.
+
+## Fallback
+
+If the tool collection is empty or Qdrant is unavailable, the search returns an empty list. The caller should fall back to passing all tools (current behavior).`,
+      },
+      {
+        id: "brain-batch-ingestion",
+        title: "Batch Ingestion",
+        content: `# Memory Batch Ingestion
+
+The batch ingestion system queues conversation turns for background processing, avoiding the 2-5 second latency of real-time LLM extraction.
+
+## Queue Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| \`/memory/queue\` | POST | Queue a single turn for later processing |
+| \`/memory/queue/batch\` | POST | Queue multiple turns at once |
+| \`/memory/queue/status\` | GET | Check pending queue depth |
+
+## How It Works
+
+1. **Queue** — turns are stored in a SQLite table with content-hash deduplication. Duplicate content (same company + same text) is silently ignored.
+2. **Process** — a background scheduler runs every 30 minutes (configurable via \`INGESTION_INTERVAL_MINUTES\`). It fetches unprocessed turns, groups them by tenant, and calls \`add_raw_batch\` to embed and store in Qdrant.
+3. **Mark** — processed turns are marked so they won't be re-processed.
+
+## Grouping
+
+Turns are grouped by \`(company_id, user_id, scope, source)\` to ensure correct tenant isolation and metadata assignment.
+
+## Error Handling
+
+Errors are isolated per-tenant. If one tenant's batch fails (e.g., Qdrant timeout), other tenants' turns are still processed. Failed turns remain in the queue for retry on the next cycle.`,
+      },
+      {
+        id: "brain-dream",
+        title: "Sanad Dream",
+        content: `# Sanad Dream
+
+Sanad Dream is an automated memory consolidation system inspired by Claude Code's Auto Dream feature. It runs periodically to clean up, deduplicate, and organize agent memories.
+
+## The 4-Phase Dream Cycle
+
+| Phase | Name | What It Does |
+|-------|------|-------------|
+| 1 | **Orient** | Analyzes current memory state — counts by type, scope, and age. Identifies stale candidates (>30 days old, never updated). |
+| 2 | **Gather** | Queries the audit log for changes since the last dream — new writes, corrections, deletions. |
+| 3 | **Consolidate** | Removes exact duplicates. Normalizes relative dates ("yesterday", "3 days ago") to absolute ISO dates based on memory creation time. |
+| 4 | **Prune** | Enforces the memory limit (default 200 per company). If over limit, deletes the oldest memories first. |
+
+## Trigger Conditions
+
+A dream cycle only runs when ALL of these are true:
+- At least **24 hours** since the last dream for this company
+- At least **5 new memory writes** since the last dream
+- No dream is currently running (lock-based concurrency)
+
+The scheduler checks these conditions every **60 minutes** for all known companies.
+
+## Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| \`/dream/trigger\` | POST | Manually trigger a dream cycle (supports \`dry_run\`) |
+| \`/dream/status/{company_id}\` | GET | Check if dream should run + last cycle info |
+| \`/dream/history/{company_id}\` | GET | View past dream cycle logs |
+
+## Dry Run
+
+Use \`"dry_run": true\` in the trigger request to see what the dream would do without making changes. The report shows all 4 phases with metrics but no deletions or updates.
+
+## Configuration
+
+| Env Var | Default | Description |
+|---------|---------|-------------|
+| \`DREAM_MIN_INTERVAL_HOURS\` | 24 | Minimum hours between dream cycles |
+| \`DREAM_MIN_WRITES\` | 5 | Minimum new writes to trigger a dream |
+| \`MAX_MEMORY_ENTRIES\` | 200 | Memory limit per company (prune target) |
+| \`DREAM_CHECK_INTERVAL_MINUTES\` | 60 | How often the scheduler checks conditions |`,
+      },
+      {
+        id: "brain-architecture",
+        title: "Architecture",
+        content: `# Architecture
+
+Sanad Brain runs as a standalone Docker stack with 6 containers.
+
+## Container Stack
+
+| Container | Image | RAM | Purpose |
+|-----------|-------|-----|---------|
+| **sanad-brain** | Custom (FastAPI) | 4GB | API server + scheduler |
+| **sanad-ollama** | ollama/ollama | 4GB | Local LLM models |
+| **sanad-qdrant** | qdrant/qdrant | 4GB | Vector database |
+| **sanad-neo4j** | neo4j | 10GB | Knowledge graph |
+| **sanad-litellm** | litellm | 1GB | Model proxy |
+| **sanad-prometheus** | prometheus | 1GB | Metrics |
+
+## Ollama Models
+
+| Model | Size | Purpose | Speed |
+|-------|------|---------|-------|
+| **nomic-embed-text** | 274MB | Text → 768-dim vectors | Instant |
+| **llama-guard3:1b** | 1.6GB | Input safety classification | <100ms |
+| **qwen2.5:0.5b** | 397MB | Intent routing | ~120 tok/s |
+
+## Qdrant Collections
+
+| Collection | Owner | Purpose |
+|------------|-------|---------|
+| \`sanad_brain\` | Mem0 | Agent memories (do not write directly) |
+| \`sanad_knowledge\` | Knowledge system | Document chunks for RAG search |
+| \`sanad_tool_descriptions\` | Tool Loader | Tool schemas for lazy loading |
+
+## Data Flow
+
+\`\`\`
+Agent Turn → /memory/remember
+  → PII Guard (redact credentials)
+  → Mem0 (LLM extraction via glm-4.5-air)
+    → Qdrant (768-dim vector)
+    → Neo4j (entity graph)
+  → Audit Log
+
+Agent Turn → /memory/queue (fast path)
+  → SQLite turn_queue (dedup by hash)
+  → Scheduler (every 30 min)
+    → nomic-embed-text (batch embed)
+    → Qdrant (raw vectors)
+
+Tool Search → /tools/search
+  → nomic-embed-text (embed query)
+  → Qdrant cosine search (sanad_tool_descriptions)
+  → Top 5-10 tools returned
+
+Dream → /dream/trigger (every 24h)
+  → Orient (count + classify memories)
+  → Gather (audit log delta)
+  → Consolidate (dedup + date normalization)
+  → Prune (enforce 200 memory limit)
+\`\`\`
+
+## Background Scheduler
+
+A daemon thread runs inside the Brain container with two jobs:
+- **Ingestion** — every 30 minutes, processes the turn queue
+- **Dream check** — every 60 minutes, checks trigger conditions for all companies`,
+      },
+    ],
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // 4. AGENT DEVELOPER (was 3)
   // ─────────────────────────────────────────────────────────────
   {
     id: "agent-developer",
@@ -3102,6 +3571,306 @@ Creates a new version. Agents referencing \`"version": "latest"\` automatically 
 \`\`\`
 
 The server resolves and decrypts secret references at runtime.`,
+      },
+      {
+        id: "api-scheduled-jobs",
+        title: "Scheduled Jobs",
+        content: `# Scheduled Jobs API
+
+Manage cron-based automation jobs. Three job types: \`knowledge_sync\`, \`webhook\`, \`agent_run\`.
+
+All endpoints require board authentication and company access.
+
+## List Jobs
+
+\`\`\`
+GET /api/companies/{companyId}/scheduled-jobs
+\`\`\`
+
+Returns all scheduled jobs ordered by creation time.
+
+## Get Job
+
+\`\`\`
+GET /api/companies/{companyId}/scheduled-jobs/{jobId}
+\`\`\`
+
+## Create Job
+
+\`\`\`
+POST /api/companies/{companyId}/scheduled-jobs
+\`\`\`
+
+**Body**
+
+\`\`\`json
+{
+  "name": "Weekly knowledge sync",
+  "description": "Optional description",
+  "jobType": "knowledge_sync",
+  "config": { "source_id": "brain-source-uuid" },
+  "cronExpression": "0 9 * * 1",
+  "timezone": "UTC",
+  "scope": "company",
+  "overlapPolicy": "skip",
+  "missedRunPolicy": "skip",
+  "retryMax": 0,
+  "retryDelaySeconds": 300,
+  "onFailureNotifyInApp": true
+}
+\`\`\`
+
+**Config by job type**
+
+\`knowledge_sync\`: \`{ "source_id": "uuid" }\`
+
+\`webhook\`:
+\`\`\`json
+{
+  "url": "https://example.com/hook",
+  "method": "POST",
+  "body": "{}",
+  "auth_secret_id": "secret-uuid-or-null"
+}
+\`\`\`
+
+\`agent_run\`:
+\`\`\`json
+{
+  "agent_id": "agent-uuid",
+  "task_title": "Weekly review",
+  "task_description": "Analyse last week and post a summary."
+}
+\`\`\`
+
+Returns \`201\` with \`{ "job": { ...job } }\`.
+
+## Update Job
+
+\`\`\`
+PATCH /api/companies/{companyId}/scheduled-jobs/{jobId}
+\`\`\`
+
+Partial update. Changing \`cronExpression\` or \`timezone\` automatically recalculates \`nextRunAt\`.
+
+## Delete Job
+
+\`\`\`
+DELETE /api/companies/{companyId}/scheduled-jobs/{jobId}
+\`\`\`
+
+Permanently deletes the job and all run history. Returns \`{ "ok": true }\`.
+
+## Pause / Resume
+
+\`\`\`
+POST /api/companies/{companyId}/scheduled-jobs/{jobId}/pause
+POST /api/companies/{companyId}/scheduled-jobs/{jobId}/resume
+\`\`\`
+
+## Run Now
+
+\`\`\`
+POST /api/companies/{companyId}/scheduled-jobs/{jobId}/run
+\`\`\`
+
+Fires the job immediately in the background. Returns instantly with \`{ "ok": true, "message": "Job triggered" }\`.
+
+## List Run History
+
+\`\`\`
+GET /api/companies/{companyId}/scheduled-jobs/{jobId}/runs?limit=20
+\`\`\`
+
+Returns most recent runs, newest first. Max limit: 100.
+
+**Run object fields**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| \`status\` | string | \`running\` / \`success\` / \`failed\` / \`timed_out\` / \`cancelled\` |
+| \`attempt\` | number | 1 for first attempt, 2+ for retries |
+| \`triggeredBy\` | string | \`scheduler\` / \`manual\` / \`retry\` |
+| \`durationMs\` | number | Wall-clock execution time |
+| \`output\` | string | Success output message |
+| \`error\` | string | Error message if failed |
+| \`heartbeatRunId\` | string | For agent_run jobs: linked heartbeat run |
+
+## Scheduler Internals
+
+- Loop interval: 60 seconds
+- Claims jobs where \`enabled = true AND next_run_at <= NOW()\` using \`FOR UPDATE SKIP LOCKED\`
+- After each run, \`nextRunAt\` is recalculated from the cron expression
+- Run logs older than 90 days are purged automatically`,
+      },
+      {
+        id: "api-brain-memory",
+        title: "Brain Memory",
+        content: `# Brain Memory API
+
+## Remember (LLM extraction)
+\`\`\`
+POST /memory/remember
+{
+  "company_id": "optiflow",
+  "user_id": "eslam",
+  "content": "Lesson learned: always check Qdrant dimensions before migration",
+  "scope": "company",
+  "source": "api"
+}
+→ 200 { "ok": true, "result": { "results": [...], "relations": {...} } }
+\`\`\`
+
+## Raw Write (no LLM, embed only)
+\`\`\`
+POST /memory/raw
+{ "company_id": "optiflow", "user_id": "eslam", "content": "..." }
+→ 200 { "ok": true, "result": { "results": [{ "id": "uuid", "event": "RAW_ADD" }] } }
+\`\`\`
+
+## Batch Raw Write
+\`\`\`
+POST /memory/raw/batch
+{ "company_id": "optiflow", "user_id": "eslam", "contents": ["fact 1", "fact 2"] }
+→ 200 { "ok": true, "result": { "results": [...] }, "count": 2 }
+\`\`\`
+
+## Search
+\`\`\`
+POST /memory/search
+{ "company_id": "optiflow", "user_id": "eslam", "query": "deployment lessons" }
+→ 200 { "results": [{ "id": "...", "memory": "...", "score": 0.85, "metadata": {...} }], "relations": [...] }
+\`\`\`
+
+## Queue (batch ingestion)
+\`\`\`
+POST /memory/queue
+{ "company_id": "optiflow", "user_id": "eslam", "content": "..." }
+→ 200 { "ok": true }
+
+POST /memory/queue/batch
+{ "company_id": "optiflow", "user_id": "eslam", "contents": ["a", "b", "c"] }
+→ 200 { "ok": true, "queued": 3, "total": 3 }
+
+GET /memory/queue/status
+→ 200 { "pending": 42 }
+\`\`\`
+
+## Other Endpoints
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| \`/memory/context\` | POST | Build formatted context for LLM injection |
+| \`/memory/fact\` | POST | Store structured entity-attribute-value fact |
+| \`/memory/feedback\` | POST | Thumbs up/down or correction on a memory |
+| \`/memory/delete\` | POST | Delete a memory by ID |
+| \`/memory/stats/{company}/{user}\` | GET | Memory statistics |
+| \`/memory/all/{company}/{user}\` | GET | List all memories |
+| \`/memory/company/{company}\` | GET | All memories for a company |
+| \`/memory/consolidate\` | POST | Run dedup consolidation |`,
+      },
+      {
+        id: "api-brain-tools",
+        title: "Brain Tools",
+        content: `# Brain Tools API
+
+## Register Tool
+\`\`\`
+POST /tools/register
+{
+  "tool_id": "mcp__sanad-brain__recall",
+  "name": "Recall Memory",
+  "description": "Search memories for relevant context.",
+  "category": "memory",
+  "provider": "mcp",
+  "schema_json": "{\\"properties\\": {\\"query\\": {\\"type\\": \\"string\\"}}}"
+}
+→ 200 { "ok": true, "result": { "action": "registered", "tool_id": "...", "point_id": "..." } }
+\`\`\`
+
+## Batch Register
+\`\`\`
+POST /tools/register/batch
+{
+  "tools": [
+    { "tool_id": "t1", "name": "Tool 1", "description": "...", "category": "dev", "provider": "mcp" },
+    { "tool_id": "t2", "name": "Tool 2", "description": "...", "category": "tasks", "provider": "mcp" }
+  ]
+}
+→ 200 { "ok": true, "result": { "registered": 2 } }
+\`\`\`
+
+## Search Tools
+\`\`\`
+POST /tools/search
+{ "query": "find old conversations", "limit": 10, "category": "memory" }
+→ 200 { "tools": [{ "tool_id": "...", "name": "...", "score": 0.82, "schema_json": "..." }] }
+\`\`\`
+
+## List All Tools
+\`\`\`
+GET /tools/list?category=memory
+→ 200 { "tools": [{ "tool_id": "...", "name": "...", "category": "...", "enabled": true }] }
+\`\`\`
+
+## Delete Tool
+\`\`\`
+DELETE /tools/{tool_id}
+→ 200 { "ok": true }
+\`\`\``,
+      },
+      {
+        id: "api-brain-dream",
+        title: "Brain Dream",
+        content: `# Brain Dream API
+
+## Trigger Dream Cycle
+\`\`\`
+POST /dream/trigger
+{ "company_id": "optiflow", "dry_run": true }
+→ 200 {
+  "ok": true,
+  "report": {
+    "cycle_id": "uuid",
+    "status": "completed",
+    "total_memories": 333,
+    "duplicates_removed": 5,
+    "dates_normalized": 3,
+    "pruned": 0,
+    "phases": {
+      "orient": { "total": 333, "by_type": {...}, "stale_candidates": 12 },
+      "gather": { "new_writes": 45 },
+      "consolidate": { "duplicates_removed": 5, "dates_normalized": 3 },
+      "prune": { "pruned": 0, "over_limit": false }
+    }
+  }
+}
+\`\`\`
+
+## Dream Status
+\`\`\`
+GET /dream/status/{company_id}
+→ 200 {
+  "company_id": "optiflow",
+  "should_dream": true,
+  "last_cycle": { "status": "completed", "completed_at": 1774394505.2, ... }
+}
+\`\`\`
+
+## Dream History
+\`\`\`
+GET /dream/history/{company_id}?limit=10
+→ 200 {
+  "company_id": "optiflow",
+  "cycles": [{ "cycle_id": "...", "status": "completed", "duplicates_removed": 5, "summary": "..." }]
+}
+\`\`\`
+
+## Configuration
+| Env Var | Default | Description |
+|---------|---------|-------------|
+| \`DREAM_MIN_INTERVAL_HOURS\` | 24 | Min hours between cycles |
+| \`DREAM_MIN_WRITES\` | 5 | Min writes to trigger |
+| \`MAX_MEMORY_ENTRIES\` | 200 | Memory cap per company |`,
       },
     ],
   },
