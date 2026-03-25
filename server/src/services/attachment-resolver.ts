@@ -13,6 +13,12 @@ export interface AttachToken {
 
 export interface ResolvedToken extends AttachToken {
   attachmentId: string;
+  filename: string;
+}
+
+export interface FailedToken extends AttachToken {
+  filename: string;
+  reason: string;
 }
 
 const ATTACH_REGEX = /\[\[attach:([^\]\|]+?)(?:\s*\|\s*title="([^"]*)")?\]\]/g;
@@ -31,13 +37,32 @@ export function parseAttachTokens(body: string): AttachToken[] {
   return tokens;
 }
 
-export function replaceAttachTokens(body: string, resolved: ResolvedToken[]): string {
+export function replaceAttachTokens(
+  body: string,
+  resolved: ResolvedToken[],
+  failed: FailedToken[] = [],
+): string {
   let result = body;
   for (const token of resolved) {
-    result = result.replace(token.raw, `[[attachment:${token.attachmentId}]]`);
+    result = result.replace(token.raw, `[${token.filename}](attachment:${token.attachmentId})`);
+  }
+  for (const token of failed) {
+    result = result.replace(token.raw, `[file unavailable: ${token.filename}]`);
   }
   return result;
 }
+
+/**
+ * Verify that `filePath` is safely contained within `workspaceRoot`.
+ * Rejects path traversal attempts and paths outside the root.
+ */
+export function isSafePath(filePath: string, workspaceRoot: string): boolean {
+  const normalized = path.resolve(workspaceRoot, filePath);
+  const root = workspaceRoot.endsWith("/") ? workspaceRoot : `${workspaceRoot}/`;
+  return normalized === workspaceRoot || normalized.startsWith(root);
+}
+
+const DEFAULT_WORKSPACE_ROOT = process.env.PAPERCLIP_WORKSPACE_ROOT ?? "/workspace";
 
 export async function resolveAttachTokens(
   tokens: AttachToken[],
@@ -47,15 +72,26 @@ export async function resolveAttachTokens(
     agentId: string;
     db: Db;
     storage: StorageService;
+    workspaceRoot?: string;
   },
-): Promise<ResolvedToken[]> {
+): Promise<{ resolved: ResolvedToken[]; failed: FailedToken[] }> {
   const { companyId, issueId, agentId, db, storage } = opts;
+  const workspaceRoot = opts.workspaceRoot ?? DEFAULT_WORKSPACE_ROOT;
   const resolved: ResolvedToken[] = [];
+  const failed: FailedToken[] = [];
 
   for (const token of tokens) {
-    const normalized = path.normalize(token.path);
-    if (!normalized.startsWith("/workspace/")) {
-      console.warn(`[attach-resolver] Rejected path outside /workspace/: ${token.path}`);
+    const basename = path.basename(token.path);
+    const filename = token.title ?? basename;
+
+    // Resolve the path — if absolute use directly, otherwise resolve relative to workspaceRoot
+    const normalized = path.isAbsolute(token.path)
+      ? path.resolve(token.path)
+      : path.resolve(workspaceRoot, token.path);
+
+    if (!isSafePath(normalized, workspaceRoot)) {
+      console.warn(`[attach-resolver] Rejected path outside workspace: ${token.path}`);
+      failed.push({ ...token, filename, reason: "path_outside_workspace" });
       continue;
     }
 
@@ -64,21 +100,23 @@ export async function resolveAttachTokens(
       fileBuffer = await fs.readFile(normalized);
     } catch (err) {
       console.warn(`[attach-resolver] Cannot read file ${normalized}:`, (err as Error).message);
+      failed.push({ ...token, filename, reason: "file_not_found" });
       continue;
     }
 
-    const filename = token.title ?? path.basename(normalized);
     const ext = path.extname(normalized).toLowerCase();
     const mimeType = getMimeType(ext);
 
     if (!isAllowedContentType(mimeType)) {
       console.warn(`[attach-resolver] Disallowed MIME type ${mimeType} for ${normalized}`);
+      failed.push({ ...token, filename, reason: "disallowed_content_type" });
       continue;
     }
 
     const maxBytes = maxBytesForType(mimeType);
     if (fileBuffer.byteLength > maxBytes) {
       console.warn(`[attach-resolver] File ${normalized} exceeds size limit (${fileBuffer.byteLength} > ${maxBytes})`);
+      failed.push({ ...token, filename, reason: "file_too_large" });
       continue;
     }
 
@@ -114,10 +152,10 @@ export async function resolveAttachTokens(
       .then((r) => { if (!r.ok) console.warn(`[attach-resolver] media-worker ${r.status}`); })
       .catch((err) => console.warn("[attach-resolver] media-worker unreachable:", (err as Error).message));
 
-    resolved.push({ ...token, attachmentId: attachment.id });
+    resolved.push({ ...token, attachmentId: attachment.id, filename });
   }
 
-  return resolved;
+  return { resolved, failed };
 }
 
 function getMimeType(ext: string): string {

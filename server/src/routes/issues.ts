@@ -910,14 +910,14 @@ export function issueRoutes(db: Db, storage: StorageService) {
       let resolvedCommentBody = commentBody as string;
       const patchAttachTokens = parseAttachTokens(resolvedCommentBody);
       if (patchAttachTokens.length > 0 && actor.agentId) {
-        const patchResolved = await resolveAttachTokens(patchAttachTokens, {
+        const patchResult = await resolveAttachTokens(patchAttachTokens, {
           companyId: issue.companyId,
           issueId: id,
           agentId: actor.agentId,
           db,
           storage,
         });
-        resolvedCommentBody = replaceAttachTokens(resolvedCommentBody, patchResolved);
+        resolvedCommentBody = replaceAttachTokens(resolvedCommentBody, patchResult.resolved, patchResult.failed);
       }
 
       comment = await svc.addComment(id, resolvedCommentBody, {
@@ -1312,14 +1312,14 @@ export function issueRoutes(db: Db, storage: StorageService) {
     let commentBody = req.body.body as string;
     const attachTokens = parseAttachTokens(commentBody);
     if (attachTokens.length > 0 && actor.agentId) {
-      const resolvedTokens = await resolveAttachTokens(attachTokens, {
+      const attachResult = await resolveAttachTokens(attachTokens, {
         companyId: currentIssue.companyId,
         issueId: id,
         agentId: actor.agentId,
         db,
         storage,
       });
-      commentBody = replaceAttachTokens(commentBody, resolvedTokens);
+      commentBody = replaceAttachTokens(commentBody, attachResult.resolved, attachResult.failed);
     }
 
     const comment = await svc.addComment(id, commentBody, {
