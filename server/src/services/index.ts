@@ -23,6 +23,9 @@ export { createStorageServiceFromConfig, getStorageService } from "../storage/in
 export { scheduledJobsService, type ScheduledJob, type ScheduledJobRun, type CreateJobInput } from "./scheduled-jobs.js";
 export { startSchedulerLoop, stopSchedulerLoop } from "./scheduler-loop.js";
 export { skillsService, type Skill, type SkillAgentAccess, type CreateSkillInput } from "./skills.js";
+export { skillVersionsService, type SkillVersion } from "./skill-versions.js";
+export { skillAuditService, type AuditResult } from "./skill-audit.js";
+export { skillCreatorService, type GeneratedSkill } from "./skill-creator.js";
 export { mcpServersService, type McpServerConfig, type McpAgentAccess, type McpCatalogEntry, type CreateMcpServerInput } from "./mcp-servers.js";
 export { connectorsService, type Connector, type CreateConnectorInput } from "./connectors.js";
 export { pluginsService, type Plugin, type PluginAgentAccess, type CreatePluginInput } from "./plugins.js";
