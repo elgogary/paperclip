@@ -29,6 +29,42 @@ export interface SkillAgentAccess {
   createdAt: string;
 }
 
+export interface SkillVersion {
+  id: string;
+  skillId: string;
+  version: number;
+  origin: string;
+  contentDiff: string | null;
+  fullContent: string;
+  triggerReason: string | null;
+  metricsBefore: Record<string, unknown>;
+  metricsAfter: Record<string, unknown>;
+  createdBy: string | null;
+  createdAt: string;
+}
+
+export interface AuditResult {
+  score: number;
+  strengths: string[];
+  suggestions: string[];
+  details: {
+    clarity: number;
+    triggerSpecificity: number;
+    instructionCompleteness: number;
+    exampleCoverage: number;
+    edgeCaseHandling: number;
+  };
+}
+
+export interface GeneratedSkill {
+  name: string;
+  slug: string;
+  description: string;
+  instructions: string;
+  category: string;
+  triggerHint: string;
+}
+
 export interface CreateSkillInput {
   name: string;
   description?: string | null;
@@ -63,4 +99,22 @@ export const skillsApi = {
 
   updateAccess: (companyId: string, skillId: string, access: { agentId: string; granted: boolean }[]) =>
     api.put<{ ok: true }>(`/companies/${companyId}/skills/${skillId}/access`, { grants: access }),
+
+  listVersions: (companyId: string, skillId: string) =>
+    api.get<{ versions: SkillVersion[] }>(`/companies/${companyId}/skills/${skillId}/versions`),
+
+  getVersion: (companyId: string, skillId: string, version: number) =>
+    api.get<{ version: SkillVersion }>(`/companies/${companyId}/skills/${skillId}/versions/${version}`),
+
+  rollback: (companyId: string, skillId: string, targetVersion: number) =>
+    api.post<{ version: SkillVersion }>(`/companies/${companyId}/skills/${skillId}/versions/${targetVersion}/rollback`, {}),
+
+  diffVersions: (companyId: string, skillId: string, v1: number, v2: number) =>
+    api.get<{ diff: string }>(`/companies/${companyId}/skills/${skillId}/versions/${v1}/diff/${v2}`),
+
+  audit: (companyId: string, skillId: string) =>
+    api.post<AuditResult>(`/companies/${companyId}/skills/${skillId}/audit`, {}),
+
+  generate: (companyId: string, description: string, category?: string) =>
+    api.post<GeneratedSkill>(`/companies/${companyId}/skills/generate`, { description, category }),
 };
