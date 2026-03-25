@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useCompany } from "../../context/CompanyContext";
-import { pluginsApi, type Plugin } from "../../api/plugins";
+import { toolkitPluginsApi as pluginsApi, type Plugin } from "../../api/plugins";
 import { queryKeys } from "../../lib/queryKeys";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";

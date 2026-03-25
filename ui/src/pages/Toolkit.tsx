@@ -5,7 +5,7 @@ import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { skillsApi } from "../api/skills";
 import { mcpServersApi } from "../api/mcp-servers";
 import { connectorsApi } from "../api/connectors";
-import { pluginsApi } from "../api/plugins";
+import { toolkitPluginsApi as pluginsApi } from "../api/plugins";
 import { queryKeys } from "../lib/queryKeys";
 import { McpServersSection } from "../components/toolkit/McpServersSection";
 import { ConnectorsSection } from "../components/toolkit/ConnectorsSection";

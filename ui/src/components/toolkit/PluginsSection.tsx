@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCompany } from "../../context/CompanyContext";
-import { pluginsApi, type Plugin } from "../../api/plugins";
+import { toolkitPluginsApi as pluginsApi, type Plugin } from "../../api/plugins";
 import { queryKeys } from "../../lib/queryKeys";
 import { Button } from "@/components/ui/button";
 import { PluginDetailDrawer } from "./PluginDetailDrawer";
