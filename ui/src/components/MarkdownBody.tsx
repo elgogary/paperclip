@@ -5,7 +5,7 @@ import { parseProjectMentionHref } from "@paperclipai/shared";
 import { cn } from "../lib/utils";
 import { useTheme } from "../context/ThemeContext";
 import { AttachmentCard } from "./attachments/AttachmentCard";
-import { attachmentsApi, type AttachmentMeta } from "../api/attachments";
+import { useAttachment } from "../hooks/useAttachment";
 
 interface MarkdownBodyProps {
   children: string;
@@ -122,31 +122,7 @@ function parseAttachmentHref(href: string): string | null {
 }
 
 function InlineAttachment({ attachmentId, label }: { attachmentId: string; label: string }) {
-  const [meta, setMeta] = useState<AttachmentMeta | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    let mounted = true;
-
-    attachmentsApi
-      .get(attachmentId, { signal: controller.signal })
-      .then((data) => {
-        if (mounted) setMeta(data);
-      })
-      .catch((err: unknown) => {
-        if (mounted && (err as { name?: string }).name !== "AbortError") setError(true);
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
-
-    return () => {
-      mounted = false;
-      controller.abort();
-    };
-  }, [attachmentId]);
+  const { attachment, loading, error } = useAttachment(attachmentId);
 
   if (error) {
     return (
@@ -154,7 +130,7 @@ function InlineAttachment({ attachmentId, label }: { attachmentId: string; label
     );
   }
 
-  if (loading || !meta) {
+  if (loading || !attachment) {
     return (
       <span className="text-xs text-muted-foreground">{label || "Loading attachment..."}</span>
     );
@@ -162,13 +138,13 @@ function InlineAttachment({ attachmentId, label }: { attachmentId: string; label
 
   return (
     <AttachmentCard
-      attachmentId={meta.id}
-      filename={meta.filename}
-      mimeType={meta.mimeType}
-      sizeBytes={meta.sizeBytes}
-      thumbnailUrl={meta.thumbnailUrl}
-      downloadUrl={meta.downloadUrl}
-      status={meta.status}
+      attachmentId={attachment.id}
+      filename={attachment.filename}
+      mimeType={attachment.mimeType}
+      sizeBytes={attachment.sizeBytes}
+      thumbnailUrl={attachment.thumbnailUrl}
+      downloadUrl={attachment.downloadUrl}
+      status={attachment.status}
     />
   );
 }
