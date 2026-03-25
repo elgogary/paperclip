@@ -14,6 +14,11 @@ import {
   Wrench, CheckCircle2, AlertTriangle, Trash2,
 } from "lucide-react";
 
+function getToolCount(server: McpServerConfig): number | "?" {
+  const cfg = server.configJson as Record<string, unknown> | null;
+  return typeof cfg?.toolCount === "number" ? cfg.toolCount : "?";
+}
+
 type ViewMode = "cards" | "list";
 type Filter = "all" | "outbound" | "inbound";
 
@@ -95,13 +100,18 @@ export function McpServersSection() {
     });
   }, [servers, search, filter]);
 
-  const healthyCount = servers.filter((s) => s.healthStatus === "healthy").length;
-  const unhealthyCount = servers.filter((s) => s.healthStatus === "unhealthy").length;
-  const toolCount = servers.reduce((acc, s) => {
-    const cfg = s.configJson as Record<string, unknown> | null;
-    const count = typeof cfg?.toolCount === "number" ? cfg.toolCount : 0;
-    return acc + count;
-  }, 0);
+  const { healthyCount, unhealthyCount, toolCount } = useMemo(() => {
+    let healthy = 0;
+    let unhealthy = 0;
+    let tools = 0;
+    for (const s of servers) {
+      if (s.healthStatus === "healthy") healthy++;
+      if (s.healthStatus === "unhealthy") unhealthy++;
+      const tc = getToolCount(s);
+      if (typeof tc === "number") tools += tc;
+    }
+    return { healthyCount: healthy, unhealthyCount: unhealthy, toolCount: tools };
+  }, [servers]);
 
   function openConfigure(server: McpServerConfig) {
     setSelectedServer(server);
@@ -310,7 +320,7 @@ export function McpServersSection() {
                   )}>
                     {server.direction?.charAt(0).toUpperCase() + (server.direction?.slice(1) ?? "")}
                   </span>
-                  <span>Tools: {(typeof (server.configJson as Record<string, unknown> | null)?.toolCount === "number" ? (server.configJson as Record<string, unknown>).toolCount as number : "?")}</span>
+                  <span>Tools: {getToolCount(server)}</span>
                 </div>
 
                 <div className="flex gap-1.5 pt-2.5 border-t border-border mt-2">
@@ -388,7 +398,7 @@ export function McpServersSection() {
                       </span>
                     </td>
                     <td className="px-3 py-2.5 text-xs text-muted-foreground">
-                      {(typeof (server.configJson as Record<string, unknown> | null)?.toolCount === "number" ? (server.configJson as Record<string, unknown>).toolCount as number : "?")}
+                      {getToolCount(server)}
                     </td>
                     <td className="px-3 py-2.5">
                       <button

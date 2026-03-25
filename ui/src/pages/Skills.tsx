@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCompany } from "../context/CompanyContext";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { skillsApi, type Skill, type CreateSkillInput } from "../api/skills";
 import { queryKeys } from "../lib/queryKeys";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { SkillListPanel } from "../components/skills/SkillListPanel";
 import { SkillDetailPanel } from "../components/skills/SkillDetailPanel";
 import { SkillAICreateDialog } from "../components/skills/SkillAICreateDialog";
@@ -15,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { EvolutionTimeline } from "../components/skills/EvolutionTimeline";
 import { EvolutionPendingReviews } from "../components/skills/EvolutionPendingReviews";
-import { Plus, Sparkles, BookOpenCheck, Dna, ChevronDown, ChevronRight, type LucideIcon } from "lucide-react";
+import { Plus, Sparkles, BookOpenCheck, Dna } from "lucide-react";
 
 export function Skills() {
   const { selectedCompanyId } = useCompany();

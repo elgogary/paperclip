@@ -42,6 +42,14 @@ export function connectorRoutes(db: Db) {
 
     try {
       const { name, provider, status, scopes, metadata, connectedBy, connectedAt, enabled } = req.body;
+      if (!name || typeof name !== "string" || !name.trim()) {
+        res.status(400).json({ error: "name is required" });
+        return;
+      }
+      if (!provider || typeof provider !== "string" || !provider.trim()) {
+        res.status(400).json({ error: "provider is required" });
+        return;
+      }
       const connector = await svc.create({ companyId, name, provider, status, scopes, metadata, connectedBy, connectedAt, enabled });
       res.status(201).json({ connector: redactConnector(connector) });
     } catch (err) {

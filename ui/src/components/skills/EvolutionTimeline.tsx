@@ -171,9 +171,9 @@ function buildDescription(event: EvolutionEvent): string {
     case "tool_degradation":
       return `Tool "${analysis.toolName}" returned error: ${analysis.errorMessage ?? "unknown"}`;
     case "low_completion_rate":
-      return `Completion rate dropped to ${Math.round((analysis.completionRate as number ?? 0) * 100)}%.`;
+      return `Completion rate dropped to ${Math.round(((analysis.completionRate as number | undefined) ?? 0) * 100)}%.`;
     case "dormant_low_applied_rate":
-      return `Applied rate is ${Math.round((analysis.appliedRate as number ?? 0) * 100)}% -- marked dormant.`;
+      return `Applied rate is ${Math.round(((analysis.appliedRate as number | undefined) ?? 0) * 100)}% -- marked dormant.`;
     default:
       return reason.replace(/_/g, " ") || "Evolution event detected.";
   }

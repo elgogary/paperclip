@@ -11,16 +11,6 @@ interface SkillListPanelProps {
   onSelect: (skill: Skill) => void;
 }
 
-const SKILL_ICONS: Record<string, string> = {
-  "add-api-method": "\u{1F4E6}",
-  til: "\u{1F9EA}",
-  "debug-agent": "\u{1F41B}",
-  "code-review": "\u{1F4DD}",
-  research: "\u{1F50D}",
-  "data-analysis": "\u{1F4CA}",
-  summarize: "\u{1F4CB}",
-};
-
 interface ExampleSkill {
   id: string;
   name: string;
@@ -118,7 +108,6 @@ export function SkillListPanel({ selectedId, onSelect }: SkillListPanelProps) {
             <SkillItem
               key={skill.id}
               name={skill.name}
-              icon={SKILL_ICONS[skill.slug] ?? skill.icon ?? "\u{1F4DC}"}
               active={selectedId === skill.id}
               enabled={skill.enabled}
               dotColor="bg-emerald-500"
@@ -137,7 +126,6 @@ export function SkillListPanel({ selectedId, onSelect }: SkillListPanelProps) {
             <SkillItem
               key={skill.id}
               name={skill.name}
-              icon={SKILL_ICONS[skill.slug] ?? skill.icon ?? "\u{1F4DC}"}
               active={selectedId === skill.id}
               enabled={skill.enabled}
               dotColor="bg-blue-500"
@@ -169,14 +157,13 @@ export function SkillListPanel({ selectedId, onSelect }: SkillListPanelProps) {
 
 interface SkillItemProps {
   name: string;
-  icon: string;
   active: boolean;
   enabled: boolean;
   dotColor: string;
   onClick: () => void;
 }
 
-function SkillItem({ name, icon, active, enabled, dotColor, onClick }: SkillItemProps) {
+function SkillItem({ name, active, enabled, dotColor, onClick }: SkillItemProps) {
   return (
     <button
       type="button"

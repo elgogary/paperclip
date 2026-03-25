@@ -22,7 +22,8 @@ export function McpDetailDrawer({ open, onClose, server }: McpDetailDrawerProps)
 
   const [transport, setTransport] = useState("stdio");
   const [direction, setDirection] = useState("outbound");
-  const [envRows, setEnvRows] = useState<{ key: string; value: string }[]>([]);
+  const [envRows, setEnvRows] = useState<{ id: number; key: string; value: string }[]>([]);
+  const [nextEnvId, setNextEnvId] = useState(0);
   const [grants, setGrants] = useState<{ agentId: string; granted: boolean }[]>([]);
 
   const { data: accessData } = useQuery({
@@ -36,7 +37,9 @@ export function McpDetailDrawer({ open, onClose, server }: McpDetailDrawerProps)
       setTransport(server.transport ?? "stdio");
       setDirection(server.direction ?? "outbound");
       const env = server.env ?? {};
-      setEnvRows(Object.entries(env).map(([key, value]) => ({ key, value })));
+      const entries = Object.entries(env);
+      setEnvRows(entries.map(([key, value], i) => ({ id: i, key, value })));
+      setNextEnvId(entries.length);
     }
   }, [server]);
 
@@ -49,7 +52,7 @@ export function McpDetailDrawer({ open, onClose, server }: McpDetailDrawerProps)
   const updateServer = useMutation({
     mutationFn: () => {
       const env: Record<string, string> = {};
-      envRows.forEach((r) => { if (r.key) env[r.key] = r.value; });
+      for (const r of envRows) { if (r.key) env[r.key] = r.value; }
       return mcpServersApi.update(selectedCompanyId!, server!.id, { transport, direction, env });
     },
     onSuccess: () => {
@@ -73,11 +76,12 @@ export function McpDetailDrawer({ open, onClose, server }: McpDetailDrawerProps)
   }
 
   function addEnvRow() {
-    setEnvRows([...envRows, { key: "", value: "" }]);
+    setEnvRows((prev) => [...prev, { id: nextEnvId, key: "", value: "" }]);
+    setNextEnvId((prev) => prev + 1);
   }
 
-  function removeEnvRow(i: number) {
-    setEnvRows(envRows.filter((_, idx) => idx !== i));
+  function removeEnvRow(rowId: number) {
+    setEnvRows((prev) => prev.filter((r) => r.id !== rowId));
   }
 
   if (!server) return null;
@@ -123,14 +127,14 @@ export function McpDetailDrawer({ open, onClose, server }: McpDetailDrawerProps)
 
           <div className="space-y-1.5">
             <label className="text-xs font-semibold">Environment Variables</label>
-            {envRows.map((row, i) => (
-              <div key={i} className="flex gap-2 items-center">
+            {envRows.map((row) => (
+              <div key={row.id} className="flex gap-2 items-center">
                 <Input
                   value={row.key}
                   onChange={(e) => {
-                    const next = [...envRows];
-                    next[i] = { ...next[i]!, key: e.target.value };
-                    setEnvRows(next);
+                    setEnvRows((prev) =>
+                      prev.map((r) => r.id === row.id ? { ...r, key: e.target.value } : r),
+                    );
                   }}
                   className="max-w-[160px] text-muted-foreground"
                   placeholder="KEY"
@@ -139,14 +143,14 @@ export function McpDetailDrawer({ open, onClose, server }: McpDetailDrawerProps)
                   type="password"
                   value={row.value}
                   onChange={(e) => {
-                    const next = [...envRows];
-                    next[i] = { ...next[i]!, value: e.target.value };
-                    setEnvRows(next);
+                    setEnvRows((prev) =>
+                      prev.map((r) => r.id === row.id ? { ...r, value: e.target.value } : r),
+                    );
                   }}
                   className="flex-1"
                   placeholder="value"
                 />
-                <button onClick={() => removeEnvRow(i)} aria-label="Remove variable" className="text-muted-foreground hover:text-foreground">
+                <button onClick={() => removeEnvRow(row.id)} aria-label="Remove variable" className="text-muted-foreground hover:text-foreground">
                   <X className="h-3.5 w-3.5" />
                 </button>
               </div>

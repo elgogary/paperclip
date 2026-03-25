@@ -86,7 +86,7 @@ function PendingCard({ event, index, onApprove, onReject, isPending }: PendingCa
   const analysis = event.analysis ?? {};
   const label = event.eventType.toUpperCase();
   const skillSlug = String(analysis.skillSlug ?? analysis.description ?? "unknown");
-  const confidence = analysis.confidence as number | undefined;
+  const confidence = typeof analysis.confidence === "number" ? analysis.confidence : undefined;
 
   return (
     <div className="rounded-lg border border-border bg-card p-3 space-y-2">
