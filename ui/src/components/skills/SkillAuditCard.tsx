@@ -5,6 +5,7 @@ import { skillsApi, type AuditResult } from "../../api/skills";
 import { cn } from "../../lib/utils";
 import { BarChart3, CheckCircle2, AlertTriangle, Loader2, Sparkles, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SkillRadarChart } from "./SkillRadarChart";
 
 interface SkillAuditCardProps {
   skillId: string;
@@ -53,6 +54,26 @@ interface EnhancePreview {
   enhancedScore: number;
   enhancedContent: string;
   changes: string[];
+}
+
+// Estimate enhanced detail scores from the changes list
+function analyzeEnhancedDetails(preview: EnhancePreview) {
+  // The enhance endpoint should ideally return these, but for now estimate from changes
+  const details = {
+    clarity: 20, // enhanced always adds headings
+    triggerSpecificity: 20, // always adds trigger section
+    instructionCompleteness: 25, // always expands
+    exampleCoverage: 20, // always adds examples
+    edgeCaseHandling: 15, // always adds edge cases
+  };
+  // If no changes for a category, keep at a moderate level
+  const changeText = preview.changes.join(" ").toLowerCase();
+  if (!changeText.includes("heading")) details.clarity = 15;
+  if (!changeText.includes("trigger")) details.triggerSpecificity = 15;
+  if (!changeText.includes("instruction") && !changeText.includes("detail")) details.instructionCompleteness = 20;
+  if (!changeText.includes("example") && !changeText.includes("code")) details.exampleCoverage = 12;
+  if (!changeText.includes("edge")) details.edgeCaseHandling = 10;
+  return details;
 }
 
 export function SkillAuditCard({ skillId, onEnhanceAccepted }: SkillAuditCardProps) {
@@ -110,6 +131,11 @@ export function SkillAuditCard({ skillId, onEnhanceAccepted }: SkillAuditCardPro
   return (
     <div className="space-y-4">
       <ScoreBar score={result.score} />
+
+      <SkillRadarChart
+        current={result.details}
+        enhanced={enhancePreview ? analyzeEnhancedDetails(enhancePreview) : undefined}
+      />
 
       <div className="space-y-2">
         <DetailBar label="Clarity" value={result.details.clarity} max={DETAIL_MAX.clarity} />
