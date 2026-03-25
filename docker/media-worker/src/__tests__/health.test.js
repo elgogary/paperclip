@@ -73,7 +73,7 @@ describe("POST /thumbnail", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.thumbnailKey).toBe("thumbnails/uploads/photo.png.jpg");
-    expect(getObject).toHaveBeenCalledWith("uploads/photo.png");
+    expect(getObject).toHaveBeenCalledWith("uploads/photo.png", 100 * 1024 * 1024);
     expect(putObject).toHaveBeenCalledWith(
       "thumbnails/uploads/photo.png.jpg",
       expect.any(Buffer),
@@ -154,6 +154,6 @@ describe("POST /extract", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.text).toContain("col1");
-    expect(getObject).toHaveBeenCalledWith("uploads/data.csv");
+    expect(getObject).toHaveBeenCalledWith("uploads/data.csv", 50 * 1024 * 1024);
   });
 });

@@ -1,7 +1,5 @@
-import * as fs from "node:fs/promises";
-import { readFile, mkdtemp } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { spawn } from "node:child_process";
 
 const OFFICE_MIME_TYPES = new Set([
@@ -49,12 +47,21 @@ export async function convertToHtml(inputPath, workDir) {
         "--convert-to", "html",
         "--outdir", workDir,
         inputPath,
-      ], { stdio: ["ignore", "pipe", "pipe"] });
+      ], { stdio: ["ignore", "ignore", "pipe"] });
+
+      const timeoutMs = 120_000;
+      const timer = setTimeout(() => proc.kill("SIGKILL"), timeoutMs);
 
       let stderrBuf = "";
       proc.stderr.on("data", (d) => { stderrBuf += d; });
-      proc.on("close", (code) => resolve({ exitCode: code, stderr: stderrBuf }));
-      proc.on("error", (err) => reject(err));
+      proc.on("close", (code) => {
+        clearTimeout(timer);
+        resolve({ exitCode: code, stderr: stderrBuf });
+      });
+      proc.on("error", (err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
     });
 
     if (exitCode !== 0) {
@@ -67,9 +74,5 @@ export async function convertToHtml(inputPath, workDir) {
     return { htmlBuffer };
   } catch (err) {
     return { htmlBuffer: null, error: err.message || "Conversion failed" };
-  } finally {
-    try {
-      await fs.rm(workDir, { recursive: true, force: true });
-    } catch {}
   }
 }

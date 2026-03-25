@@ -12,6 +12,18 @@ import { getObject, putObject } from "./storage.js";
 
 const VERSION = "1.0.0";
 
+const VIDEO_MIME_TO_EXT = {
+  "video/mp4": "mp4",
+  "video/webm": "webm",
+  "video/quicktime": "mov",
+  "video/x-msvideo": "avi",
+  "video/x-matroska": "mkv",
+};
+
+function isValidStorageKey(key) {
+  return /^[\w\-./]+$/.test(key) && !key.includes("..");
+}
+
 export function createApp() {
   const app = express();
   app.use(express.json({ limit: "50kb" }));
@@ -31,6 +43,10 @@ export function createApp() {
       return;
     }
 
+    if (!isValidStorageKey(storageKey)) {
+      return res.status(400).json({ error: "invalid_storage_key" });
+    }
+
     // Reject types we cannot thumbnail
     if (!mimeType.startsWith("image/") && !mimeType.startsWith("video/")) {
       res.status(422).json({ error: "unsupported_mime_type", mimeType });
@@ -40,17 +56,19 @@ export function createApp() {
     const workDir = await mkdtemp(join(tmpdir(), "media-thumb-"));
 
     try {
-      const buffer = await getObject(storageKey);
       let thumbBuf = null;
 
       if (mimeType.startsWith("video/")) {
-        // Video: write to temp file for ffmpeg
-        const ext = mimeType.split("/")[1]?.split("+")[0] || "bin";
+        const ext = VIDEO_MIME_TO_EXT[mimeType];
+        if (!ext) {
+          return res.status(422).json({ error: "unsupported_video_type", mimeType });
+        }
+        const buffer = await getObject(storageKey, 2 * 1024 * 1024 * 1024);
         const inputPath = join(workDir, `input.${ext}`);
         await fs.writeFile(inputPath, buffer);
         thumbBuf = await videoThumbnail(inputPath);
       } else if (mimeType.startsWith("image/")) {
-        // Image: process buffer directly with sharp
+        const buffer = await getObject(storageKey, 100 * 1024 * 1024);
         thumbBuf = await sharp(buffer)
           .resize(1200, null, { withoutEnlargement: true })
           .jpeg({ quality: 75 })
@@ -84,6 +102,10 @@ export function createApp() {
       return;
     }
 
+    if (!isValidStorageKey(storageKey)) {
+      return res.status(400).json({ error: "invalid_storage_key" });
+    }
+
     if (!isOfficeType(mimeType)) {
       res.status(422).json({ error: "Unsupported MIME type for conversion: " + mimeType });
       return;
@@ -95,7 +117,7 @@ export function createApp() {
       const ext = MIME_TO_EXT[mimeType] || "bin";
       const inputPath = join(workDir, `input.${ext}`);
 
-      const buffer = await getObject(storageKey);
+      const buffer = await getObject(storageKey, 200 * 1024 * 1024);
       await fs.writeFile(inputPath, buffer);
       const result = await convertToHtml(inputPath, workDir);
 
@@ -123,13 +145,17 @@ export function createApp() {
       return;
     }
 
+    if (!isValidStorageKey(storageKey)) {
+      return res.status(400).json({ error: "invalid_storage_key" });
+    }
+
     if (!SUPPORTED_EXTRACT_TYPES.has(mimeType)) {
       res.status(422).json({ error: "Unsupported MIME type for extraction: " + mimeType });
       return;
     }
 
     try {
-      const buffer = await getObject(storageKey);
+      const buffer = await getObject(storageKey, 50 * 1024 * 1024);
       const text = await extractText(buffer, mimeType);
       res.json({ text: text ?? "" });
     } catch (err) {

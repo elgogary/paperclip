@@ -29,12 +29,17 @@ function getClient() {
 /**
  * Download an object from MinIO and return its contents as a Buffer.
  * @param {string} key - the storage key (object path in the bucket)
+ * @param {number} maxBytes - reject objects larger than this (default 500MB)
  * @returns {Promise<Buffer>}
  */
-export async function getObject(key) {
+export async function getObject(key, maxBytes = 500 * 1024 * 1024) {
   const client = getClient();
   const command = new GetObjectCommand({ Bucket: MINIO_BUCKET, Key: key });
   const response = await client.send(command);
+  if (response.ContentLength && response.ContentLength > maxBytes) {
+    response.Body.destroy?.();
+    throw new Error(`Object too large: ${response.ContentLength} bytes (max: ${maxBytes})`);
+  }
   const chunks = [];
   for await (const chunk of response.Body) {
     chunks.push(chunk);
