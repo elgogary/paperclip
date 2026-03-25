@@ -799,6 +799,185 @@ Run logs are kept for **90 days** then automatically purged.
 
 **⋯ → Delete** opens a confirmation dialog. Deletion is permanent and removes all run history.`,
       },
+      {
+        id: "skills",
+        title: "Skills & Evolution",
+        content: `# Skills & Evolution
+
+The Skills page (\`/skills\`) is where you manage reusable instruction sets for your agents. Skills give agents domain expertise that carries across tasks and sessions.
+
+## What is a Skill?
+
+A skill is a named, versioned instruction template that an agent loads during a run. Think of it as a playbook — "when doing X, follow these steps."
+
+Examples: \`code-review\`, \`bug-fix\`, \`add-api-method\`, \`write-user-wiki\`.
+
+## Creating a Skill
+
+### Manual Create
+1. Click **+ New Skill**
+2. Fill in name, description, category, trigger hint
+3. Write the instructions in the markdown editor
+4. Assign agent access (which agents can use it)
+5. Click **Save**
+
+### AI-Assisted Create
+1. Click **AI Create** (sparkle icon)
+2. Describe what you want: _"A skill for reviewing Frappe controllers for security issues"_
+3. Review and edit the generated instructions
+4. Save
+
+## Evolution Timeline
+
+The **Evolution** tab shows how skills improve over time.
+
+When an agent uses a skill and reports feedback, the evolution engine:
+1. Collects feedback across runs
+2. Identifies what instructions were followed vs. ignored
+3. Proposes improvements in the **Pending Reviews** queue
+
+### Reviewing Pending Evolutions
+1. Go to Skills → Evolution tab
+2. See: original text vs. proposed improvement
+3. **Apply** to merge the change, **Dismiss** to reject
+
+## Agent Access
+
+Each skill supports per-agent access control:
+- Click agent chips in the skill detail panel to grant/revoke
+- Changes take effect on the next agent run
+
+## Skill Metrics
+
+Each skill card shows:
+- **Usage count** — how many times invoked
+- **Success rate** — % of runs where the agent marked it helpful
+- **Last used** — most recent invocation
+- **Evolution score** — improvement rate over time`,
+      },
+      {
+        id: "toolkit",
+        title: "Toolkit",
+        content: `# Toolkit
+
+The Toolkit page (\`/toolkit\`) extends your agents' capabilities through 4 sections:
+
+| Section | Purpose |
+|---------|---------|
+| **MCP Servers** | External tool servers — GitHub, Slack, PostgreSQL, etc. |
+| **Connectors** | OAuth integrations — Google, Slack without API keys |
+| **Plugins** | Company-scoped dynamic MCP plugins |
+| **Skills** | Reusable instruction templates (see Skills page) |
+
+## MCP Servers
+
+MCP (Model Context Protocol) servers provide tools that agents can call.
+
+### Adding a Server
+
+**From Marketplace:**
+1. Click **Marketplace** → browse curated servers
+2. Click **Install** → fill in environment variables (API keys)
+3. Test and save
+
+**Custom Server:**
+1. Click **+ Add Server**
+2. Enter name, transport (stdio / sse / http), command or URL
+3. Add environment variables
+4. Test and save
+
+### Health Monitoring
+
+Each server shows a health indicator:
+- **Green** — healthy (last check passed)
+- **Red** — unhealthy (connection failed)
+- **Gray** — unknown (never checked)
+
+Click **Test** to run a health check on demand.
+
+### Popular Marketplace Servers
+
+GitHub, GitLab, Slack, PostgreSQL, MySQL, Brave Search, Filesystem, Google Drive, Puppeteer, Sentry, Linear, Discord.
+
+## Connectors
+
+OAuth-based integrations. Click **Connect** → authorize via the service's OAuth flow — no API keys needed.
+
+Available: Gmail, Google Calendar, Google Sheets, Slack OAuth.
+
+## Plugins
+
+Company-scoped MCP plugins that are registered and managed per company.
+
+- Enable/disable with the toggle
+- Click **Configure** to see tools and manage agent access
+- Click **Test** to verify the plugin is responding
+
+## Agent Access
+
+All sections support per-agent access control:
+- Click agent chips to grant/revoke access
+- Green chip = agent can use this resource
+- Changes take effect immediately for new runs`,
+      },
+      {
+        id: "attachments",
+        title: "Multimodal Attachments",
+        content: `# Multimodal Attachments
+
+Attach files to issues and comments. Agents receive them as context — images become vision input, documents become extracted text.
+
+## Supported File Types
+
+| Category | Formats |
+|----------|---------|
+| Images | JPEG, PNG, GIF, WebP, SVG |
+| Video | MP4, MOV, AVI, WebM |
+| Documents | PDF, DOCX, XLSX, CSV, TXT, Markdown |
+| Office | PPTX, ODP, ODT, ODS |
+| Code | JS, TS, PY, JSON, YAML, and 15+ more |
+
+## Uploading Files
+
+**In an issue comment:**
+1. Click the attachment icon in the comment toolbar
+2. Drag & drop or click to select files
+3. Upload progress shows in the attachment card
+4. Once processed (status: ready), the file is available to agents
+
+**File size limits:**
+- Images: 10 MB per file
+- Video: 2 GB per file
+- Documents: 100 MB per file
+
+## How Agents See Attachments
+
+When an agent runs on an issue with attachments:
+
+- **Images/Video** → sent as vision blocks (base64, up to 5 MB per image)
+- **PDF/DOCX/XLSX** → text extracted, injected as context (10 MB total budget)
+- **Code files** → read as text, syntax-aware
+- **CSV** → parsed as structured data
+
+Agents reference attachments using the \`[[attach:filename.pdf]]\` token in comments.
+
+## Processing Pipeline
+
+After upload, the media worker processes each file:
+- Images → thumbnail generated
+- Video → thumbnail at 1s mark (ffmpeg)
+- Office files → HTML preview (LibreOffice)
+- PDFs → text extracted
+
+Processing status shows on the attachment card:
+- **Processing** — media worker running
+- **Ready** — available to agents
+- **Error** — processing failed (file still downloadable)
+
+## Storage
+
+All files are stored in MinIO (S3-compatible). The storage bucket is \`paperclip-files\`. Files are never stored on local disk in production.`,
+      },
     ],
   },
 
