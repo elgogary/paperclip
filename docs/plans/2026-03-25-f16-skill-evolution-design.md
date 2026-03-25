@@ -408,7 +408,47 @@ Rule: Only LESSON and PATTERN memories are candidates.
 - Token cost optimization (batch analysis, skip trivial runs)
 - Load testing with concurrent agents
 
-## 12. Success Metrics
+## 12. Sanad Brain Integration — Conflicts & Resolutions
+
+### Resolved Conflicts (F16 owns these, Brain does NOT duplicate)
+
+| Brain Roadmap Item | Resolution |
+|-------------------|------------|
+| **v2.0 Procedural Memory** | F16 skills ARE procedural memory. Brain stores declarative only (facts, decisions, lessons). Remove from Brain v2.0 scope. |
+| **v2.0 Cross-Agent Knowledge Sharing** | F16 handles procedural sharing (skills + per-agent metrics). Brain handles declarative sharing (memories). |
+| **v2.0 Self-Improving Prompts** | F16 evolution engine owns skill/prompt improvement. Brain Dream focuses on memory consolidation (merge, dedup, quality) only. |
+
+### Required Brain API Additions (for F16 integration)
+
+| Endpoint | Purpose | Brain Version |
+|----------|---------|---------------|
+| `GET /memory/search?type=LESSON&since=24h` | F16 Monitor 4 needs to filter memories by type | v0.7 |
+| `GET /memory/patterns?min_count=3` | Find recurring similar memories for CAPTURED proposals | v0.8 |
+| `POST /memory/feedback` | Unified feedback pipeline for both memories and skills | v0.8 |
+
+### Shared Infrastructure
+
+| Component | Used by Brain | Used by F16 | Notes |
+|-----------|--------------|-------------|-------|
+| Qdrant | Memory vectors | Skill vectors (separate collection: `skills_{company_id}`) | Same instance |
+| LiteLLM | Graph extraction (qwen2.5:3b) | Evolution analysis (Haiku triage + Sonnet) | Same router |
+| Quality scoring | Memory importance scoring | Skill quality metrics | Should share formula |
+| Scheduled jobs | Dream, ingestion, review | Post-run analysis, metric sweep, brain scan | Same scheduler |
+
+### Backflow: Stable Skills → Brain Memories
+
+When a skill reaches "stable" status (score >85, used by 3+ agents, >20 successful uses):
+- Auto-create a Brain memory: `"PATTERN: {description} — see skill {slug} for full instructions"`
+- Bridges agents that don't use skill system yet to evolved knowledge
+
+### Migration Plan: Embedding Model Change
+
+When Brain v1.5 switches to BGE-M3 (multilingual):
+- F16 must re-embed all skill vectors in the `skills_{company_id}` collection
+- Add a one-time migration job: `skill_reembedding`
+- Estimated time: <5 minutes for <1000 skills
+
+## 13. Success Metrics
 
 | Metric | Target | How to measure |
 |--------|--------|---------------|
