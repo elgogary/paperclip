@@ -43,6 +43,10 @@ export function skillRoutes(db: Db) {
 
     try {
       const { name, description, icon, category, source, instructions, triggerHint, invokedBy, enabled, createdBy } = req.body;
+      if (!name || typeof name !== "string" || !name.trim()) {
+        res.status(400).json({ error: "name is required" });
+        return;
+      }
       const skill = await svc.create({ companyId, name, description, icon, category, source, instructions, triggerHint, invokedBy, enabled, createdBy });
       res.status(201).json({ skill });
     } catch (err) {

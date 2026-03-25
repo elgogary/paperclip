@@ -44,6 +44,10 @@ export function pluginRoutes(db: Db) {
 
     try {
       const { name, description, icon, transport, command, args, env, url, enabled } = req.body;
+      if (!name || typeof name !== "string" || !name.trim()) {
+        res.status(400).json({ error: "name is required" });
+        return;
+      }
       const plugin = await svc.create({ companyId, name, description, icon, transport, command, args, env, url, enabled });
       res.status(201).json({ plugin });
     } catch (err) {

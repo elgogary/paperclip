@@ -17,6 +17,13 @@ export interface Skill {
   invokedBy: SkillInvokedBy;
   enabled: boolean;
   createdBy: string | null;
+  origin: string;
+  parentId: string | null;
+  version: number;
+  qualityMetrics: Record<string, unknown>;
+  embeddingId: string | null;
+  evolutionStatus: string;
+  defaultVersion: boolean;
   createdAt: string;
   updatedAt: string;
 }

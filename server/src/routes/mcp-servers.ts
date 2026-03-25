@@ -44,6 +44,10 @@ export function mcpServerRoutes(db: Db) {
 
     try {
       const { name, direction, transport, command, args, env, url, enabled, catalogId, configJson } = req.body;
+      if (!name || typeof name !== "string" || !name.trim()) {
+        res.status(400).json({ error: "name is required" });
+        return;
+      }
       const server = await svc.create({ companyId, name, direction, transport, command, args, env, url, enabled, catalogId, configJson });
       res.status(201).json({ server });
     } catch (err) {
