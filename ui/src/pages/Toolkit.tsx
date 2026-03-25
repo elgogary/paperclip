@@ -7,11 +7,11 @@ import { mcpServersApi } from "../api/mcp-servers";
 import { connectorsApi } from "../api/connectors";
 import { pluginsApi } from "../api/plugins";
 import { queryKeys } from "../lib/queryKeys";
-import { SkillsSection } from "../components/toolkit/SkillsSection";
 import { McpServersSection } from "../components/toolkit/McpServersSection";
 import { ConnectorsSection } from "../components/toolkit/ConnectorsSection";
 import { PluginsSection } from "../components/toolkit/PluginsSection";
 import { cn } from "../lib/utils";
+import { useNavigate } from "../lib/router";
 
 type Section = "skills" | "mcp" | "connectors" | "plugins";
 
@@ -25,7 +25,8 @@ const NAV_ITEMS: { key: Section; icon: string; label: string }[] = [
 export function Toolkit() {
   const { selectedCompanyId } = useCompany();
   const { setBreadcrumbs } = useBreadcrumbs();
-  const [activeSection, setActiveSection] = useState<Section>("skills");
+  const navigate = useNavigate();
+  const [activeSection, setActiveSection] = useState<Section>("mcp");
 
   useEffect(() => {
     setBreadcrumbs([{ label: "Toolkit & Capabilities" }]);
@@ -74,24 +75,30 @@ export function Toolkit() {
           {NAV_ITEMS.map((item) => (
             <button
               key={item.key}
-              onClick={() => setActiveSection(item.key)}
+              onClick={() => item.key === "skills" ? navigate("/skills") : setActiveSection(item.key)}
               className={cn(
                 "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-all w-full text-left",
-                activeSection === item.key
-                  ? "bg-accent text-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                item.key === "skills"
+                  ? "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  : activeSection === item.key
+                    ? "bg-accent text-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground",
               )}
             >
               <span className="w-[22px] text-center text-base">{item.icon}</span>
               <span className="flex-1">{item.label}</span>
-              <span
-                className={cn(
-                  "text-[10px] rounded-full px-1.5 py-px bg-muted",
-                  activeSection === item.key ? "text-foreground" : "text-muted-foreground",
-                )}
-              >
-                {counts[item.key]}
-              </span>
+              {item.key === "skills" ? (
+                <span className="text-[10px] text-muted-foreground">&#x2192;</span>
+              ) : (
+                <span
+                  className={cn(
+                    "text-[10px] rounded-full px-1.5 py-px bg-muted",
+                    activeSection === item.key ? "text-foreground" : "text-muted-foreground",
+                  )}
+                >
+                  {counts[item.key]}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -102,7 +109,6 @@ export function Toolkit() {
 
       {/* Main panel */}
       <div className="flex-1 overflow-hidden flex flex-col">
-        {activeSection === "skills" && <SkillsSection />}
         {activeSection === "mcp" && <McpServersSection />}
         {activeSection === "connectors" && <ConnectorsSection />}
         {activeSection === "plugins" && <PluginsSection />}
