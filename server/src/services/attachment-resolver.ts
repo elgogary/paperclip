@@ -21,13 +21,13 @@ export interface FailedToken extends AttachToken {
   reason: string;
 }
 
-const ATTACH_REGEX = /\[\[attach:([^\]\|]+?)(?:\s*\|\s*title="([^"]*)")?\]\]/g;
+const ATTACH_PATTERN = String.raw`\[\[attach:([^\]\|]+?)(?:\s*\|\s*title="([^"]*)")?\]\]`;
 
 export function parseAttachTokens(body: string): AttachToken[] {
+  const regex = new RegExp(ATTACH_PATTERN, "g");
   const tokens: AttachToken[] = [];
   let match: RegExpExecArray | null;
-  ATTACH_REGEX.lastIndex = 0;
-  while ((match = ATTACH_REGEX.exec(body)) !== null) {
+  while ((match = regex.exec(body)) !== null) {
     tokens.push({
       raw: match[0],
       path: match[1].trim(),
@@ -44,10 +44,10 @@ export function replaceAttachTokens(
 ): string {
   let result = body;
   for (const token of resolved) {
-    result = result.replace(token.raw, `[${token.filename}](attachment:${token.attachmentId})`);
+    result = result.replace(token.raw, () => `[${token.filename}](attachment:${token.attachmentId})`);
   }
   for (const token of failed) {
-    result = result.replace(token.raw, `[file unavailable: ${token.filename}]`);
+    result = result.replace(token.raw, () => `[file unavailable: ${token.filename}]`);
   }
   return result;
 }
@@ -73,89 +73,119 @@ export async function resolveAttachTokens(
     db: Db;
     storage: StorageService;
     workspaceRoot?: string;
+    uploaderType?: "agent" | "user";
   },
 ): Promise<{ resolved: ResolvedToken[]; failed: FailedToken[] }> {
   const { companyId, issueId, agentId, db, storage } = opts;
   const workspaceRoot = opts.workspaceRoot ?? DEFAULT_WORKSPACE_ROOT;
+  const uploaderType = opts.uploaderType ?? "agent";
   const resolved: ResolvedToken[] = [];
   const failed: FailedToken[] = [];
+
+  // Fix 6: board-user tokens — warn and return unchanged
+  if (uploaderType === "user" && tokens.length > 0) {
+    console.warn(`[attach-resolver] Ignoring ${tokens.length} [[attach:]] token(s) from board user (not an agent)`);
+    return { resolved, failed };
+  }
 
   for (const token of tokens) {
     const basename = path.basename(token.path);
     const filename = token.title ?? basename;
+    let uploadedKey: string | undefined;
 
-    // Resolve the path — if absolute use directly, otherwise resolve relative to workspaceRoot
-    const normalized = path.isAbsolute(token.path)
-      ? path.resolve(token.path)
-      : path.resolve(workspaceRoot, token.path);
-
-    if (!isSafePath(normalized, workspaceRoot)) {
-      console.warn(`[attach-resolver] Rejected path outside workspace: ${token.path}`);
-      failed.push({ ...token, filename, reason: "path_outside_workspace" });
-      continue;
-    }
-
-    let fileBuffer: Buffer;
     try {
-      fileBuffer = await fs.readFile(normalized);
-    } catch (err) {
-      console.warn(`[attach-resolver] Cannot read file ${normalized}:`, (err as Error).message);
-      failed.push({ ...token, filename, reason: "file_not_found" });
-      continue;
-    }
+      // Resolve the path — if absolute use directly, otherwise resolve relative to workspaceRoot
+      const normalized = path.isAbsolute(token.path)
+        ? path.resolve(token.path)
+        : path.resolve(workspaceRoot, token.path);
 
-    const ext = path.extname(normalized).toLowerCase();
-    const mimeType = getMimeType(ext);
+      if (!isSafePath(normalized, workspaceRoot)) {
+        throw new Error(`Path traversal detected: ${token.path}`);
+      }
 
-    if (!isAllowedContentType(mimeType)) {
-      console.warn(`[attach-resolver] Disallowed MIME type ${mimeType} for ${normalized}`);
-      failed.push({ ...token, filename, reason: "disallowed_content_type" });
-      continue;
-    }
+      // Fix 1: resolve symlinks and re-validate
+      let realPath: string;
+      try {
+        realPath = await fs.realpath(normalized);
+      } catch {
+        throw new Error(`File not found: ${token.path}`);
+      }
+      const root = workspaceRoot.endsWith("/") ? workspaceRoot : `${workspaceRoot}/`;
+      if (realPath !== workspaceRoot && !realPath.startsWith(root)) {
+        throw new Error(`Path traversal detected: ${token.path}`);
+      }
 
-    const maxBytes = maxBytesForType(mimeType);
-    if (fileBuffer.byteLength > maxBytes) {
-      console.warn(`[attach-resolver] File ${normalized} exceeds size limit (${fileBuffer.byteLength} > ${maxBytes})`);
-      failed.push({ ...token, filename, reason: "file_too_large" });
-      continue;
-    }
+      const ext = path.extname(realPath).toLowerCase();
+      const mimeType = getMimeType(ext);
 
-    const stored = await storage.putFile({
-      companyId,
-      namespace: `issues/${issueId}/agent-attach`,
-      originalFilename: path.basename(normalized),
-      contentType: mimeType,
-      body: fileBuffer,
-    });
+      if (!isAllowedContentType(mimeType)) {
+        throw new Error(`Disallowed content type: ${mimeType}`);
+      }
 
-    const [attachment] = await db
-      .insert(attachments)
-      .values({
+      // Fix 4: stat before read — check size without loading into memory
+      const stat = await fs.stat(realPath);
+      const maxBytes = maxBytesForType(mimeType);
+      if (stat.size > maxBytes) {
+        throw new Error(`File exceeds size limit (${stat.size} > ${maxBytes})`);
+      }
+
+      const fileBuffer = await fs.readFile(realPath);
+
+      const stored = await storage.putFile({
         companyId,
-        issueId,
-        uploaderType: "agent",
-        uploaderId: agentId,
-        filename,
-        mimeType,
-        sizeBytes: fileBuffer.byteLength,
-        storageKey: stored.objectKey,
-        status: "processing",
+        namespace: `issues/${issueId}/agent-attach`,
+        originalFilename: path.basename(realPath),
+        contentType: mimeType,
+        body: fileBuffer,
+      });
+      uploadedKey = stored.objectKey;
+
+      const [attachment] = await db
+        .insert(attachments)
+        .values({
+          companyId,
+          issueId,
+          uploaderType: "agent",
+          uploaderId: agentId,
+          filename,
+          mimeType,
+          sizeBytes: stat.size,
+          storageKey: stored.objectKey,
+          status: "processing",
+        })
+        .returning();
+
+      const workerUrl = process.env.PAPERCLIP_MEDIA_WORKER_URL ?? process.env.MEDIA_WORKER_URL ?? "http://media-worker:8200";
+      fetch(`${workerUrl}/thumbnail`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ attachmentId: attachment.id, storageKey: stored.objectKey, mimeType }),
       })
-      .returning();
+        .then((r) => { if (!r.ok) console.warn(`[attach-resolver] media-worker ${r.status}`); })
+        .catch((err) => console.warn("[attach-resolver] media-worker unreachable:", (err as Error).message));
 
-    const workerUrl = process.env.PAPERCLIP_MEDIA_WORKER_URL ?? process.env.MEDIA_WORKER_URL ?? "http://media-worker:8200";
-    fetch(`${workerUrl}/thumbnail`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ attachmentId: attachment.id, storageKey: stored.objectKey, mimeType }),
-    })
-      .then((r) => { if (!r.ok) console.warn(`[attach-resolver] media-worker ${r.status}`); })
-      .catch((err) => console.warn("[attach-resolver] media-worker unreachable:", (err as Error).message));
+      resolved.push({ ...token, attachmentId: attachment.id, filename });
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      console.warn(`[attach-resolver] Token failed for ${token.path}: ${reason}`);
+      failed.push({ ...token, filename, reason: classifyError(reason) });
 
-    resolved.push({ ...token, attachmentId: attachment.id, filename });
+      // Fix 2: clean up orphaned storage object if upload succeeded but DB insert failed
+      if (uploadedKey) {
+        await storage.deleteObject(companyId, uploadedKey).catch(() => {});
+      }
+    }
   }
 
   return { resolved, failed };
+}
+
+function classifyError(message: string): string {
+  if (message.includes("Path traversal")) return "path_outside_workspace";
+  if (message.includes("File not found")) return "file_not_found";
+  if (message.includes("Disallowed content type")) return "disallowed_content_type";
+  if (message.includes("exceeds size limit")) return "file_too_large";
+  return "internal_error";
 }
 
 function getMimeType(ext: string): string {

@@ -25,7 +25,7 @@ function makeMockStorage() {
     }),
     getObject: vi.fn(),
     headObject: vi.fn(),
-    deleteObject: vi.fn(),
+    deleteObject: vi.fn().mockResolvedValue(undefined),
     putRawObject: vi.fn(),
     getRawObject: vi.fn(),
   };
@@ -40,6 +40,13 @@ function makeMockDb() {
     _values: ReturnType<typeof vi.fn>;
     _returning: ReturnType<typeof vi.fn>;
   };
+}
+
+/** Helper: set up fs mocks for a successful file read at `filePath`. */
+function mockFsSuccess(filePath: string, content = Buffer.from("content"), size = 100) {
+  vi.mocked(fsPromises.realpath).mockResolvedValue(filePath);
+  vi.mocked(fsPromises.stat).mockResolvedValue({ size } as any);
+  vi.mocked(fsPromises.readFile).mockResolvedValue(content);
 }
 
 // Suppress console.warn in tests
@@ -84,6 +91,14 @@ describe("parseAttachTokens", () => {
   it("handles path with spaces in filename", () => {
     const token = parseAttachTokens("[[attach:/workspace/my docs/report final.docx]]")[0];
     expect(token.path).toBe("/workspace/my docs/report final.docx");
+  });
+
+  it("is safe for concurrent calls (no shared lastIndex)", () => {
+    // Call twice rapidly — if regex were shared with g flag, second call could misbehave
+    const a = parseAttachTokens("[[attach:/workspace/a.pdf]] [[attach:/workspace/b.pdf]]");
+    const b = parseAttachTokens("[[attach:/workspace/c.pdf]]");
+    expect(a).toHaveLength(2);
+    expect(b).toHaveLength(1);
   });
 });
 
@@ -140,6 +155,15 @@ describe("replaceAttachTokens", () => {
     );
     expect(result).toBe("[good.pdf](attachment:ok-1) then [file unavailable: bad.pdf]");
   });
+
+  it("does not interpret dollar-sign sequences in replacement", () => {
+    const result = replaceAttachTokens(
+      "See [[attach:/workspace/file.pdf]]",
+      [{ raw: "[[attach:/workspace/file.pdf]]", path: "/workspace/file.pdf", attachmentId: "att-$1-$$-$&", filename: "$1report.pdf" }],
+    );
+    // Dollar signs must be preserved literally, not interpreted as capture group refs
+    expect(result).toBe("See [$1report.pdf](attachment:att-$1-$$-$&)");
+  });
 });
 
 describe("isSafePath", () => {
@@ -186,8 +210,7 @@ describe("resolveAttachTokens", () => {
   });
 
   it("resolves a valid workspace path to an attachment record", async () => {
-    const fileContent = Buffer.from("PDF content");
-    vi.mocked(fsPromises.readFile).mockResolvedValue(fileContent);
+    mockFsSuccess("/workspace/docs/report.pdf");
 
     const tokens = [{ raw: "[[attach:/workspace/docs/report.pdf]]", path: "/workspace/docs/report.pdf" }];
     const { resolved, failed } = await resolveAttachTokens(tokens, {
@@ -233,7 +256,7 @@ describe("resolveAttachTokens", () => {
   });
 
   it("handles file not found gracefully", async () => {
-    vi.mocked(fsPromises.readFile).mockRejectedValue(new Error("ENOENT: no such file"));
+    vi.mocked(fsPromises.realpath).mockRejectedValue(new Error("ENOENT: no such file"));
 
     const tokens = [{ raw: "[[attach:/workspace/missing.pdf]]", path: "/workspace/missing.pdf" }];
     const { resolved, failed } = await resolveAttachTokens(tokens, {
@@ -249,9 +272,14 @@ describe("resolveAttachTokens", () => {
   });
 
   it("handles multiple markers in one comment body", async () => {
-    const fileContent = Buffer.from("content");
+    vi.mocked(fsPromises.realpath)
+      .mockResolvedValueOnce("/workspace/a.pdf")
+      .mockResolvedValueOnce("/workspace/b.pdf");
+    vi.mocked(fsPromises.stat)
+      .mockResolvedValueOnce({ size: 50 } as any)
+      .mockResolvedValueOnce({ size: 50 } as any);
     vi.mocked(fsPromises.readFile)
-      .mockResolvedValueOnce(fileContent)
+      .mockResolvedValueOnce(Buffer.from("content"))
       .mockRejectedValueOnce(new Error("ENOENT"));
 
     mockDb._returning
@@ -275,8 +303,7 @@ describe("resolveAttachTokens", () => {
   });
 
   it("uses title option for filename when provided", async () => {
-    const fileContent = Buffer.from("content");
-    vi.mocked(fsPromises.readFile).mockResolvedValue(fileContent);
+    mockFsSuccess("/workspace/file.pdf");
 
     const tokens = [{ raw: '[[attach:/workspace/file.pdf | title="Report"]]', path: "/workspace/file.pdf", title: "Report" }];
     const { resolved } = await resolveAttachTokens(tokens, {
@@ -290,10 +317,11 @@ describe("resolveAttachTokens", () => {
   });
 
   it("preserves rest of comment body unchanged (integration)", async () => {
-    const fileContent = Buffer.from("content");
-    vi.mocked(fsPromises.readFile)
-      .mockResolvedValueOnce(fileContent)
+    vi.mocked(fsPromises.realpath)
+      .mockResolvedValueOnce("/workspace/good.pdf")
       .mockRejectedValueOnce(new Error("ENOENT"));
+    vi.mocked(fsPromises.stat).mockResolvedValueOnce({ size: 50 } as any);
+    vi.mocked(fsPromises.readFile).mockResolvedValueOnce(Buffer.from("content"));
 
     mockDb._returning.mockResolvedValueOnce([{ id: "att-ok" }]);
 
@@ -307,5 +335,169 @@ describe("resolveAttachTokens", () => {
     const result = replaceAttachTokens(body, resolved, failed);
 
     expect(result).toBe("Hello [good.pdf](attachment:att-ok) world [file unavailable: missing.txt] end");
+  });
+
+  // --- Fix 1: symlink escape ---
+  it("rejects symlink that resolves outside workspace", async () => {
+    // realpath returns a path outside /workspace — symlink escape
+    vi.mocked(fsPromises.realpath).mockResolvedValue("/etc/shadow");
+
+    const tokens = [{ raw: "[[attach:/workspace/sneaky-link]]", path: "/workspace/sneaky-link" }];
+    const { resolved, failed } = await resolveAttachTokens(tokens, {
+      ...baseOpts,
+      db: mockDb as any,
+      storage: mockStorage as any,
+    });
+
+    expect(resolved).toHaveLength(0);
+    expect(failed).toHaveLength(1);
+    expect(failed[0].reason).toBe("path_outside_workspace");
+    expect(mockStorage.putFile).not.toHaveBeenCalled();
+  });
+
+  it("rejects when realpath throws ENOENT (file not found)", async () => {
+    vi.mocked(fsPromises.realpath).mockRejectedValue(
+      Object.assign(new Error("ENOENT: no such file or directory"), { code: "ENOENT" }),
+    );
+
+    const tokens = [{ raw: "[[attach:/workspace/ghost.pdf]]", path: "/workspace/ghost.pdf" }];
+    const { resolved, failed } = await resolveAttachTokens(tokens, {
+      ...baseOpts,
+      db: mockDb as any,
+      storage: mockStorage as any,
+    });
+
+    expect(resolved).toHaveLength(0);
+    expect(failed).toHaveLength(1);
+    expect(failed[0].reason).toBe("file_not_found");
+  });
+
+  // --- Fix 2: per-token isolation + orphan cleanup ---
+  it("continues processing remaining tokens after one fails", async () => {
+    // Token 1: DB insert fails after upload
+    vi.mocked(fsPromises.realpath)
+      .mockResolvedValueOnce("/workspace/a.pdf")
+      .mockResolvedValueOnce("/workspace/b.pdf");
+    vi.mocked(fsPromises.stat)
+      .mockResolvedValueOnce({ size: 50 } as any)
+      .mockResolvedValueOnce({ size: 50 } as any);
+    vi.mocked(fsPromises.readFile)
+      .mockResolvedValueOnce(Buffer.from("a-content"))
+      .mockResolvedValueOnce(Buffer.from("b-content"));
+
+    // First token: upload succeeds, DB insert throws
+    mockDb._returning
+      .mockRejectedValueOnce(new Error("DB connection lost"))
+      .mockResolvedValueOnce([{ id: "att-2" }]);
+
+    const tokens = [
+      { raw: "[[attach:/workspace/a.pdf]]", path: "/workspace/a.pdf" },
+      { raw: "[[attach:/workspace/b.pdf]]", path: "/workspace/b.pdf" },
+    ];
+    const { resolved, failed } = await resolveAttachTokens(tokens, {
+      ...baseOpts,
+      db: mockDb as any,
+      storage: mockStorage as any,
+    });
+
+    // Second token should still succeed
+    expect(resolved).toHaveLength(1);
+    expect(resolved[0].attachmentId).toBe("att-2");
+    expect(failed).toHaveLength(1);
+    expect(failed[0].filename).toBe("a.pdf");
+
+    // Orphaned storage object from first token should be cleaned up
+    expect(mockStorage.deleteObject).toHaveBeenCalledWith(
+      "comp-1",
+      "comp/issues/iss/agent-attach/2026/01/01/uuid-file.pdf",
+    );
+  });
+
+  it("cleans up orphaned storage object when DB insert fails", async () => {
+    mockFsSuccess("/workspace/orphan.pdf");
+    mockDb._returning.mockRejectedValue(new Error("unique constraint violation"));
+
+    const tokens = [{ raw: "[[attach:/workspace/orphan.pdf]]", path: "/workspace/orphan.pdf" }];
+    const { resolved, failed } = await resolveAttachTokens(tokens, {
+      ...baseOpts,
+      db: mockDb as any,
+      storage: mockStorage as any,
+    });
+
+    expect(resolved).toHaveLength(0);
+    expect(failed).toHaveLength(1);
+    expect(mockStorage.deleteObject).toHaveBeenCalledOnce();
+  });
+
+  // --- Fix 4: stat before read (MIME rejection) ---
+  it("rejects disallowed MIME type without reading file into memory", async () => {
+    // .exe is not in the allowed list → maps to application/octet-stream
+    vi.mocked(fsPromises.realpath).mockResolvedValue("/workspace/malware.exe");
+
+    const tokens = [{ raw: "[[attach:/workspace/malware.exe]]", path: "/workspace/malware.exe" }];
+    const { resolved, failed } = await resolveAttachTokens(tokens, {
+      ...baseOpts,
+      db: mockDb as any,
+      storage: mockStorage as any,
+    });
+
+    expect(resolved).toHaveLength(0);
+    expect(failed).toHaveLength(1);
+    expect(failed[0].reason).toBe("disallowed_content_type");
+    // stat and readFile should NOT have been called since MIME check happens first
+    expect(fsPromises.stat).not.toHaveBeenCalled();
+    expect(fsPromises.readFile).not.toHaveBeenCalled();
+  });
+
+  // --- Fix 4: stat before read (size rejection) ---
+  it("rejects file exceeding size limit via stat without reading full content", async () => {
+    vi.mocked(fsPromises.realpath).mockResolvedValue("/workspace/huge.pdf");
+    // 200 MB — over default 100 MB limit
+    vi.mocked(fsPromises.stat).mockResolvedValue({ size: 200 * 1024 * 1024 } as any);
+
+    const tokens = [{ raw: "[[attach:/workspace/huge.pdf]]", path: "/workspace/huge.pdf" }];
+    const { resolved, failed } = await resolveAttachTokens(tokens, {
+      ...baseOpts,
+      db: mockDb as any,
+      storage: mockStorage as any,
+    });
+
+    expect(resolved).toHaveLength(0);
+    expect(failed).toHaveLength(1);
+    expect(failed[0].reason).toBe("file_too_large");
+    // readFile should NOT have been called since stat caught it
+    expect(fsPromises.readFile).not.toHaveBeenCalled();
+  });
+
+  // --- Fix 6: board-user tokens ---
+  it("ignores tokens from board users and returns empty results", async () => {
+    const tokens = [{ raw: "[[attach:/workspace/file.pdf]]", path: "/workspace/file.pdf" }];
+    const { resolved, failed } = await resolveAttachTokens(tokens, {
+      ...baseOpts,
+      db: mockDb as any,
+      storage: mockStorage as any,
+      uploaderType: "user",
+    });
+
+    expect(resolved).toHaveLength(0);
+    expect(failed).toHaveLength(0);
+    expect(mockStorage.putFile).not.toHaveBeenCalled();
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringContaining("board user"),
+    );
+  });
+
+  it("processes tokens normally when uploaderType is agent", async () => {
+    mockFsSuccess("/workspace/file.pdf");
+
+    const tokens = [{ raw: "[[attach:/workspace/file.pdf]]", path: "/workspace/file.pdf" }];
+    const { resolved } = await resolveAttachTokens(tokens, {
+      ...baseOpts,
+      db: mockDb as any,
+      storage: mockStorage as any,
+      uploaderType: "agent",
+    });
+
+    expect(resolved).toHaveLength(1);
   });
 });
