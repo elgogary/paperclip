@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   Download,
   ExternalLink,
@@ -11,6 +12,11 @@ import {
   Film,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "../ui/dialog";
 
 export interface AttachmentCardProps {
   attachmentId: string;
@@ -19,7 +25,10 @@ export interface AttachmentCardProps {
   sizeBytes: number;
   thumbnailUrl?: string | null;
   downloadUrl: string;
+  htmlPreviewKey?: string | null;
   status: "uploading" | "assembling" | "processing" | "ready" | "error";
+  versionNum?: number;
+  versionOf?: string | null;
   className?: string;
 }
 
@@ -43,8 +52,19 @@ function isPdf(mime: string): boolean {
   return mime === "application/pdf";
 }
 
+function isSpreadsheet(mime: string): boolean {
+  return (
+    mime === "text/csv" ||
+    mime === "application/vnd.ms-excel" ||
+    mime === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  );
+}
+
 function isOfficeDoc(mime: string): boolean {
-  return mime.startsWith("application/vnd.openxmlformats-officedocument.");
+  return (
+    mime.startsWith("application/vnd.openxmlformats-officedocument.") ||
+    mime === "application/vnd.ms-excel"
+  );
 }
 
 function isText(mime: string): boolean {
@@ -89,26 +109,41 @@ function ErrorState({ filename }: { filename: string }) {
   );
 }
 
-function ImageCard({ filename, downloadUrl, sizeBytes }: AttachmentCardProps) {
+function VersionBadge({ versionNum }: { versionNum?: number }) {
+  if (!versionNum || versionNum <= 1) return null;
+  return (
+    <span className="ml-1.5 inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+      v{versionNum}
+    </span>
+  );
+}
+
+function ImageCard({ filename, downloadUrl, sizeBytes, versionNum }: AttachmentCardProps) {
+  const [open, setOpen] = useState(false);
   return (
     <div className="rounded-lg border border-border overflow-hidden bg-accent/5">
-      <a href={downloadUrl} target="_blank" rel="noreferrer">
-        <img
-          src={downloadUrl}
-          alt={filename}
-          loading="lazy"
-          className="w-full max-h-96 object-contain bg-accent/10"
-        />
-      </a>
+      <img
+        src={downloadUrl}
+        alt={filename}
+        loading="lazy"
+        className="w-full max-h-96 object-contain bg-accent/10 cursor-pointer"
+        onClick={() => setOpen(true)}
+      />
       <div className="flex items-center justify-between gap-2 px-3 py-2 text-xs text-muted-foreground">
-        <span className="truncate">{filename}</span>
+        <span className="truncate">{filename}<VersionBadge versionNum={versionNum} /></span>
         <span className="shrink-0">{formatBytes(sizeBytes)}</span>
       </div>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-5xl">
+          <DialogTitle className="sr-only">{filename}</DialogTitle>
+          <img src={downloadUrl} alt={filename} className="w-full h-auto" />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-function VideoCard({ filename, downloadUrl, thumbnailUrl, sizeBytes }: AttachmentCardProps) {
+function VideoCard({ filename, downloadUrl, thumbnailUrl, sizeBytes, versionNum }: AttachmentCardProps) {
   return (
     <div className="rounded-lg border border-border overflow-hidden bg-accent/5">
       <video
@@ -121,14 +156,15 @@ function VideoCard({ filename, downloadUrl, thumbnailUrl, sizeBytes }: Attachmen
         <source src={downloadUrl} />
       </video>
       <div className="flex items-center justify-between gap-2 px-3 py-2 text-xs text-muted-foreground">
-        <span className="truncate">{filename}</span>
+        <span className="truncate">{filename}<VersionBadge versionNum={versionNum} /></span>
         <span className="shrink-0">{formatBytes(sizeBytes)}</span>
       </div>
     </div>
   );
 }
 
-function PdfCard({ filename, downloadUrl, thumbnailUrl, sizeBytes }: AttachmentCardProps) {
+function PdfCard({ filename, downloadUrl, thumbnailUrl, sizeBytes, versionNum }: AttachmentCardProps) {
+  const [open, setOpen] = useState(false);
   return (
     <div className="flex items-center gap-3 rounded-lg border border-border bg-accent/5 p-3">
       {thumbnailUrl ? (
@@ -141,80 +177,136 @@ function PdfCard({ filename, downloadUrl, thumbnailUrl, sizeBytes }: AttachmentC
         <FileText className="h-8 w-8 text-red-500 dark:text-red-400 shrink-0" aria-hidden="true" />
       )}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{filename}</p>
+        <p className="text-sm font-medium truncate">{filename}<VersionBadge versionNum={versionNum} /></p>
         <p className="text-xs text-muted-foreground">{formatBytes(sizeBytes)}</p>
       </div>
-      <a
-        href={downloadUrl}
-        target="_blank"
-        rel="noreferrer"
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
         className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium hover:bg-accent transition-colors shrink-0"
       >
         <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
         View PDF
-      </a>
+      </button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-5xl h-[80vh]">
+          <DialogTitle className="sr-only">{filename}</DialogTitle>
+          <iframe src={downloadUrl} className="w-full h-full border-0" title={filename} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-function OfficeCard({ filename, downloadUrl, sizeBytes }: AttachmentCardProps) {
+function OfficeCard({ filename, downloadUrl, htmlPreviewKey, sizeBytes, versionNum }: AttachmentCardProps) {
+  const [open, setOpen] = useState(false);
+  const previewUrl = htmlPreviewKey
+    ? `/api/attachments/${htmlPreviewKey}/content`
+    : null;
+
   return (
     <div className="flex items-center gap-3 rounded-lg border border-border bg-accent/5 p-3">
       <FileSpreadsheet className="h-8 w-8 text-blue-500 dark:text-blue-400 shrink-0" aria-hidden="true" />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{filename}</p>
+        <p className="text-sm font-medium truncate">{filename}<VersionBadge versionNum={versionNum} /></p>
         <p className="text-xs text-muted-foreground">{formatBytes(sizeBytes)}</p>
       </div>
-      <a
-        href={downloadUrl}
-        target="_blank"
-        rel="noreferrer"
-        className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium hover:bg-accent transition-colors shrink-0"
-      >
-        <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-        View Document
-      </a>
+      {previewUrl ? (
+        <>
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium hover:bg-accent transition-colors shrink-0"
+          >
+            <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+            View Document
+          </button>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogContent className="max-w-5xl h-[80vh]">
+              <DialogTitle className="sr-only">{filename}</DialogTitle>
+              <iframe src={previewUrl} className="w-full h-full border-0" title={filename} />
+            </DialogContent>
+          </Dialog>
+        </>
+      ) : (
+        <a
+          href={downloadUrl}
+          download={filename}
+          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium hover:bg-accent transition-colors shrink-0"
+        >
+          <Download className="h-3.5 w-3.5" aria-hidden="true" />
+          Download
+        </a>
+      )}
     </div>
   );
 }
 
-function TextCard({ filename, downloadUrl, sizeBytes }: AttachmentCardProps) {
+const TEXT_PREVIEW_LIMIT = 10_000;
+
+function TextCard({ filename, mimeType, downloadUrl, sizeBytes, versionNum }: AttachmentCardProps) {
+  const [content, setContent] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    fetch(downloadUrl, { credentials: "include" })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.text();
+      })
+      .then((text) => {
+        if (!mounted) return;
+        setContent(
+          text.length > TEXT_PREVIEW_LIMIT
+            ? text.slice(0, TEXT_PREVIEW_LIMIT) + "\n... [truncated]"
+            : text,
+        );
+      })
+      .catch(() => {
+        if (mounted) setLoadError(true);
+      });
+    return () => { mounted = false; };
+  }, [downloadUrl]);
+
+  const label = isSpreadsheet(mimeType) ? "Spreadsheet Preview" : null;
+
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-border bg-accent/5 p-3">
-      <FileCode className="h-8 w-8 text-muted-foreground shrink-0" />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{filename}</p>
-        <p className="text-xs text-muted-foreground">{formatBytes(sizeBytes)}</p>
-      </div>
-      <div className="flex items-center gap-1.5 shrink-0">
-        <a
-          href={downloadUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium hover:bg-accent transition-colors"
-        >
-          <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-          View
-        </a>
+    <div className="rounded-lg border border-border bg-accent/5 overflow-hidden">
+      <div className="flex items-center gap-3 p-3">
+        <FileCode className="h-8 w-8 text-muted-foreground shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate">
+            {filename}<VersionBadge versionNum={versionNum} />
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {label ? `${label} \u00B7 ` : ""}{formatBytes(sizeBytes)}
+          </p>
+        </div>
         <a
           href={downloadUrl}
           download={filename}
           aria-label={`Download ${filename}`}
-          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium hover:bg-accent transition-colors"
+          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium hover:bg-accent transition-colors shrink-0"
         >
           <Download className="h-3.5 w-3.5" aria-hidden="true" />
         </a>
       </div>
+      {content !== null && !loadError && (
+        <pre className="max-h-64 overflow-auto border-t border-border bg-muted/30 px-3 py-2 text-xs leading-relaxed">
+          <code>{content}</code>
+        </pre>
+      )}
     </div>
   );
 }
 
-function GenericCard({ filename, mimeType, downloadUrl, sizeBytes }: AttachmentCardProps) {
+function GenericCard({ filename, mimeType, downloadUrl, sizeBytes, versionNum }: AttachmentCardProps) {
   return (
     <div className="flex items-center gap-3 rounded-lg border border-border bg-accent/5 p-3">
       <FileTypeIcon mimeType={mimeType} className="h-8 w-8 text-muted-foreground shrink-0" />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{filename}</p>
+        <p className="text-sm font-medium truncate">{filename}<VersionBadge versionNum={versionNum} /></p>
         <p className="text-xs text-muted-foreground">{formatBytes(sizeBytes)}</p>
       </div>
       <a
@@ -243,6 +335,7 @@ export function AttachmentCard(props: AttachmentCardProps) {
     if (isImage(mimeType)) return <ImageCard {...props} />;
     if (isVideo(mimeType)) return <VideoCard {...props} />;
     if (isPdf(mimeType)) return <PdfCard {...props} />;
+    if (isSpreadsheet(mimeType)) return <TextCard {...props} />;
     if (isOfficeDoc(mimeType)) return <OfficeCard {...props} />;
     if (isText(mimeType)) return <TextCard {...props} />;
     return <GenericCard {...props} />;

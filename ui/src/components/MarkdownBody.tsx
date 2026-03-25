@@ -1,6 +1,7 @@
 import { isValidElement, useEffect, useId, useState, type CSSProperties, type ReactNode } from "react";
 import Markdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import DOMPurify from "dompurify";
 import { parseProjectMentionHref } from "@paperclipai/shared";
 import { cn } from "../lib/utils";
 import { useTheme } from "../context/ThemeContext";
@@ -82,7 +83,10 @@ function MermaidDiagramBlock({ source, darkMode }: { source: string; darkMode: b
         });
         const rendered = await mermaid.render(`paperclip-mermaid-${renderId}`, source);
         if (!active) return;
-        setSvg(rendered.svg);
+        const cleanSvg = DOMPurify.sanitize(rendered.svg, {
+          USE_PROFILES: { svg: true, svgFilters: true },
+        });
+        setSvg(cleanSvg);
       })
       .catch((err) => {
         if (!active) return;
@@ -116,9 +120,17 @@ function MermaidDiagramBlock({ source, darkMode }: { source: string; darkMode: b
   );
 }
 
+function preprocessContent(content: string): string {
+  return content.replace(
+    /\[\[attachment:([a-f0-9-]{36})\]\]/g,
+    (_, id: string) => `[attachment](attachment://${id})`,
+  );
+}
+
 function parseAttachmentHref(href: string): string | null {
-  if (!href.startsWith("attachment:")) return null;
-  return href.slice("attachment:".length) || null;
+  if (href.startsWith("attachment://")) return href.slice("attachment://".length) || null;
+  if (href.startsWith("attachment:")) return href.slice("attachment:".length) || null;
+  return null;
 }
 
 function InlineAttachment({ attachmentId, label }: { attachmentId: string; label: string }) {
@@ -144,7 +156,10 @@ function InlineAttachment({ attachmentId, label }: { attachmentId: string; label
       sizeBytes={attachment.sizeBytes}
       thumbnailUrl={attachment.thumbnailUrl}
       downloadUrl={attachment.downloadUrl}
+      htmlPreviewKey={attachment.htmlPreviewKey}
       status={attachment.status}
+      versionNum={attachment.versionNum ?? undefined}
+      versionOf={attachment.versionOf}
     />
   );
 }
@@ -183,7 +198,7 @@ export function MarkdownBody({ children, className, resolveImageSrc }: MarkdownB
         );
       }
       return (
-        <a href={href} rel="noreferrer">
+        <a href={href} target="_blank" rel="noreferrer noopener">
           {linkChildren}
         </a>
       );
@@ -205,7 +220,7 @@ export function MarkdownBody({ children, className, resolveImageSrc }: MarkdownB
       )}
     >
       <Markdown remarkPlugins={[remarkGfm]} components={components}>
-        {children}
+        {preprocessContent(children)}
       </Markdown>
     </div>
   );

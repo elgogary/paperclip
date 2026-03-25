@@ -11,6 +11,7 @@ export interface AttachmentMeta {
   sizeBytes: number;
   versionOf: string | null;
   versionNum: number | null;
+  htmlPreviewKey: string | null;
   status: "uploading" | "assembling" | "processing" | "ready" | "error";
   publishUrl: string | null;
   createdAt: string;
@@ -49,28 +50,17 @@ export const attachmentsApi = {
   initUpload: (params: InitUploadParams) =>
     api.post<InitUploadResult>("/attachments/init", params),
 
-  uploadChunk: async (
+  uploadChunk: (
     attachmentId: string,
     chunk: Blob,
     start: number,
     total: number,
   ): Promise<void> => {
     const end = start + chunk.size - 1;
-    const res = await fetch(`/api/attachments/${attachmentId}/chunk`, {
-      method: "PUT",
-      credentials: "include",
-      headers: {
-        "Content-Range": `bytes ${start}-${end}/${total}`,
-        "Content-Type": "application/octet-stream",
-      },
-      body: chunk,
+    return api.putRaw<void>(`/attachments/${attachmentId}/chunk`, chunk, {
+      "Content-Range": `bytes ${start}-${end}/${total}`,
+      "Content-Type": "application/octet-stream",
     });
-    if (!res.ok) {
-      const body = await res.json().catch(() => null);
-      throw new Error(
-        (body as { error?: string } | null)?.error ?? `Chunk upload failed: ${res.status}`,
-      );
-    }
   },
 
   completeUpload: (attachmentId: string, commentId?: string | null) =>

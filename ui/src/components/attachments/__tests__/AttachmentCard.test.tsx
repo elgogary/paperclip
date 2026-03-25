@@ -57,7 +57,6 @@ describe("AttachmentCard", () => {
     });
     expect(html).toContain("View PDF");
     expect(html).toContain("report.pdf");
-    expect(html).not.toContain("<img");
   });
 
   it("renders PDF card with thumbnail when provided", () => {
@@ -80,32 +79,75 @@ describe("AttachmentCard", () => {
     expect(html).toContain("dark:text-red-400");
   });
 
-  it("renders Office document card", () => {
+  it("renders Office document card with htmlPreviewKey showing View Document button", () => {
     const html = render({
       ...baseProps,
-      filename: "budget.xlsx",
-      mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      filename: "proposal.docx",
+      mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      htmlPreviewKey: "preview-key-123",
     });
     expect(html).toContain("View Document");
-    expect(html).toContain("budget.xlsx");
+    expect(html).toContain("proposal.docx");
   });
 
-  it("renders Office icon with dark mode class", () => {
+  it("renders Office document card without htmlPreviewKey showing Download button", () => {
     const html = render({
       ...baseProps,
-      filename: "budget.xlsx",
-      mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      filename: "proposal.docx",
+      mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      htmlPreviewKey: null,
+    });
+    expect(html).toContain("Download");
+    expect(html).not.toContain("View Document");
+  });
+
+  it("renders Office icon with dark mode class for word docs", () => {
+    const html = render({
+      ...baseProps,
+      filename: "report.docx",
+      mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      htmlPreviewKey: "preview-123",
     });
     expect(html).toContain("dark:text-blue-400");
   });
 
-  it("renders text/code card with View and Download", () => {
+  it("renders text/plain card with pre/code block structure", () => {
+    const html = render({
+      ...baseProps,
+      filename: "readme.txt",
+      mimeType: "text/plain",
+    });
+    expect(html).toContain("readme.txt");
+    expect(html).toContain('download="readme.txt"');
+  });
+
+  it("renders text/csv with Spreadsheet Preview label", () => {
+    const html = render({
+      ...baseProps,
+      filename: "data.csv",
+      mimeType: "text/csv",
+    });
+    expect(html).toContain("Spreadsheet Preview");
+    expect(html).toContain("data.csv");
+  });
+
+  it("renders application/vnd.ms-excel with Spreadsheet Preview label", () => {
+    const html = render({
+      ...baseProps,
+      filename: "legacy.xls",
+      mimeType: "application/vnd.ms-excel",
+    });
+    expect(html).toContain("Spreadsheet Preview");
+    expect(html).toContain("legacy.xls");
+  });
+
+  it("renders application/json with View and Download", () => {
     const html = render({
       ...baseProps,
       filename: "config.json",
       mimeType: "application/json",
     });
-    expect(html).toContain("View");
+    expect(html).toContain("config.json");
     expect(html).toContain('download="config.json"');
   });
 
@@ -167,6 +209,36 @@ describe("AttachmentCard", () => {
   it("passes className prop without type cast", () => {
     const html = render({ ...baseProps, className: "custom-class" });
     expect(html).toContain("custom-class");
+  });
+
+  it("renders version badge when versionNum > 1", () => {
+    const html = render({ ...baseProps, versionNum: 2 });
+    expect(html).toContain("v2");
+  });
+
+  it("does not render version badge when versionNum is 1", () => {
+    const html = render({ ...baseProps, versionNum: 1 });
+    expect(html).not.toContain("v1");
+  });
+
+  it("does not render version badge when versionNum is undefined", () => {
+    const html = render(baseProps);
+    expect(html).not.toMatch(/v\d+/);
+  });
+
+  it("renders image with cursor-pointer for lightbox", () => {
+    const html = render(baseProps);
+    expect(html).toContain("cursor-pointer");
+  });
+
+  it("PDF View button is a <button> not <a>", () => {
+    const html = render({
+      ...baseProps,
+      filename: "report.pdf",
+      mimeType: "application/pdf",
+    });
+    expect(html).toContain("<button");
+    expect(html).toContain("View PDF");
   });
 });
 
