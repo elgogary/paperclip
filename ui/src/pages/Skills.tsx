@@ -47,10 +47,12 @@ export function Skills() {
 
   // Keep selected skill in sync with latest data
   useEffect(() => {
-    if (!skillsData?.skills || !selectedSkill) return;
-    const fresh = skillsData.skills.find((s) => s.id === selectedSkill.id);
-    if (fresh) setSelectedSkill(fresh);
-    else setSelectedSkill(null);
+    if (!skillsData?.skills) return;
+    setSelectedSkill((prev) => {
+      if (!prev) return null;
+      const fresh = skillsData.skills.find((s) => s.id === prev.id);
+      return fresh ?? null;
+    });
   }, [skillsData]);
 
   const createSkill = useMutation({

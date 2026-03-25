@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
 import { skills, skillAgentMetrics } from "@paperclipai/db";
 
@@ -107,19 +107,24 @@ export function skillRetrievalService(db: Db) {
 
       // Step 3: Agent-specific reranking using skill_agent_metrics
       const skillIds = ftsRows.map((r) => r.id);
-      const metrics = await db
-        .select()
-        .from(skillAgentMetrics)
-        .where(eq(skillAgentMetrics.agentId, input.agentId));
+      const metrics = skillIds.length > 0
+        ? await db
+            .select()
+            .from(skillAgentMetrics)
+            .where(
+              and(
+                eq(skillAgentMetrics.agentId, input.agentId),
+                inArray(skillAgentMetrics.skillId, skillIds),
+              ),
+            )
+        : [];
 
       const metricsMap = new Map<string, { successCount: number; failureCount: number }>();
       for (const m of metrics) {
-        if (skillIds.includes(m.skillId)) {
-          metricsMap.set(m.skillId, {
-            successCount: m.successCount,
-            failureCount: m.failureCount,
-          });
-        }
+        metricsMap.set(m.skillId, {
+          successCount: m.successCount,
+          failureCount: m.failureCount,
+        });
       }
 
       const scored: RetrievedSkill[] = ftsRows.map((row) => {

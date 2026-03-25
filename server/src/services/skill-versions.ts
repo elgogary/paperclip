@@ -50,6 +50,7 @@ export function skillVersionsService(db: Db) {
         triggerReason?: string;
         createdBy?: string;
       },
+      _retryCount = 0,
     ): Promise<SkillVersion> {
       // Get current max version
       const [maxRow] = await db
@@ -68,21 +69,31 @@ export function skillVersionsService(db: Db) {
         }
       }
 
-      // Insert new version row
+      // Insert new version row -- retry on unique constraint violation (concurrent insert)
       const now = new Date();
-      const rows = await db
-        .insert(skillVersions)
-        .values({
-          skillId,
-          version: newVersion,
-          origin: input.origin,
-          fullContent: input.fullContent,
-          contentDiff,
-          triggerReason: input.triggerReason ?? null,
-          createdBy: input.createdBy ?? null,
-          createdAt: now,
-        })
-        .returning();
+      let rows: SkillVersion[];
+      try {
+        rows = await db
+          .insert(skillVersions)
+          .values({
+            skillId,
+            version: newVersion,
+            origin: input.origin,
+            fullContent: input.fullContent,
+            contentDiff,
+            triggerReason: input.triggerReason ?? null,
+            createdBy: input.createdBy ?? null,
+            createdAt: now,
+          })
+          .returning();
+      } catch (err: unknown) {
+        const isUniqueViolation =
+          err instanceof Error && (err.message.includes("unique") || err.message.includes("duplicate"));
+        if (isUniqueViolation && _retryCount < 3) {
+          return this.createVersion(skillId, input, _retryCount + 1);
+        }
+        throw err;
+      }
 
       // Update skills table with new instructions and version
       await db

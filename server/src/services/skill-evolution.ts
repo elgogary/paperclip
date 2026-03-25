@@ -43,7 +43,8 @@ export function skillEvolutionService(db: Db) {
       }
 
       // Check for novel patterns → potential CAPTURED skill
-      for (const pattern of feedback.novelPatterns) {
+      if (feedback.novelPatterns.length > 0) {
+        const pattern = feedback.novelPatterns[0];
         return createEvent(db, {
           companyId: input.companyId,
           skillId: null,
@@ -190,11 +191,15 @@ export function skillEvolutionService(db: Db) {
     },
 
     async rejectEvolution(eventId: string, reason: string): Promise<void> {
+      const event = await getEventById(db, eventId);
+      const existingAnalysis = (event?.analysis ?? {}) as Record<string, unknown>;
+
       await db
         .update(evolutionEvents)
         .set({
           status: "rejected",
-          reviewedBy: reason,
+          reviewedBy: "board",
+          analysis: { ...existingAnalysis, rejectionReason: reason },
         })
         .where(eq(evolutionEvents.id, eventId));
     },

@@ -134,7 +134,12 @@ export function skillRoutes(db: Db) {
 
     const existing = await getSkillOrNotFound(svc, skillId, companyId, res);
     if (!existing) return;
-    const ver = await versionsSvc.getVersion(skillId, parseInt(version, 10));
+    const versionNum = parseInt(version, 10);
+    if (isNaN(versionNum)) {
+      res.status(400).json({ error: "version must be an integer" });
+      return;
+    }
+    const ver = await versionsSvc.getVersion(skillId, versionNum);
     if (!ver) {
       res.status(404).json({ error: "Version not found" });
       return;
@@ -149,8 +154,13 @@ export function skillRoutes(db: Db) {
 
     const existing = await getSkillOrNotFound(svc, skillId, companyId, res);
     if (!existing) return;
+    const targetVersionNum = parseInt(targetVersion, 10);
+    if (isNaN(targetVersionNum)) {
+      res.status(400).json({ error: "targetVersion must be an integer" });
+      return;
+    }
     try {
-      const version = await versionsSvc.rollback(skillId, parseInt(targetVersion, 10));
+      const version = await versionsSvc.rollback(skillId, targetVersionNum);
       res.json({ version });
     } catch (err) {
       res.status(400).json({ error: err instanceof Error ? err.message : "Bad request" });
@@ -164,7 +174,13 @@ export function skillRoutes(db: Db) {
 
     const existing = await getSkillOrNotFound(svc, skillId, companyId, res);
     if (!existing) return;
-    const diff = await versionsSvc.diffVersions(skillId, parseInt(v1, 10), parseInt(v2, 10));
+    const v1Num = parseInt(v1, 10);
+    const v2Num = parseInt(v2, 10);
+    if (isNaN(v1Num) || isNaN(v2Num)) {
+      res.status(400).json({ error: "v1 and v2 must be integers" });
+      return;
+    }
+    const diff = await versionsSvc.diffVersions(skillId, v1Num, v2Num);
     res.json({ diff });
   });
 

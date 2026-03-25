@@ -132,6 +132,9 @@ export function SkillDetailPanel({ skill }: SkillDetailPanelProps) {
       .then(() => {
         queryClient.invalidateQueries({ queryKey: queryKeys.skills.list(selectedCompanyId!) });
         pushToast({ title: "Skill duplicated", tone: "success" });
+      })
+      .catch(() => {
+        pushToast({ title: "Failed to duplicate skill", tone: "error" });
       });
   }
 
@@ -322,7 +325,11 @@ export function SkillDetailPanel({ skill }: SkillDetailPanelProps) {
             variant="ghost"
             size="sm"
             className="text-destructive hover:text-destructive text-xs"
-            onClick={() => deleteSkill.mutate()}
+            onClick={() => {
+              if (window.confirm(`Delete skill "${skill.name}"? This cannot be undone.`)) {
+                deleteSkill.mutate();
+              }
+            }}
             disabled={deleteSkill.isPending}
           >
             <Trash2 className="h-3.5 w-3.5 mr-1" />

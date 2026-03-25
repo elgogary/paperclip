@@ -16,7 +16,8 @@ export function evolutionRoutes(db: Db) {
     const { companyId } = req.params as { companyId: string };
     assertCompanyAccess(req, companyId);
 
-    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+    const rawLimit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+    const limit = rawLimit !== undefined && !isNaN(rawLimit) ? rawLimit : undefined;
     const status = req.query.status as string | undefined;
     const events = await evoSvc.listEvents(companyId, { limit, status });
     res.json({ events });
@@ -96,7 +97,7 @@ export function evolutionRoutes(db: Db) {
       tokenCount?: number;
     };
 
-    if (!skillVersion || !agentId || used === undefined || successful === undefined) {
+    if (skillVersion === undefined || skillVersion === null || !agentId || used === undefined || successful === undefined) {
       res.status(400).json({ error: "skillVersion, agentId, used, and successful are required" });
       return;
     }
