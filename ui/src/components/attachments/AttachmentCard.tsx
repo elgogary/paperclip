@@ -191,7 +191,7 @@ function PdfCard({ filename, downloadUrl, thumbnailUrl, sizeBytes, versionNum }:
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-5xl h-[80vh]">
           <DialogTitle className="sr-only">{filename}</DialogTitle>
-          <iframe src={downloadUrl} className="w-full h-full border-0" title={filename} />
+          <iframe src={downloadUrl} sandbox="allow-scripts allow-same-origin" className="w-full h-full border-0" title={filename} />
         </DialogContent>
       </Dialog>
     </div>
@@ -224,7 +224,7 @@ function OfficeCard({ filename, downloadUrl, htmlPreviewKey, sizeBytes, versionN
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogContent className="max-w-5xl h-[80vh]">
               <DialogTitle className="sr-only">{filename}</DialogTitle>
-              <iframe src={previewUrl} className="w-full h-full border-0" title={filename} />
+              <iframe src={previewUrl} sandbox="allow-scripts" className="w-full h-full border-0" title={filename} />
             </DialogContent>
           </Dialog>
         </>
@@ -249,24 +249,24 @@ function TextCard({ filename, mimeType, downloadUrl, sizeBytes, versionNum }: At
   const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
+    const controller = new AbortController();
     let mounted = true;
-    fetch(downloadUrl, { credentials: "include" })
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.text();
-      })
-      .then((text) => {
+
+    fetch(downloadUrl, { credentials: "include", signal: controller.signal })
+      .then(r => r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`)))
+      .then(text => {
         if (!mounted) return;
-        setContent(
-          text.length > TEXT_PREVIEW_LIMIT
-            ? text.slice(0, TEXT_PREVIEW_LIMIT) + "\n... [truncated]"
-            : text,
-        );
+        setContent(text.length > TEXT_PREVIEW_LIMIT ? text.slice(0, TEXT_PREVIEW_LIMIT) + "\n... [truncated]" : text);
       })
-      .catch(() => {
-        if (mounted) setLoadError(true);
+      .catch(err => {
+        if (!mounted || err.name === "AbortError") return;
+        setLoadError(true);
       });
-    return () => { mounted = false; };
+
+    return () => {
+      mounted = false;
+      controller.abort();
+    };
   }, [downloadUrl]);
 
   const label = isSpreadsheet(mimeType) ? "Spreadsheet Preview" : null;
@@ -335,8 +335,9 @@ export function AttachmentCard(props: AttachmentCardProps) {
     if (isImage(mimeType)) return <ImageCard {...props} />;
     if (isVideo(mimeType)) return <VideoCard {...props} />;
     if (isPdf(mimeType)) return <PdfCard {...props} />;
+    if (isOfficeDoc(mimeType) && props.htmlPreviewKey) return <OfficeCard {...props} />;
     if (isSpreadsheet(mimeType)) return <TextCard {...props} />;
-    if (isOfficeDoc(mimeType)) return <OfficeCard {...props} />;
+    if (isOfficeDoc(mimeType)) return <GenericCard {...props} />;
     if (isText(mimeType)) return <TextCard {...props} />;
     return <GenericCard {...props} />;
   })();
