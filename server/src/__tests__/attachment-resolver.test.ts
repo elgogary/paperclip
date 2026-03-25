@@ -470,7 +470,7 @@ describe("resolveAttachTokens", () => {
   });
 
   // --- Fix 6: board-user tokens ---
-  it("ignores tokens from board users and returns empty results", async () => {
+  it("rejects tokens from board users with uploader_not_allowed reason", async () => {
     const tokens = [{ raw: "[[attach:/workspace/file.pdf]]", path: "/workspace/file.pdf" }];
     const { resolved, failed } = await resolveAttachTokens(tokens, {
       ...baseOpts,
@@ -480,7 +480,9 @@ describe("resolveAttachTokens", () => {
     });
 
     expect(resolved).toHaveLength(0);
-    expect(failed).toHaveLength(0);
+    expect(failed).toHaveLength(1);
+    expect(failed[0].reason).toBe("uploader_not_allowed");
+    expect(failed[0].filename).toBe("file.pdf");
     expect(mockStorage.putFile).not.toHaveBeenCalled();
     expect(console.warn).toHaveBeenCalledWith(
       expect.stringContaining("board user"),

@@ -53,8 +53,12 @@ export function replaceAttachTokens(
 }
 
 /**
- * Verify that `filePath` is safely contained within `workspaceRoot`.
- * Rejects path traversal attempts and paths outside the root.
+ * Static path safety check — verifies the path string resolves within the
+ * workspace root using path.resolve() only.
+ *
+ * WARNING: Does NOT follow symlinks. This check alone is insufficient to
+ * prevent path traversal via symlinks. Callers must also verify the result
+ * of `fs.realpath()` starts within the workspace root.
  */
 export function isSafePath(filePath: string, workspaceRoot: string): boolean {
   const normalized = path.resolve(workspaceRoot, filePath);
@@ -64,6 +68,16 @@ export function isSafePath(filePath: string, workspaceRoot: string): boolean {
 
 const DEFAULT_WORKSPACE_ROOT = process.env.PAPERCLIP_WORKSPACE_ROOT ?? "/workspace";
 
+/**
+ * Resolve [[attach:path]] tokens by reading the referenced files from the
+ * workspace filesystem, uploading them to storage, and creating attachment
+ * DB records.
+ *
+ * Note: When uploaderType is "user", [[attach:]] tokens are not processed.
+ * They are returned in `failed` with reason "uploader_not_allowed" so that
+ * callers can surface feedback. This is by design — only agents may attach
+ * files via the [[attach:]] syntax.
+ */
 export async function resolveAttachTokens(
   tokens: AttachToken[],
   opts: {
@@ -82,10 +96,17 @@ export async function resolveAttachTokens(
   const resolved: ResolvedToken[] = [];
   const failed: FailedToken[] = [];
 
-  // Fix 6: board-user tokens — warn and return unchanged
+  // Board-user tokens — warn and return as failed so callers can surface feedback
   if (uploaderType === "user" && tokens.length > 0) {
     console.warn(`[attach-resolver] Ignoring ${tokens.length} [[attach:]] token(s) from board user (not an agent)`);
-    return { resolved, failed };
+    return {
+      resolved,
+      failed: tokens.map((token) => ({
+        ...token,
+        filename: path.basename(token.path),
+        reason: "uploader_not_allowed" as const,
+      })),
+    };
   }
 
   for (const token of tokens) {
@@ -154,7 +175,7 @@ export async function resolveAttachTokens(
           uploaderId: agentId,
           filename,
           mimeType,
-          sizeBytes: stat.size,
+          sizeBytes: fileBuffer.byteLength,
           storageKey: stored.objectKey,
           status: "processing",
         })
