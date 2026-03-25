@@ -70,6 +70,9 @@ export interface IssueFilters {
   projectId?: string;
   parentId?: string;
   labelId?: string;
+  originKind?: string;
+  originId?: string;
+  includeRoutineExecutions?: boolean;
   q?: string;
 }
 

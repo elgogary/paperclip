@@ -1346,8 +1346,6 @@ function AgentConfigurePage({
         onSavingChange={onSavingChange}
         updatePermissions={updatePermissions}
         companyId={companyId}
-        hidePromptTemplate
-        hideInstructionsFile
       />
       <div>
         <h3 className="text-sm font-medium mb-3">API Keys</h3>
@@ -1418,8 +1416,6 @@ function ConfigurationTab({
   onCancelActionChange,
   onSavingChange,
   updatePermissions,
-  hidePromptTemplate,
-  hideInstructionsFile,
 }: {
   agent: AgentDetailRecord;
   companyId?: string;
@@ -1428,8 +1424,6 @@ function ConfigurationTab({
   onCancelActionChange: (cancel: (() => void) | null) => void;
   onSavingChange: (saving: boolean) => void;
   updatePermissions: { mutate: (permissions: AgentPermissionUpdate) => void; isPending: boolean };
-  hidePromptTemplate?: boolean;
-  hideInstructionsFile?: boolean;
 }) {
   const queryClient = useQueryClient();
   const { pushToast } = useToast();
@@ -1505,8 +1499,6 @@ function ConfigurationTab({
         onSaveActionChange={onSaveActionChange}
         onCancelActionChange={onCancelActionChange}
         hideInlineSave
-        hidePromptTemplate={hidePromptTemplate}
-        hideInstructionsFile={hideInstructionsFile}
         sectionLayout="cards"
       />
 
@@ -1611,6 +1603,7 @@ function PromptsTab({
   const [showNewFileInput, setShowNewFileInput] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<string[]>([]);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set());
+  const [showFilePanel, setShowFilePanel] = useState(false);
   const [filePanelWidth, setFilePanelWidth] = useState(260);
   const containerRef = useRef<HTMLDivElement>(null);
   const [awaitingRefresh, setAwaitingRefresh] = useState(false);

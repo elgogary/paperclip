@@ -561,10 +561,6 @@ function AdapterPickerList({
                       mode="create"
                       values={vals}
                       onChange={(patch) => onChangeConfig(agent.slug, patch)}
-                      showAdapterTypeField={false}
-                      showAdapterTestEnvironmentButton={false}
-                      showCreateRunPolicySection={false}
-                      hideInstructionsFile
                       sectionLayout="cards"
                     />
                   </div>
