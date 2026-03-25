@@ -271,8 +271,9 @@ describe("buildAttachmentContext", () => {
   });
 
   it("respects 10MB total image limit", async () => {
-    // Create two 6MB images with valid PNG magic — second should be skipped
-    const big = fakePng(6 * 1024 * 1024);
+    // Create three 4MB images with valid PNG magic — each under 5MB single cap,
+    // but third pushes total over 10MB and should be skipped
+    const big = fakePng(4 * 1024 * 1024);
     const rows = [
       makeRow({
         id: "att-1",
@@ -288,18 +289,26 @@ describe("buildAttachmentContext", () => {
         storageKey: "comp/big2.png",
         sizeBytes: big.length,
       }),
+      makeRow({
+        id: "att-3",
+        filename: "big3.png",
+        mimeType: "image/png",
+        storageKey: "comp/big3.png",
+        sizeBytes: big.length,
+      }),
     ];
     const db = makeMockDb(rows);
     const storage = makeMockStorage({
       "comp/big1.png": big,
       "comp/big2.png": big,
+      "comp/big3.png": big,
     });
     const result = await buildAttachmentContext(["c1"], {
       db: db as any,
       storage: storage as any,
       companyId: "comp-1",
     });
-    expect(result.visionBlocks).toHaveLength(1);
+    expect(result.visionBlocks).toHaveLength(2);
     expect(result.fileNotes.some((n) => n.includes("budget reached"))).toBe(true);
   });
 
@@ -430,6 +439,26 @@ describe("buildAttachmentContext", () => {
     });
     expect(result.visionBlocks).toHaveLength(0);
     expect(result.fileNotes.some((n) => n.includes("invalid file header") && n.includes("fake.png"))).toBe(true);
+  });
+
+  it("skips individual image over 5MB without downloading", async () => {
+    const row = makeRow({
+      filename: "huge-photo.png",
+      mimeType: "image/png",
+      storageKey: "comp/huge-photo.png",
+      sizeBytes: 6 * 1024 * 1024, // 6 MB — exceeds per-image 5 MB cap
+    });
+    const db = makeMockDb([row]);
+    const storage = makeMockStorage({});
+    const result = await buildAttachmentContext(["c1"], {
+      db: db as any,
+      storage: storage as any,
+      companyId: "comp-1",
+    });
+    expect(result.visionBlocks).toHaveLength(0);
+    expect(result.fileNotes.some((n) => n.includes("Image too large to send") && n.includes("huge-photo.png"))).toBe(true);
+    // Storage should NOT have been called — the check is pre-download
+    expect(storage.getObject).not.toHaveBeenCalled();
   });
 
   it("accepts JPEG with valid magic bytes", async () => {

@@ -42,6 +42,7 @@ export interface AttachmentContextResult {
 
 const MAX_IMAGES_PER_RUN = 5;
 const MAX_IMAGE_BYTES_PER_RUN = 10 * 1024 * 1024; // 10 MB
+const MAX_SINGLE_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB per individual image
 const MAX_DOC_EXTRACTS_PER_RUN = 3;
 const MAX_DOC_CHARS = 2000;
 const MAX_CODE_CHARS = 3000;
@@ -153,6 +154,13 @@ async function processAttachment(
 
   // ----- Image attachments -----
   if (isImageMime(mimeType)) {
+    if (sizeBytes > MAX_SINGLE_IMAGE_BYTES) {
+      console.warn(`[attachment-context] Skipping oversized image ${filename} (${sizeBytes} bytes > ${MAX_SINGLE_IMAGE_BYTES})`);
+      return {
+        imageBytes: 0,
+        fileNotes: [`[Image too large to send: ${filename} (${sizeLabel})]`],
+      };
+    }
     try {
       const obj = await deps.storage.getObject(deps.companyId, storageKey);
       const buf = await streamToBuffer(obj.stream);
@@ -285,8 +293,8 @@ async function processAttachment(
     return { imageBytes: 0, fileNotes: [`[Document attached: ${filename} (${sizeLabel}) \u2014 text preview unavailable]`] };
   }
 
-  // ----- Text/code attachments -----
-  if (isTextMime(mimeType)) {
+  // ----- Text/code attachments (exclude CSV — handled by spreadsheet branch) -----
+  if (isTextMime(mimeType) && !isSpreadsheetMime(mimeType)) {
     try {
       const obj = await deps.storage.getObject(deps.companyId, storageKey);
       const buf = await streamToBuffer(obj.stream);
