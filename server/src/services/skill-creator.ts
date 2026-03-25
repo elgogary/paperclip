@@ -52,7 +52,8 @@ Use this skill when: ${description}
   };
 }
 
-export function skillCreatorService(_db: Db) {
+// db reserved for future LLM-based generation
+export function skillCreatorService(db: Db) {
   return {
     async generateSkill(input: {
       description: string;

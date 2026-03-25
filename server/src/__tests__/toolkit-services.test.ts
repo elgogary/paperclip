@@ -17,6 +17,7 @@ import { skillsService } from "../services/skills.js";
 import { mcpServersService } from "../services/mcp-servers.js";
 import { connectorsService } from "../services/connectors.js";
 import { pluginsService } from "../services/plugins.js";
+import { createMockDb } from "./test-helpers.js";
 
 // ── toSlug ──────────────────────────────────────────────────────────────────────
 
@@ -45,44 +46,6 @@ describe("toSlug", () => {
     expect(toSlug("")).toBe("");
   });
 });
-
-// ── Helper: chainable mock DB ───────────────────────────────────────────────────
-
-function createMockDb(resolveValue: unknown = []) {
-  const mockDb: Record<string, any> = {};
-  const chainMethods = [
-    "select", "from", "where", "orderBy", "limit",
-    "insert", "values", "returning",
-    "update", "set",
-    "delete",
-    "onConflictDoUpdate",
-  ];
-  for (const method of chainMethods) {
-    mockDb[method] = vi.fn().mockReturnValue(mockDb);
-  }
-  // Terminal methods that resolve
-  mockDb.limit = vi.fn().mockResolvedValue(resolveValue);
-  mockDb.returning = vi.fn().mockResolvedValue(resolveValue);
-  // orderBy without limit is terminal for some queries (listAccess, listCatalog)
-  mockDb.orderBy = vi.fn().mockImplementation(() => {
-    // Return self so .limit() can chain, but also act as a thenable
-    const result = Object.create(mockDb);
-    result.then = (resolve: any) => Promise.resolve(resolveValue).then(resolve);
-    result.catch = (reject: any) => Promise.resolve(resolveValue).catch(reject);
-    return result;
-  });
-  // where without limit is terminal for delete/update chains
-  mockDb.where = vi.fn().mockImplementation(() => {
-    const result = Object.create(mockDb);
-    result.then = (resolve: any) => Promise.resolve(resolveValue).then(resolve);
-    result.catch = (reject: any) => Promise.resolve(resolveValue).catch(reject);
-    return result;
-  });
-  // transaction passes the mock as tx
-  mockDb.transaction = vi.fn(async (cb: any) => cb(mockDb));
-
-  return mockDb;
-}
 
 // ── skillsService ───────────────────────────────────────────────────────────────
 

@@ -30,39 +30,7 @@ import { skillAuditService } from "../services/skill-audit.js";
 import { skillCreatorService } from "../services/skill-creator.js";
 import { skillMetricsTracker } from "../services/skill-metrics-tracker.js";
 import { skillRetrievalService } from "../services/skill-retrieval.js";
-
-// ── Chainable mock DB (same pattern as toolkit-services.test.ts) ────────────
-
-function createMockDb(resolveValue: unknown = []) {
-  const mockDb: Record<string, any> = {};
-  const chainMethods = [
-    "select", "from", "where", "orderBy", "limit",
-    "insert", "values", "returning",
-    "update", "set",
-    "delete",
-    "onConflictDoUpdate",
-  ];
-  for (const method of chainMethods) {
-    mockDb[method] = vi.fn().mockReturnValue(mockDb);
-  }
-  mockDb.limit = vi.fn().mockResolvedValue(resolveValue);
-  mockDb.returning = vi.fn().mockResolvedValue(resolveValue);
-  mockDb.orderBy = vi.fn().mockImplementation(() => {
-    const result = Object.create(mockDb);
-    result.then = (resolve: any) => Promise.resolve(resolveValue).then(resolve);
-    result.catch = (reject: any) => Promise.resolve(resolveValue).catch(reject);
-    return result;
-  });
-  mockDb.where = vi.fn().mockImplementation(() => {
-    const result = Object.create(mockDb);
-    result.then = (resolve: any) => Promise.resolve(resolveValue).then(resolve);
-    result.catch = (reject: any) => Promise.resolve(resolveValue).catch(reject);
-    return result;
-  });
-  mockDb.transaction = vi.fn(async (cb: any) => cb(mockDb));
-  mockDb.execute = vi.fn().mockResolvedValue(resolveValue);
-  return mockDb;
-}
+import { createMockDb } from "./test-helpers.js";
 
 // ── parseSkillFeedback ──────────────────────────────────────────────────────
 

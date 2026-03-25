@@ -1,70 +1,48 @@
+import { and, eq, gte, sql } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
-
-interface ErrorEntry {
-  count: number;
-  firstSeen: Date;
-  lastError: string;
-}
-
-// In-memory error tracking per tool per company
-// TODO: Replace with Redis INCR for production use
-const errorCounts = new Map<string, ErrorEntry>();
+import { evolutionEvents } from "@paperclipai/db";
 
 const THRESHOLD_COUNT = 3;
 const THRESHOLD_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
-function buildKey(companyId: string, toolName: string): string {
-  return `${companyId}::${toolName}`;
-}
-
-function pruneStaleEntries(): void {
-  const now = Date.now();
-  for (const [key, entry] of errorCounts) {
-    if (now - entry.firstSeen.getTime() > THRESHOLD_WINDOW_MS) {
-      errorCounts.delete(key);
-    }
-  }
-}
-
-export function toolDegradationMonitor(_db: Db) {
+export function toolDegradationMonitor(db: Db) {
   return {
     async recordError(toolName: string, errorMessage: string, companyId: string): Promise<void> {
-      pruneStaleEntries();
-
-      const key = buildKey(companyId, toolName);
-      const existing = errorCounts.get(key);
-
-      if (existing) {
-        existing.count += 1;
-        existing.lastError = errorMessage;
-      } else {
-        errorCounts.set(key, {
-          count: 1,
-          firstSeen: new Date(),
-          lastError: errorMessage,
-        });
-      }
+      // Record the error as a flagged evolution event so it persists across restarts
+      await db.insert(evolutionEvents).values({
+        companyId,
+        skillId: null,
+        eventType: "flagged",
+        sourceMonitor: "tool_degradation_error",
+        heartbeatRunId: null,
+        agentId: null,
+        analysis: { toolName, errorMessage },
+        status: "pending",
+      });
     },
 
     async checkThresholds(companyId: string): Promise<Array<{ toolName: string; errorCount: number }>> {
-      pruneStaleEntries();
+      const cutoff = new Date(Date.now() - THRESHOLD_WINDOW_MS);
 
-      const degraded: Array<{ toolName: string; errorCount: number }> = [];
-      const prefix = `${companyId}::`;
+      const rows = await db
+        .select({
+          toolName: sql<string>`(${evolutionEvents.analysis}->>'toolName')`,
+          errorCount: sql<number>`count(*)::int`,
+        })
+        .from(evolutionEvents)
+        .where(
+          and(
+            eq(evolutionEvents.companyId, companyId),
+            eq(evolutionEvents.eventType, "flagged"),
+            eq(evolutionEvents.sourceMonitor, "tool_degradation_error"),
+            gte(evolutionEvents.createdAt, cutoff),
+          ),
+        )
+        .groupBy(sql`${evolutionEvents.analysis}->>'toolName'`);
 
-      for (const [key, entry] of errorCounts) {
-        if (key.startsWith(prefix) && entry.count >= THRESHOLD_COUNT) {
-          const toolName = key.slice(prefix.length);
-          degraded.push({ toolName, errorCount: entry.count });
-        }
-      }
-
-      return degraded;
+      return rows
+        .filter((r) => r.errorCount >= THRESHOLD_COUNT)
+        .map((r) => ({ toolName: r.toolName, errorCount: r.errorCount }));
     },
   };
-}
-
-// Exported for testing
-export function resetErrorCounts(): void {
-  errorCounts.clear();
 }

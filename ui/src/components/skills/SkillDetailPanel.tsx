@@ -119,24 +119,24 @@ export function SkillDetailPanel({ skill }: SkillDetailPanelProps) {
     setTriggerHint(skill.triggerHint ?? "");
   }
 
-  function handleDuplicate() {
-    skillsApi
-      .create(selectedCompanyId!, {
+  const duplicateSkill = useMutation({
+    mutationFn: () =>
+      skillsApi.create(selectedCompanyId!, {
         name: `${skill.name}-copy`,
         description: skill.description,
         category: skill.category,
         instructions: skill.instructions,
         triggerHint: skill.triggerHint,
         invokedBy: skill.invokedBy,
-      })
-      .then(() => {
-        queryClient.invalidateQueries({ queryKey: queryKeys.skills.list(selectedCompanyId!) });
-        pushToast({ title: "Skill duplicated", tone: "success" });
-      })
-      .catch(() => {
-        pushToast({ title: "Failed to duplicate skill", tone: "error" });
-      });
-  }
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.skills.list(selectedCompanyId!) });
+      pushToast({ title: "Skill duplicated", tone: "success" });
+    },
+    onError: () => {
+      pushToast({ title: "Failed to duplicate skill", tone: "error" });
+    },
+  });
 
   function toggleSection(section: BottomSection) {
     setExpandedSection(expandedSection === section ? null : section);
@@ -339,10 +339,11 @@ export function SkillDetailPanel({ skill }: SkillDetailPanelProps) {
             variant="ghost"
             size="sm"
             className="text-xs"
-            onClick={handleDuplicate}
+            onClick={() => duplicateSkill.mutate()}
+            disabled={duplicateSkill.isPending}
           >
             <Copy className="h-3.5 w-3.5 mr-1" />
-            Duplicate
+            {duplicateSkill.isPending ? "Duplicating..." : "Duplicate"}
           </Button>
         </div>
         <div className="flex gap-2">

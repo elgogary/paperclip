@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
 import { evolutionEvents, skills } from "@paperclipai/db";
 import { parseSkillFeedback } from "./skill-feedback-parser.js";
@@ -80,11 +80,17 @@ export function skillEvolutionService(db: Db) {
         (s) => s.instructions.toLowerCase().includes(input.toolName.toLowerCase()),
       );
 
+      if (affected.length === 0) return [];
+
+      // Batch: count recent fixes for all affected skills in a single query
+      const affectedIds = affected.map((s) => s.id);
+      const recentFixCounts = await countRecentFixesBatch(db, affectedIds);
+
       const events: EvolutionEvent[] = [];
       for (const skill of affected) {
         // Anti-loop: skip if skill was already FIXed 3x in 24h
-        const recentFixes = await countRecentFixes(db, skill.id);
-        if (recentFixes >= MAX_FIX_PER_SKILL_24H) continue;
+        const fixes = recentFixCounts.get(skill.id) ?? 0;
+        if (fixes >= MAX_FIX_PER_SKILL_24H) continue;
 
         const event = await createEvent(db, {
           companyId: input.companyId,
@@ -105,6 +111,7 @@ export function skillEvolutionService(db: Db) {
       return events;
     },
 
+    // Acceptable: runs every 6h, typically <100 skills per company
     async sweepMetrics(companyId: string): Promise<EvolutionEvent[]> {
       const companySkills = await db
         .select()
@@ -244,19 +251,28 @@ async function getEventById(db: Db, eventId: string) {
   return rows[0] ?? null;
 }
 
-async function countRecentFixes(db: Db, skillId: string): Promise<number> {
+async function countRecentFixesBatch(db: Db, skillIds: string[]): Promise<Map<string, number>> {
   const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const rows = await db
-    .select({ count: sql<number>`count(*)::int` })
+    .select({
+      skillId: evolutionEvents.skillId,
+      count: sql<number>`count(*)::int`,
+    })
     .from(evolutionEvents)
     .where(
       and(
-        eq(evolutionEvents.skillId, skillId),
+        inArray(evolutionEvents.skillId, skillIds),
         eq(evolutionEvents.eventType, "fix"),
         gte(evolutionEvents.createdAt, cutoff),
       ),
-    );
-  return rows[0]?.count ?? 0;
+    )
+    .groupBy(evolutionEvents.skillId);
+
+  const map = new Map<string, number>();
+  for (const row of rows) {
+    if (row.skillId) map.set(row.skillId, row.count);
+  }
+  return map;
 }
 
 async function createEvent(

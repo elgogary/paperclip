@@ -32,5 +32,5 @@ export { pluginsService, type Plugin, type PluginAgentAccess, type CreatePluginI
 export { skillRetrievalService, type RetrievedSkill } from "./skill-retrieval.js";
 export { skillEvolutionService, type EvolutionEvent } from "./skill-evolution.js";
 export { parseSkillFeedback, type ParsedFeedback } from "./skill-feedback-parser.js";
-export { toolDegradationMonitor, resetErrorCounts } from "./tool-degradation-monitor.js";
+export { toolDegradationMonitor } from "./tool-degradation-monitor.js";
 export { skillMetricsTracker, type SkillAgentMetric } from "./skill-metrics-tracker.js";
