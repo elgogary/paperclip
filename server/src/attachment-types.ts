@@ -16,17 +16,25 @@
  */
 
 export const DEFAULT_ALLOWED_TYPES: readonly string[] = [
-  "image/png",
-  "image/jpeg",
-  "image/jpg",
-  "image/webp",
-  "image/gif",
+  // Images
+  "image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif",
+  // Video
+  "video/mp4", "video/webm", "video/quicktime", "video/avi", "video/x-matroska",
+  // Audio
+  "audio/mpeg", "audio/wav", "audio/ogg", "audio/webm",
+  // Documents
   "application/pdf",
-  "text/markdown",
-  "text/plain",
-  "application/json",
-  "text/csv",
-  "text/html",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",  // docx
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",        // xlsx
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",// pptx
+  "application/msword",
+  "application/vnd.ms-excel",
+  "application/vnd.ms-powerpoint",
+  // Text / code
+  "text/plain", "text/csv", "text/markdown",
+  "application/json", "application/xml", "text/xml",
+  "text/javascript", "text/typescript",
+  "text/x-python", "text/x-java", "text/x-c", "text/x-csrc",
 ];
 
 /**
@@ -71,4 +79,17 @@ export function isAllowedContentType(contentType: string): boolean {
 }
 
 export const MAX_ATTACHMENT_BYTES =
-  Number(process.env.PAPERCLIP_ATTACHMENT_MAX_BYTES) || 10 * 1024 * 1024;
+  Number(process.env.PAPERCLIP_ATTACHMENT_MAX_BYTES) || 100 * 1024 * 1024; // 100 MB
+
+export const MAX_VIDEO_BYTES =
+  Number(process.env.PAPERCLIP_VIDEO_MAX_BYTES) || 2 * 1024 * 1024 * 1024; // 2 GB
+
+/** Returns true if the MIME type is a video format. */
+export function isVideoType(mimeType: string): boolean {
+  return mimeType.startsWith("video/");
+}
+
+/** Returns the maximum allowed bytes for a given MIME type. */
+export function maxBytesForType(mimeType: string): number {
+  return isVideoType(mimeType) ? MAX_VIDEO_BYTES : MAX_ATTACHMENT_BYTES;
+}
