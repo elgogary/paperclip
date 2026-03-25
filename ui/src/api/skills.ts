@@ -63,6 +63,13 @@ export interface AuditResult {
   };
 }
 
+export interface EnhanceResult {
+  originalScore: number;
+  enhancedScore: number;
+  enhancedContent: string;
+  changes: string[];
+}
+
 export interface GeneratedSkill {
   name: string;
   slug: string;
@@ -121,6 +128,12 @@ export const skillsApi = {
 
   audit: (companyId: string, skillId: string) =>
     api.post<AuditResult>(`/companies/${companyId}/skills/${skillId}/audit`, {}),
+
+  enhance: (companyId: string, skillId: string) =>
+    api.post<EnhanceResult>(`/companies/${companyId}/skills/${skillId}/enhance`, {}),
+
+  acceptEnhancement: (companyId: string, skillId: string, data: { enhancedContent: string; changes: string[] }) =>
+    api.post<{ version: SkillVersion; updated: boolean }>(`/companies/${companyId}/skills/${skillId}/enhance/accept`, data),
 
   generate: (companyId: string, description: string, category?: string) =>
     api.post<GeneratedSkill>(`/companies/${companyId}/skills/generate`, { description, category }),

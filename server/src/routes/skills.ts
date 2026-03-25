@@ -213,6 +213,55 @@ export function skillRoutes(db: Db) {
     }
   });
 
+  // Enhance skill with AI — returns proposed changes, user accepts/rejects
+  router.post("/companies/:companyId/skills/:skillId/enhance", async (req, res) => {
+    assertBoard(req);
+    const { companyId, skillId } = req.params as { companyId: string; skillId: string };
+    assertCompanyAccess(req, companyId);
+
+    const existing = await getSkillOrNotFound(svc, skillId, companyId, res);
+    if (!existing) return;
+    try {
+      const result = await auditSvc.enhanceSkill(skillId);
+      res.json(result);
+    } catch (err) {
+      res.status(400).json({ error: err instanceof Error ? err.message : "Bad request" });
+    }
+  });
+
+  // Accept enhancement — saves enhanced content as new version
+  router.post("/companies/:companyId/skills/:skillId/enhance/accept", async (req, res) => {
+    assertBoard(req);
+    const { companyId, skillId } = req.params as { companyId: string; skillId: string };
+    assertCompanyAccess(req, companyId);
+
+    const existing = await getSkillOrNotFound(svc, skillId, companyId, res);
+    if (!existing) return;
+
+    const { enhancedContent, changes } = req.body as { enhancedContent?: string; changes?: string[] };
+    if (!enhancedContent) {
+      res.status(400).json({ error: "enhancedContent is required" });
+      return;
+    }
+
+    try {
+      // Create new version with enhanced content
+      const version = await versionsSvc.createVersion(skillId, {
+        origin: "fix",
+        fullContent: enhancedContent,
+        triggerReason: `AI enhancement: ${(changes || []).join(", ")}`,
+        createdBy: "system",
+      });
+
+      // Update skill instructions
+      await svc.update(skillId, { instructions: enhancedContent });
+
+      res.json({ version, updated: true });
+    } catch (err) {
+      res.status(400).json({ error: err instanceof Error ? err.message : "Bad request" });
+    }
+  });
+
   router.post("/companies/:companyId/skills/generate", async (req, res) => {
     assertBoard(req);
     const { companyId } = req.params as { companyId: string };
