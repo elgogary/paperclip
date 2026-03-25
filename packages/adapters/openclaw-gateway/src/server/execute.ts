@@ -1065,8 +1065,20 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   });
 
   const templateMessage = nonEmpty(payloadTemplate.message) ?? nonEmpty(payloadTemplate.text);
-  const message = templateMessage ? appendWakeText(templateMessage, wakeText) : wakeText;
+  let message = templateMessage ? appendWakeText(templateMessage, wakeText) : wakeText;
   const paperclipPayload = buildStandardPaperclipPayload(ctx, wakePayload, paperclipEnv, payloadTemplate);
+
+  // Extract attachment context injected by heartbeat
+  const attachmentMarkdown = nonEmpty(ctx.context.paperclipAttachmentMarkdown);
+  const attachmentData = asRecord(ctx.context.paperclipAttachments);
+  const visionBlocks: unknown[] = Array.isArray(attachmentData?.visionBlocks)
+    ? (attachmentData.visionBlocks as unknown[])
+    : [];
+
+  // Append attachment markdown to the message text
+  if (attachmentMarkdown) {
+    message = `${message}\n\n[Attached files in this issue thread:\n${attachmentMarkdown}]`;
+  }
 
   const agentParams: Record<string, unknown> = {
     ...payloadTemplate,
@@ -1075,6 +1087,11 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     idempotencyKey: ctx.runId,
   };
   delete agentParams.text;
+
+  // Inject vision blocks so the gateway can forward them to Claude as image content
+  if (visionBlocks.length > 0) {
+    agentParams.visionBlocks = visionBlocks;
+  }
 
   const configuredAgentId = nonEmpty(ctx.config.agentId);
   if (configuredAgentId && !nonEmpty(agentParams.agentId)) {
