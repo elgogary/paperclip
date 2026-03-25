@@ -40,6 +40,15 @@ describe("AttachmentCard", () => {
     expect(html).toContain("<source");
   });
 
+  it("renders video with aria-label", () => {
+    const html = render({
+      ...baseProps,
+      filename: "demo.mp4",
+      mimeType: "video/mp4",
+    });
+    expect(html).toContain('aria-label="demo.mp4"');
+  });
+
   it("renders PDF card with View PDF button", () => {
     const html = render({
       ...baseProps,
@@ -62,6 +71,15 @@ describe("AttachmentCard", () => {
     expect(html).toContain("View PDF");
   });
 
+  it("renders PDF icon with dark mode class", () => {
+    const html = render({
+      ...baseProps,
+      filename: "report.pdf",
+      mimeType: "application/pdf",
+    });
+    expect(html).toContain("dark:text-red-400");
+  });
+
   it("renders Office document card", () => {
     const html = render({
       ...baseProps,
@@ -72,6 +90,15 @@ describe("AttachmentCard", () => {
     expect(html).toContain("budget.xlsx");
   });
 
+  it("renders Office icon with dark mode class", () => {
+    const html = render({
+      ...baseProps,
+      filename: "budget.xlsx",
+      mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    expect(html).toContain("dark:text-blue-400");
+  });
+
   it("renders text/code card with View and Download", () => {
     const html = render({
       ...baseProps,
@@ -80,6 +107,15 @@ describe("AttachmentCard", () => {
     });
     expect(html).toContain("View");
     expect(html).toContain('download="config.json"');
+  });
+
+  it("renders download-only link with aria-label", () => {
+    const html = render({
+      ...baseProps,
+      filename: "config.json",
+      mimeType: "application/json",
+    });
+    expect(html).toContain('aria-label="Download config.json"');
   });
 
   it("renders generic card with Download button for unknown types", () => {
@@ -103,6 +139,11 @@ describe("AttachmentCard", () => {
     expect(html).toContain("Processing...");
   });
 
+  it("shows spinner for status=assembling", () => {
+    const html = render({ ...baseProps, status: "assembling" });
+    expect(html).toContain("Processing...");
+  });
+
   it("shows error state for status=error", () => {
     const html = render({ ...baseProps, status: "error" });
     expect(html).toContain("Processing failed");
@@ -116,6 +157,16 @@ describe("AttachmentCard", () => {
       mimeType: "text/csv",
     });
     expect(html).toContain('href="/api/attachments/att-123/content"');
+  });
+
+  it("renders decorative icons with aria-hidden", () => {
+    const html = render({ ...baseProps, status: "processing" });
+    expect(html).toContain('aria-hidden="true"');
+  });
+
+  it("passes className prop without type cast", () => {
+    const html = render({ ...baseProps, className: "custom-class" });
+    expect(html).toContain("custom-class");
   });
 });
 

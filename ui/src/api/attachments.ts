@@ -11,7 +11,7 @@ export interface AttachmentMeta {
   sizeBytes: number;
   versionOf: string | null;
   versionNum: number | null;
-  status: "uploading" | "assembling" | "ready" | "error";
+  status: "uploading" | "assembling" | "processing" | "ready" | "error";
   publishUrl: string | null;
   createdAt: string;
   updatedAt: string;
@@ -36,12 +36,15 @@ interface InitUploadResult {
 interface CompleteUploadResult {
   url: string;
   attachmentId: string;
-  status: string;
+  status: AttachmentMeta["status"];
 }
 
 export const attachmentsApi = {
-  get: (attachmentId: string) =>
-    api.get<AttachmentMeta>(`/attachments/${attachmentId}`),
+  get: (attachmentId: string, opts?: { signal?: AbortSignal }) =>
+    api.get<AttachmentMeta>(`/attachments/${attachmentId}`, opts?.signal ? { signal: opts.signal } : undefined),
+
+  delete: (attachmentId: string) =>
+    api.delete<void>(`/attachments/${attachmentId}`),
 
   initUpload: (params: InitUploadParams) =>
     api.post<InitUploadResult>("/attachments/init", params),

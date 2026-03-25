@@ -19,7 +19,8 @@ export interface AttachmentCardProps {
   sizeBytes: number;
   thumbnailUrl?: string | null;
   downloadUrl: string;
-  status: "processing" | "uploading" | "assembling" | "ready" | "error";
+  status: "uploading" | "assembling" | "processing" | "ready" | "error";
+  className?: string;
 }
 
 export function formatBytes(bytes: number): string {
@@ -67,7 +68,7 @@ function FileTypeIcon({ mimeType, className }: { mimeType: string; className?: s
 function ProcessingState({ filename }: { filename: string }) {
   return (
     <div className="flex items-center gap-3 rounded-lg border border-border bg-accent/10 p-3">
-      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground shrink-0" />
+      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground shrink-0" aria-hidden="true" />
       <div className="min-w-0">
         <p className="text-sm font-medium truncate">{filename}</p>
         <p className="text-xs text-muted-foreground">Processing...</p>
@@ -79,7 +80,7 @@ function ProcessingState({ filename }: { filename: string }) {
 function ErrorState({ filename }: { filename: string }) {
   return (
     <div className="flex items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
-      <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
+      <AlertTriangle className="h-5 w-5 text-destructive shrink-0" aria-hidden="true" />
       <div className="min-w-0">
         <p className="text-sm font-medium truncate">{filename}</p>
         <p className="text-xs text-destructive">Processing failed</p>
@@ -115,6 +116,7 @@ function VideoCard({ filename, downloadUrl, thumbnailUrl, sizeBytes }: Attachmen
         preload="none"
         poster={thumbnailUrl ?? undefined}
         className="w-full max-h-96"
+        aria-label={filename}
       >
         <source src={downloadUrl} />
       </video>
@@ -136,7 +138,7 @@ function PdfCard({ filename, downloadUrl, thumbnailUrl, sizeBytes }: AttachmentC
           className="h-12 w-12 rounded object-cover shrink-0 border border-border"
         />
       ) : (
-        <FileText className="h-8 w-8 text-red-500 shrink-0" />
+        <FileText className="h-8 w-8 text-red-500 dark:text-red-400 shrink-0" aria-hidden="true" />
       )}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{filename}</p>
@@ -148,7 +150,7 @@ function PdfCard({ filename, downloadUrl, thumbnailUrl, sizeBytes }: AttachmentC
         rel="noreferrer"
         className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium hover:bg-accent transition-colors shrink-0"
       >
-        <ExternalLink className="h-3.5 w-3.5" />
+        <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
         View PDF
       </a>
     </div>
@@ -158,7 +160,7 @@ function PdfCard({ filename, downloadUrl, thumbnailUrl, sizeBytes }: AttachmentC
 function OfficeCard({ filename, downloadUrl, sizeBytes }: AttachmentCardProps) {
   return (
     <div className="flex items-center gap-3 rounded-lg border border-border bg-accent/5 p-3">
-      <FileSpreadsheet className="h-8 w-8 text-blue-500 shrink-0" />
+      <FileSpreadsheet className="h-8 w-8 text-blue-500 dark:text-blue-400 shrink-0" aria-hidden="true" />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{filename}</p>
         <p className="text-xs text-muted-foreground">{formatBytes(sizeBytes)}</p>
@@ -169,7 +171,7 @@ function OfficeCard({ filename, downloadUrl, sizeBytes }: AttachmentCardProps) {
         rel="noreferrer"
         className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium hover:bg-accent transition-colors shrink-0"
       >
-        <ExternalLink className="h-3.5 w-3.5" />
+        <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
         View Document
       </a>
     </div>
@@ -191,15 +193,16 @@ function TextCard({ filename, downloadUrl, sizeBytes }: AttachmentCardProps) {
           rel="noreferrer"
           className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium hover:bg-accent transition-colors"
         >
-          <ExternalLink className="h-3.5 w-3.5" />
+          <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
           View
         </a>
         <a
           href={downloadUrl}
           download={filename}
+          aria-label={`Download ${filename}`}
           className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium hover:bg-accent transition-colors"
         >
-          <Download className="h-3.5 w-3.5" />
+          <Download className="h-3.5 w-3.5" aria-hidden="true" />
         </a>
       </div>
     </div>
@@ -219,7 +222,7 @@ function GenericCard({ filename, mimeType, downloadUrl, sizeBytes }: AttachmentC
         download={filename}
         className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium hover:bg-accent transition-colors shrink-0"
       >
-        <Download className="h-3.5 w-3.5" />
+        <Download className="h-3.5 w-3.5" aria-hidden="true" />
         Download
       </a>
     </div>
@@ -227,7 +230,7 @@ function GenericCard({ filename, mimeType, downloadUrl, sizeBytes }: AttachmentC
 }
 
 export function AttachmentCard(props: AttachmentCardProps) {
-  const { status, mimeType, className } = props as AttachmentCardProps & { className?: string };
+  const { status, mimeType, className } = props;
 
   if (status === "processing" || status === "uploading" || status === "assembling") {
     return <ProcessingState filename={props.filename} />;

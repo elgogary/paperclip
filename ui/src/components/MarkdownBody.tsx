@@ -123,15 +123,29 @@ function parseAttachmentHref(href: string): string | null {
 
 function InlineAttachment({ attachmentId, label }: { attachmentId: string; label: string }) {
   const [meta, setMeta] = useState<AttachmentMeta | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    let active = true;
-    attachmentsApi.get(attachmentId).then(
-      (data) => { if (active) setMeta(data); },
-      () => { if (active) setError(true); },
-    );
-    return () => { active = false; };
+    const controller = new AbortController();
+    let mounted = true;
+
+    attachmentsApi
+      .get(attachmentId, { signal: controller.signal })
+      .then((data) => {
+        if (mounted) setMeta(data);
+      })
+      .catch((err: unknown) => {
+        if (mounted && (err as { name?: string }).name !== "AbortError") setError(true);
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+      controller.abort();
+    };
   }, [attachmentId]);
 
   if (error) {
@@ -140,7 +154,7 @@ function InlineAttachment({ attachmentId, label }: { attachmentId: string; label
     );
   }
 
-  if (!meta) {
+  if (loading || !meta) {
     return (
       <span className="text-xs text-muted-foreground">{label || "Loading attachment..."}</span>
     );
@@ -154,7 +168,7 @@ function InlineAttachment({ attachmentId, label }: { attachmentId: string; label
       sizeBytes={meta.sizeBytes}
       thumbnailUrl={meta.thumbnailUrl}
       downloadUrl={meta.downloadUrl}
-      status={meta.status === "ready" ? "ready" : meta.status === "error" ? "error" : "processing"}
+      status={meta.status}
     />
   );
 }
