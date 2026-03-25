@@ -12,6 +12,7 @@
 - [x] Task 6: AttachmentCard UI — inline images, video player, Office viewer, upload zone, MarkdownBody hook
 - [x] Task 7: Agent vision — vision blocks wired to openclaw-gateway adapter, magic byte validation, prompt injection guard
 - [x] Task 9: Deploy runbook created, branch pushed to origin
+- [x] Task 10: Wiki + API docs — docs/api/attachments.md, docs/guides/agent-developer/attachments.md, wiki README updated
 
 ### Branch
 `feature/multimodal-attachments` — 28 commits, pushed to GitHub
