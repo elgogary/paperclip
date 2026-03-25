@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Add a `/toolkit` page to Paperclip with 4 sections — Skills, MCP Servers, Connectors, Plugins — allowing users to extend agent capabilities through reusable skills, external tool servers, OAuth integrations, and dynamic plugins.
+**Goal:** Add a `/toolkit` page to Sanad AI EOI with 4 sections — Skills, MCP Servers, Connectors, Plugins — allowing users to extend agent capabilities through reusable skills, external tool servers, OAuth integrations, and dynamic plugins.
 
 **Architecture:** Each section follows the same pattern: Drizzle schema → SQL migration → service layer → Express routes → React page with card/list views and slide-out detail drawers. Company-scoped with per-agent access grants. Backend-first, then frontend.
 
@@ -299,7 +299,7 @@ Verify it creates all 8 tables: `skills`, `skill_agent_access`, `mcp_server_conf
 
 ```bash
 cd /home/eslam/data/projects/paperclip
-pnpm --filter @paperclipai/db run migrate
+pnpm --filter @sanadai/db run migrate
 ```
 
 **Step 4: Commit**

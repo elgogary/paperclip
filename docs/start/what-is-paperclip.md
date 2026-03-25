@@ -29,7 +29,7 @@ The primary deployment is the **Optiflow Systems AI Crew** — a 9-agent company
 
 Access: `http://100.109.59.30:3100/OPT/` (Tailscale private network)
 
-## How It Differs from Upstream Paperclip
+## How It Differs from Upstream Sanad AI EOI
 
 | Feature | Upstream | Sanad AI EOI |
 |---------|---------|-------------|

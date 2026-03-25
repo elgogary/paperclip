@@ -3,7 +3,7 @@ title: Approvals
 summary: Governance flows for hiring and strategy
 ---
 
-Paperclip includes approval gates that keep the human board operator in control of key decisions.
+Sanad AI EOI includes approval gates that keep the human board operator in control of key decisions.
 
 ## Approval Types
 

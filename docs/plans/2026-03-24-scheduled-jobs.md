@@ -5,7 +5,7 @@
 
 **Goal:** Build a full scheduled jobs system — DB schema, in-process scheduler loop, three job executors (knowledge_sync / webhook / agent_run), REST API, and React UI (/jobs page + agent tab).
 
-**Architecture:** In-process Node.js scheduler (setInterval 60s) inside the Paperclip server reads `scheduled_jobs` rows due for execution using `SELECT FOR UPDATE SKIP LOCKED` (prevents dual execution). `agent_run` jobs reuse the existing heartbeat/wakeup system; `webhook` and `knowledge_sync` jobs execute as async tasks tracked in `scheduled_job_runs`. All gap fixes from design: missed-run policy, overlap check via heartbeat_runs, webhook secrets via company_secrets table, 90-day log retention.
+**Architecture:** In-process Node.js scheduler (setInterval 60s) inside the Sanad AI EOI server reads `scheduled_jobs` rows due for execution using `SELECT FOR UPDATE SKIP LOCKED` (prevents dual execution). `agent_run` jobs reuse the existing heartbeat/wakeup system; `webhook` and `knowledge_sync` jobs execute as async tasks tracked in `scheduled_job_runs`. All gap fixes from design: missed-run policy, overlap check via heartbeat_runs, webhook secrets via company_secrets table, 90-day log retention.
 
 **Tech Stack:** TypeScript, Drizzle ORM (PostgreSQL), Express.js, React, TanStack Query, shadcn/ui, Tailwind CSS, `croner` npm package for cron parsing.
 
@@ -202,7 +202,7 @@ Add to the `entries` array in `packages/db/src/migrations/meta/_journal.json`:
 **Step 3: Install croner package**
 ```bash
 cd /home/eslam/data/projects/paperclip
-pnpm add croner --filter @paperclipai/server
+pnpm add croner --filter @sanadai/server
 ```
 
 **Step 4: Commit**
@@ -224,8 +224,8 @@ git commit -m "feat(db): migration for scheduled_jobs and scheduled_job_runs tab
 ```typescript
 // server/src/services/scheduled-jobs.ts
 import { and, asc, desc, eq, lte, sql } from "drizzle-orm";
-import type { Db } from "@paperclipai/db";
-import { scheduledJobs, scheduledJobRuns } from "@paperclipai/db";
+import type { Db } from "@sanadai/db";
+import { scheduledJobs, scheduledJobRuns } from "@sanadai/db";
 import { Cron } from "croner";
 
 export type ScheduledJob = typeof scheduledJobs.$inferSelect;
@@ -434,8 +434,8 @@ git commit -m "feat(server): add scheduledJobsService CRUD"
 
 ```typescript
 // server/src/services/scheduled-job-executors.ts
-import type { Db } from "@paperclipai/db";
-import { agentWakeupRequests, heartbeatRuns } from "@paperclipai/db";
+import type { Db } from "@sanadai/db";
+import { agentWakeupRequests, heartbeatRuns } from "@sanadai/db";
 import { and, eq, inArray } from "drizzle-orm";
 import type { ScheduledJob } from "./scheduled-jobs.js";
 import { logger } from "../middleware/logger.js";
@@ -589,7 +589,7 @@ git commit -m "feat(server): add job executors for knowledge_sync, webhook, agen
 
 ```typescript
 // server/src/services/scheduler-loop.ts
-import type { Db } from "@paperclipai/db";
+import type { Db } from "@sanadai/db";
 import { scheduledJobsService } from "./scheduled-jobs.js";
 import { executeKnowledgeSync, executeWebhook, executeAgentRun } from "./scheduled-job-executors.js";
 import { secretService } from "./secrets.js";
@@ -793,7 +793,7 @@ git commit -m "feat(server): add scheduler loop — runs due jobs every 60s"
 ```typescript
 // server/src/routes/scheduled-jobs.ts
 import { Router } from "express";
-import type { Db } from "@paperclipai/db";
+import type { Db } from "@sanadai/db";
 import { assertBoard, assertCompanyAccess } from "./authz.js";
 import { scheduledJobsService } from "../services/scheduled-jobs.js";
 import { executeKnowledgeSync, executeWebhook, executeAgentRun } from "../services/scheduled-job-executors.js";

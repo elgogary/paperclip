@@ -9,7 +9,7 @@
 
 ## 1. Problem
 
-Paperclip agents start from zero on every task. Knowledge is lost between heartbeats. Token costs stay constant regardless of how many times the same pattern is executed. When tools break, agents fail silently. Agents in the same company don't share learnings.
+Sanad AI EOI agents start from zero on every task. Knowledge is lost between heartbeats. Token costs stay constant regardless of how many times the same pattern is executed. When tools break, agents fail silently. Agents in the same company don't share learnings.
 
 ## 2. Solution
 

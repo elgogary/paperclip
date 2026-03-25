@@ -76,7 +76,7 @@ No conflicts. F16 uses Brain's existing infrastructure (Qdrant, LiteLLM).
 | Cross-agent skill sharing | **F16** | Per-agent metrics determine best version |
 | Vector storage (Qdrant) | **Shared** | Separate collections, same instance |
 | LLM calls (analysis) | **Shared** | Both use LiteLLM router |
-| Scheduled jobs | **Shared** | Both use Paperclip scheduler |
+| Scheduled jobs | **Shared** | Both use Sanad AI EOI scheduler |
 
 ---
 

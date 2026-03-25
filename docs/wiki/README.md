@@ -1,6 +1,6 @@
-# Paperclip Wiki
+# Sanad AI EOI Wiki
 
-Project documentation index for Paperclip — the AI agent platform.
+Project documentation index for Sanad AI EOI — the AI agent platform.
 
 ## Deployment & Operations
 - [Deploy overview](../deploy/overview.md)

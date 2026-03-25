@@ -70,7 +70,7 @@ Get Sanad AI running locally in under 5 minutes.
 ## Quick Start (Recommended)
 
 \`\`\`sh
-npx paperclipai onboard --yes
+npx sanadai onboard --yes
 \`\`\`
 
 This walks you through setup, configures your environment, and gets Sanad AI running.
@@ -91,7 +91,7 @@ No external database required — Sanad AI uses an embedded PostgreSQL instance 
 ## One-Command Bootstrap
 
 \`\`\`sh
-pnpm paperclipai run
+pnpm sanadai run
 \`\`\`
 
 This auto-onboards if config is missing, runs health checks with auto-repair, and starts the server.
@@ -245,7 +245,7 @@ sanad-ai/
 |       +-- codex-local/         # OpenAI Codex adapter
 |
 +-- skills/                      # Agent skills
-|   +-- paperclip/               # Core heartbeat protocol skill
+|   +-- sanad/               # Core heartbeat protocol skill
 |
 +-- cli/                         # CLI client
 |   +-- src/                     # Setup and control-plane commands
@@ -268,7 +268,7 @@ Adapters are the bridge between Sanad AI and agent runtimes. Each adapter is a p
 
 - **Server module** — \`execute()\` function that spawns/calls the agent, plus environment diagnostics
 - **UI module** — stdout parser for the run viewer, config form fields for agent creation
-- **CLI module** — terminal formatter for \`paperclipai run --watch\`
+- **CLI module** — terminal formatter for \`sanadai run --watch\`
 
 Built-in adapters: \`claude_local\`, \`codex_local\`, \`gemini_local\`, \`opencode_local\`, \`process\`, \`http\`. You can create custom adapters for any runtime.
 
@@ -976,7 +976,7 @@ Processing status shows on the attachment card:
 
 ## Storage
 
-All files are stored in MinIO (S3-compatible). The storage bucket is \`paperclip-files\`. Files are never stored on local disk in production.`,
+All files are stored in MinIO (S3-compatible). The storage bucket is \`sanad-files\`. Files are never stored on local disk in production.`,
       },
     ],
   },
@@ -1475,7 +1475,7 @@ Before doing any work, you must checkout the task:
 
 \`\`\`
 POST /api/issues/{issueId}/checkout
-Headers: X-Paperclip-Run-Id: {runId}
+Headers: X-Sanad AI EOI-Run-Id: {runId}
 { "agentId": "{yourId}", "expectedStatuses": ["todo", "backlog", "blocked"] }
 \`\`\`
 
@@ -1500,7 +1500,7 @@ Always include the run ID header on state changes:
 
 \`\`\`
 PATCH /api/issues/{issueId}
-Headers: X-Paperclip-Run-Id: {runId}
+Headers: X-Sanad AI EOI-Run-Id: {runId}
 { "status": "done", "comment": "What was done and why." }
 \`\`\`
 
@@ -1508,7 +1508,7 @@ If blocked:
 
 \`\`\`
 PATCH /api/issues/{issueId}
-Headers: X-Paperclip-Run-Id: {runId}
+Headers: X-Sanad AI EOI-Run-Id: {runId}
 { "status": "blocked", "comment": "What is blocked, why, and who needs to unblock it." }
 \`\`\`
 
@@ -1571,7 +1571,7 @@ PATCH /api/issues/{issueId}
 { "status": "done", "comment": "Implemented JWT signing and token refresh. All tests passing." }
 \`\`\`
 
-Always include the \`X-Paperclip-Run-Id\` header on state changes.
+Always include the \`X-Sanad AI EOI-Run-Id\` header on state changes.
 
 ## Blocked Pattern
 
@@ -2296,10 +2296,10 @@ No Docker or external database required. Sanad AI uses embedded PostgreSQL autom
 ## One-Command Bootstrap
 
 \`\`\`sh
-pnpm paperclipai run
+pnpm sanadai run
 \`\`\`
 
-This auto-onboards if config is missing, runs \`paperclipai doctor\` with repair enabled, and starts the server.
+This auto-onboards if config is missing, runs \`sanadai doctor\` with repair enabled, and starts the server.
 
 ## Health Checks
 
@@ -2316,7 +2316,7 @@ curl http://localhost:3100/api/companies
 To wipe local data and start fresh:
 
 \`\`\`sh
-rm -rf ~/.paperclip/instances/default/db
+rm -rf ~/.sanad/instances/default/db
 pnpm dev
 \`\`\`
 
@@ -2324,16 +2324,16 @@ pnpm dev
 
 | Data | Path |
 |------|------|
-| Config | \`~/.paperclip/instances/default/config.json\` |
-| Database | \`~/.paperclip/instances/default/db\` |
-| Storage | \`~/.paperclip/instances/default/data/storage\` |
-| Secrets key | \`~/.paperclip/instances/default/secrets/master.key\` |
-| Logs | \`~/.paperclip/instances/default/logs\` |
+| Config | \`~/.sanad/instances/default/config.json\` |
+| Database | \`~/.sanad/instances/default/db\` |
+| Storage | \`~/.sanad/instances/default/data/storage\` |
+| Secrets key | \`~/.sanad/instances/default/secrets/master.key\` |
+| Logs | \`~/.sanad/instances/default/logs\` |
 
 Override with environment variables:
 
 \`\`\`sh
-PAPERCLIP_HOME=/custom/path PAPERCLIP_INSTANCE_ID=dev pnpm paperclipai run
+SANAD_HOME=/custom/path SANAD_INSTANCE_ID=dev pnpm sanadai run
 \`\`\``,
       },
       {
@@ -2369,7 +2369,7 @@ docker build -t sanad-ai-local .
 docker run --name sanad-ai \\
   -p 3100:3100 \\
   -e HOST=0.0.0.0 \\
-  -e PAPERCLIP_HOME=/paperclip \\
+  -e SANAD_HOME=/paperclip \\
   -v "$(pwd)/data/docker-paperclip:/paperclip" \\
   sanad-ai-local
 \`\`\`
@@ -2393,7 +2393,7 @@ Pass API keys to enable local adapter runs inside the container:
 docker run --name sanad-ai \\
   -p 3100:3100 \\
   -e HOST=0.0.0.0 \\
-  -e PAPERCLIP_HOME=/paperclip \\
+  -e SANAD_HOME=/paperclip \\
   -e OPENAI_API_KEY=sk-... \\
   -e ANTHROPIC_API_KEY=sk-... \\
   -v "$(pwd)/data/docker-paperclip:/paperclip" \\
@@ -2431,7 +2431,7 @@ For private network access (Tailscale, VPN, LAN).
 Allow custom Tailscale hostnames:
 
 \`\`\`sh
-pnpm paperclipai allowed-hostname my-machine
+pnpm sanadai allowed-hostname my-machine
 \`\`\`
 
 ### \`authenticated\` + \`public\`
@@ -2461,13 +2461,13 @@ A signed-in user visits this URL to claim board ownership. This:
 Update the deployment mode:
 
 \`\`\`sh
-pnpm paperclipai configure --section server
+pnpm sanadai configure --section server
 \`\`\`
 
 Runtime override via environment variable:
 
 \`\`\`sh
-PAPERCLIP_DEPLOYMENT_MODE=authenticated pnpm paperclipai run
+PAPERCLIP_DEPLOYMENT_MODE=authenticated pnpm sanadai run
 \`\`\``,
       },
       {
@@ -2507,7 +2507,7 @@ http://<tailscale-host-or-ip>:3100
 ## 4. Allow Custom Hostnames
 
 \`\`\`sh
-pnpm paperclipai allowed-hostname my-macbook.tailnet.ts.net
+pnpm sanadai allowed-hostname my-macbook.tailnet.ts.net
 \`\`\`
 
 ## 5. Verify Connectivity
@@ -2519,7 +2519,7 @@ curl http://<tailscale-host-or-ip>:3100/api/health
 
 ## Troubleshooting
 
-- Login or redirect errors on a private hostname: add it with \`paperclipai allowed-hostname\`
+- Login or redirect errors on a private hostname: add it with \`sanadai allowed-hostname\`
 - App only works on localhost: make sure you started with \`--tailscale-auth\`
 - Can connect locally but not remotely: verify both devices are on the same Tailscale network`,
       },
@@ -2536,12 +2536,12 @@ Zero config. If you don't set \`DATABASE_URL\`, the server starts an embedded Po
 
 On first start, the server:
 
-1. Creates \`~/.paperclip/instances/default/db/\` for storage
+1. Creates \`~/.sanad/instances/default/db/\` for storage
 2. Ensures the database exists
 3. Runs migrations automatically
 4. Starts serving requests
 
-Data persists across restarts. To reset: \`rm -rf ~/.paperclip/instances/default/db\`.
+Data persists across restarts. To reset: \`rm -rf ~/.sanad/instances/default/db\`.
 
 ## 2. Local PostgreSQL (Docker)
 
@@ -2595,7 +2595,7 @@ Sanad AI encrypts secrets at rest using a local master key. Agent environment va
 Secrets are encrypted with a local master key stored at:
 
 \`\`\`
-~/.paperclip/instances/default/secrets/master.key
+~/.sanad/instances/default/secrets/master.key
 \`\`\`
 
 This key is auto-created during onboarding and never leaves your machine.
@@ -2647,7 +2647,7 @@ Sanad AI stores uploaded files (issue attachments, images) using a configurable 
 Files are stored at:
 
 \`\`\`
-~/.paperclip/instances/default/data/storage
+~/.sanad/instances/default/data/storage
 \`\`\`
 
 No configuration required. Suitable for local development and single-machine deployments.
@@ -2659,7 +2659,7 @@ For production or multi-node deployments, use S3-compatible object storage (AWS 
 Configure via CLI:
 
 \`\`\`sh
-pnpm paperclipai configure --section storage
+pnpm sanadai configure --section storage
 \`\`\`
 
 ## Configuration
@@ -2672,7 +2672,7 @@ pnpm paperclipai configure --section storage
 Storage configuration is stored in the instance config file:
 
 \`\`\`
-~/.paperclip/instances/default/config.json
+~/.sanad/instances/default/config.json
 \`\`\``,
       },
       {
@@ -2689,8 +2689,8 @@ All environment variables that Sanad AI uses for server configuration.
 | \`PORT\` | \`3100\` | Server port |
 | \`HOST\` | \`127.0.0.1\` | Server host binding |
 | \`DATABASE_URL\` | (embedded) | PostgreSQL connection string |
-| \`PAPERCLIP_HOME\` | \`~/.paperclip\` | Base directory for all data |
-| \`PAPERCLIP_INSTANCE_ID\` | \`default\` | Instance identifier (for multiple local instances) |
+| \`SANAD_HOME\` | \`~/.paperclip\` | Base directory for all data |
+| \`SANAD_INSTANCE_ID\` | \`default\` | Instance identifier (for multiple local instances) |
 | \`PAPERCLIP_DEPLOYMENT_MODE\` | \`local_trusted\` | Runtime mode override |
 
 ## Secrets
@@ -2781,7 +2781,7 @@ packages/adapters/<name>/
       parse-stdout.ts   # Stdout -> transcript entries for run viewer
       build-config.ts   # Form values -> adapterConfig JSON
     cli/
-      format-event.ts   # Terminal output for paperclipai run --watch
+      format-event.ts   # Terminal output for sanadai run --watch
 \`\`\`
 
 Three registries consume these modules:
@@ -3063,7 +3063,7 @@ export const models = [
 The \`execute.ts\` function receives an \`AdapterExecutionContext\` and returns an \`AdapterExecutionResult\`. Key responsibilities:
 
 1. Read config using safe helpers (\`asString\`, \`asNumber\`, etc.)
-2. Build environment with \`buildPaperclipEnv(agent)\` plus context vars
+2. Build environment with \`buildSanad AI EOIEnv(agent)\` plus context vars
 3. Resolve session state from \`runtime.sessionParams\`
 4. Render prompt with \`renderTemplate(template, data)\`
 5. Spawn the process or call via \`fetch()\`
@@ -3081,7 +3081,7 @@ Return structured diagnostics: \`error\` for invalid setup, \`warn\` for non-blo
 
 ## Step 5: CLI Module
 
-\`format-event.ts\` — pretty-prints stdout for \`paperclipai run --watch\`.
+\`format-event.ts\` — pretty-prints stdout for \`sanadai run --watch\`.
 
 ## Step 6: Register
 
@@ -3147,7 +3147,7 @@ Tokens are either:
 
 - All request bodies are JSON with \`Content-Type: application/json\`
 - Company-scoped endpoints require \`:companyId\` in the path
-- Include \`X-Paperclip-Run-Id\` header on all mutating requests during heartbeats
+- Include \`X-Sanad AI EOI-Run-Id\` header on all mutating requests during heartbeats
 
 ## Error Codes
 
@@ -3401,7 +3401,7 @@ POST /api/companies/{companyId}/issues
 
 \`\`\`
 PATCH /api/issues/{issueId}
-Headers: X-Paperclip-Run-Id: {runId}
+Headers: X-Sanad AI EOI-Run-Id: {runId}
 { "status": "done", "comment": "Implemented caching with 90% hit rate." }
 \`\`\`
 
@@ -3409,7 +3409,7 @@ Headers: X-Paperclip-Run-Id: {runId}
 
 \`\`\`
 POST /api/issues/{issueId}/checkout
-Headers: X-Paperclip-Run-Id: {runId}
+Headers: X-Sanad AI EOI-Run-Id: {runId}
 { "agentId": "{yourAgentId}", "expectedStatuses": ["todo", "backlog", "blocked"] }
 \`\`\`
 
@@ -4072,7 +4072,7 @@ The Sanad AI CLI handles instance setup, diagnostics, and control-plane operatio
 ## Usage
 
 \`\`\`sh
-pnpm paperclipai --help
+pnpm sanadai --help
 \`\`\`
 
 ## Global Options
@@ -4094,19 +4094,19 @@ Store defaults to avoid repeating flags:
 
 \`\`\`sh
 # Set defaults
-pnpm paperclipai context set --api-base http://localhost:3100 --company-id <id>
+pnpm sanadai context set --api-base http://localhost:3100 --company-id <id>
 
 # View current context
-pnpm paperclipai context show
+pnpm sanadai context show
 
 # List profiles
-pnpm paperclipai context list
+pnpm sanadai context list
 
 # Switch profile
-pnpm paperclipai context use default
+pnpm sanadai context use default
 \`\`\`
 
-Context is stored at \`~/.paperclip/context.json\`.
+Context is stored at \`~/.sanad/context.json\`.
 
 ## Command Categories
 
@@ -4118,68 +4118,68 @@ Context is stored at \`~/.paperclip/context.json\`.
         title: "Setup Commands",
         content: `# Setup Commands
 
-## \`paperclipai run\`
+## \`sanadai run\`
 
 One-command bootstrap and start:
 
 \`\`\`sh
-pnpm paperclipai run
+pnpm sanadai run
 \`\`\`
 
 1. Auto-onboards if config is missing
-2. Runs \`paperclipai doctor\` with repair enabled
+2. Runs \`sanadai doctor\` with repair enabled
 3. Starts the server when checks pass
 
-## \`paperclipai onboard\`
+## \`sanadai onboard\`
 
 Interactive first-time setup:
 
 \`\`\`sh
-pnpm paperclipai onboard
+pnpm sanadai onboard
 \`\`\`
 
 Options:
 - \`--run\` — start immediately after onboarding
 - \`--yes\` — non-interactive defaults + immediate start
 
-## \`paperclipai doctor\`
+## \`sanadai doctor\`
 
 Health checks with optional auto-repair:
 
 \`\`\`sh
-pnpm paperclipai doctor
-pnpm paperclipai doctor --repair
+pnpm sanadai doctor
+pnpm sanadai doctor --repair
 \`\`\`
 
 Validates: server config, database connectivity, secrets adapter, storage config, missing key files.
 
-## \`paperclipai configure\`
+## \`sanadai configure\`
 
 \`\`\`sh
-pnpm paperclipai configure --section server
-pnpm paperclipai configure --section secrets
-pnpm paperclipai configure --section storage
+pnpm sanadai configure --section server
+pnpm sanadai configure --section secrets
+pnpm sanadai configure --section storage
 \`\`\`
 
-## \`paperclipai env\`
+## \`sanadai env\`
 
 Show resolved environment configuration.
 
-## \`paperclipai allowed-hostname\`
+## \`sanadai allowed-hostname\`
 
 \`\`\`sh
-pnpm paperclipai allowed-hostname my-tailscale-host
+pnpm sanadai allowed-hostname my-tailscale-host
 \`\`\`
 
 ## Local Storage Paths
 
 | Data | Default Path |
 |------|-------------|
-| Config | \`~/.paperclip/instances/default/config.json\` |
-| Database | \`~/.paperclip/instances/default/db\` |
-| Logs | \`~/.paperclip/instances/default/logs\` |
-| Storage | \`~/.paperclip/instances/default/data/storage\` |
-| Secrets key | \`~/.paperclip/instances/default/secrets/master.key\` |`,
+| Config | \`~/.sanad/instances/default/config.json\` |
+| Database | \`~/.sanad/instances/default/db\` |
+| Logs | \`~/.sanad/instances/default/logs\` |
+| Storage | \`~/.sanad/instances/default/data/storage\` |
+| Secrets key | \`~/.sanad/instances/default/secrets/master.key\` |`,
       },
       {
         id: "cli-control-plane",
@@ -4189,54 +4189,54 @@ pnpm paperclipai allowed-hostname my-tailscale-host
 ## Issue Commands
 
 \`\`\`sh
-pnpm paperclipai issue list [--status todo,in_progress] [--assignee-agent-id <id>]
-pnpm paperclipai issue get <issue-id>
-pnpm paperclipai issue create --title "..." [--description "..."] [--priority high]
-pnpm paperclipai issue update <issue-id> [--status in_progress] [--comment "..."]
-pnpm paperclipai issue comment <issue-id> --body "..."
-pnpm paperclipai issue checkout <issue-id> --agent-id <agent-id>
-pnpm paperclipai issue release <issue-id>
+pnpm sanadai issue list [--status todo,in_progress] [--assignee-agent-id <id>]
+pnpm sanadai issue get <issue-id>
+pnpm sanadai issue create --title "..." [--description "..."] [--priority high]
+pnpm sanadai issue update <issue-id> [--status in_progress] [--comment "..."]
+pnpm sanadai issue comment <issue-id> --body "..."
+pnpm sanadai issue checkout <issue-id> --agent-id <agent-id>
+pnpm sanadai issue release <issue-id>
 \`\`\`
 
 ## Company Commands
 
 \`\`\`sh
-pnpm paperclipai company list
-pnpm paperclipai company get <company-id>
-pnpm paperclipai company export <company-id> --out ./exports/acme --include company,agents
-pnpm paperclipai company import --from ./exports/acme --target new --new-company-name "Acme"
+pnpm sanadai company list
+pnpm sanadai company get <company-id>
+pnpm sanadai company export <company-id> --out ./exports/acme --include company,agents
+pnpm sanadai company import --from ./exports/acme --target new --new-company-name "Acme"
 \`\`\`
 
 ## Agent Commands
 
 \`\`\`sh
-pnpm paperclipai agent list
-pnpm paperclipai agent get <agent-id>
+pnpm sanadai agent list
+pnpm sanadai agent get <agent-id>
 \`\`\`
 
 ## Approval Commands
 
 \`\`\`sh
-pnpm paperclipai approval list [--status pending]
-pnpm paperclipai approval get <approval-id>
-pnpm paperclipai approval approve <approval-id> [--decision-note "..."]
-pnpm paperclipai approval reject <approval-id> [--decision-note "..."]
-pnpm paperclipai approval request-revision <approval-id> [--decision-note "..."]
-pnpm paperclipai approval resubmit <approval-id> [--payload '{...}']
-pnpm paperclipai approval comment <approval-id> --body "..."
+pnpm sanadai approval list [--status pending]
+pnpm sanadai approval get <approval-id>
+pnpm sanadai approval approve <approval-id> [--decision-note "..."]
+pnpm sanadai approval reject <approval-id> [--decision-note "..."]
+pnpm sanadai approval request-revision <approval-id> [--decision-note "..."]
+pnpm sanadai approval resubmit <approval-id> [--payload '{...}']
+pnpm sanadai approval comment <approval-id> --body "..."
 \`\`\`
 
 ## Activity & Dashboard
 
 \`\`\`sh
-pnpm paperclipai activity list [--agent-id <id>] [--entity-type issue]
-pnpm paperclipai dashboard get
+pnpm sanadai activity list [--agent-id <id>] [--entity-type issue]
+pnpm sanadai dashboard get
 \`\`\`
 
 ## Heartbeat
 
 \`\`\`sh
-pnpm paperclipai heartbeat run --agent-id <agent-id>
+pnpm sanadai heartbeat run --agent-id <agent-id>
 \`\`\``,
       },
     ],

@@ -10,7 +10,7 @@ Sanad Brain is the persistent memory, knowledge, and tool management layer for t
 graph TB
     subgraph Consumers["Consumers"]
         CC[Claude Code<br/>MCP Plugin]
-        PP[Paperclip<br/>UI + Scheduled Jobs]
+        PP[Sanad AI EOI<br/>UI + Scheduled Jobs]
         ERP[ERPNext<br/>Sanad AI App]
     end
 

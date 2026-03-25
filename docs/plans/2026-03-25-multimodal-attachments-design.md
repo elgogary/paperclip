@@ -1,13 +1,13 @@
 # Multimodal Attachment System — Design Doc
 **Date:** 2026-03-25
 **Status:** Approved
-**Server:** 65.109.65.159 (Hetzner — same as Paperclip + Sanad Brain)
+**Server:** 65.109.65.159 (Hetzner — same as Sanad AI EOI + Sanad Brain)
 
 ---
 
 ## Problem
 
-Agents generate files (DOCX reports, videos, charts) but the Paperclip issue view is text/markdown only. Humans cannot preview agent output without downloading files manually. Agents cannot see files humans attach. The marketing agent that generates videos has no delivery pipeline.
+Agents generate files (DOCX reports, videos, charts) but the Sanad AI EOI issue view is text/markdown only. Humans cannot preview agent output without downloading files manually. Agents cannot see files humans attach. The marketing agent that generates videos has no delivery pipeline.
 
 ---
 
@@ -29,7 +29,7 @@ Agents generate files (DOCX reports, videos, charts) but the Paperclip issue vie
 │                   65.109.65.159 (Hetzner)                   │
 │                                                             │
 │  ┌──────────────┐   ┌───────────────────────────────────┐  │
-│  │  Paperclip   │──►│  media-worker (Docker sidecar)    │  │
+│  │  Sanad AI EOI   │──►│  media-worker (Docker sidecar)    │  │
 │  │  Server      │   │  - ffmpeg (video thumbnails)      │  │
 │  │  (Node/TS)   │   │  - LibreOffice headless (Office)  │  │
 │  └──────┬───────┘   │  - REST: /thumbnail /convert      │  │

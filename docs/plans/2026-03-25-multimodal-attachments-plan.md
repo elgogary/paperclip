@@ -2,13 +2,13 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Full bidirectional file attachment system for Paperclip — humans and agents attach any file type (images, video, PDF, Office, code), previewed inline in the issue thread, with agent vision support and YouTube/LinkedIn publish pipeline.
+**Goal:** Full bidirectional file attachment system for Sanad AI EOI — humans and agents attach any file type (images, video, PDF, Office, code), previewed inline in the issue thread, with agent vision support and YouTube/LinkedIn publish pipeline.
 
 **Architecture:** Chunked uploads → MinIO (`paperclip-files` bucket) → async media-worker Docker sidecar (ffmpeg + LibreOffice headless) for thumbnails/HTML conversion → `AttachmentCard` UI component per file type → agent syntax `[[attach:/workspace/path]]` auto-resolved on comment save.
 
 **Tech Stack:** Drizzle ORM (PostgreSQL), MinIO S3, Node.js/TypeScript server, React/TypeScript UI, ffmpeg, LibreOffice headless, PDF.js, highlight.js, YouTube Data API v3, LinkedIn Video API.
 
-**Server:** 65.109.65.159 (Hetzner — alongside existing Paperclip + Sanad Brain services)
+**Server:** 65.109.65.159 (Hetzner — alongside existing Sanad AI EOI + Sanad Brain services)
 
 ---
 
@@ -99,7 +99,7 @@ CREATE INDEX "attachments_comment_idx" ON "attachments"("comment_id");
 **Step 4: Run migration**
 ```bash
 cd /home/eslam/data/projects/paperclip
-pnpm --filter @paperclipai/db migrate
+pnpm --filter @sanadai/db migrate
 ```
 Expected: Migration 0031 applied successfully.
 
@@ -176,7 +176,7 @@ describe("maxBytesForType", () => {
 
 **Step 3: Run tests**
 ```bash
-pnpm --filter @paperclipai/server test attachment-types
+pnpm --filter @sanadai/server test attachment-types
 ```
 Expected: All pass.
 
@@ -201,7 +201,7 @@ git commit -m "feat: extend allowed attachment types and size limits for all med
 import { Router } from "express";
 import { requireAuth } from "../middleware/auth.js";
 import { requireCompanyAccess } from "../routes/authz.js";
-import { db, attachments } from "@paperclipai/db";
+import { db, attachments } from "@sanadai/db";
 import { storageService } from "../storage/service.js";
 import { isAllowedContentType, maxBytesForType } from "../attachment-types.js";
 import { eq } from "drizzle-orm";
@@ -340,7 +340,7 @@ app.use("/api/attachments", attachmentsRouter);
 // server/src/__tests__/attachments-routes.test.ts
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("@paperclipai/db", () => ({
+vi.mock("@sanadai/db", () => ({
   db: { insert: vi.fn(() => ({ values: vi.fn(() => ({ returning: vi.fn(() => [{ id: "att-1", companyId: "co-1", storageKey: "co-1/attachments/test.pdf" }]) })) })),
         select: vi.fn(() => ({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit: vi.fn(() => []) })) })) })),
         update: vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn(() => {}) })) })) },
@@ -359,7 +359,7 @@ describe("POST /api/attachments/init", () => {
 
 **Step 4: Run tests**
 ```bash
-pnpm --filter @paperclipai/server test attachments
+pnpm --filter @sanadai/server test attachments
 ```
 
 **Step 5: Commit**
@@ -424,7 +424,7 @@ describe("replaceAttachTokens", () => {
 
 **Step 2: Run tests to confirm they fail**
 ```bash
-pnpm --filter @paperclipai/server test attachment-resolver
+pnpm --filter @sanadai/server test attachment-resolver
 ```
 Expected: FAIL — module not found.
 
@@ -434,7 +434,7 @@ Expected: FAIL — module not found.
 // server/src/services/attachment-resolver.ts
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { db, attachments } from "@paperclipai/db";
+import { db, attachments } from "@sanadai/db";
 import { storageService } from "../storage/service.js";
 import { isAllowedContentType } from "../attachment-types.js";
 import mime from "mime-types";
@@ -530,7 +530,7 @@ export async function resolveAttachTokens(
 
 **Step 4: Run tests**
 ```bash
-pnpm --filter @paperclipai/server test attachment-resolver
+pnpm --filter @sanadai/server test attachment-resolver
 ```
 Expected: All pass.
 
@@ -991,7 +991,7 @@ accept="*/*"
 
 **Step 5: Build and verify**
 ```bash
-pnpm --filter @paperclipai/ui build
+pnpm --filter @sanadai/ui build
 ```
 Expected: No TypeScript errors.
 
@@ -1016,7 +1016,7 @@ git commit -m "feat(ui): AttachmentCard component with per-type preview (image/v
 ```typescript
 // server/src/__tests__/attachment-context.test.ts
 import { describe, it, expect, vi } from "vitest";
-vi.mock("@paperclipai/db", () => ({ db: {}, attachments: {}, issueComments: {} }));
+vi.mock("@sanadai/db", () => ({ db: {}, attachments: {}, issueComments: {} }));
 import { buildAttachmentContext } from "../services/attachment-context.js";
 
 describe("buildAttachmentContext", () => {
@@ -1031,7 +1031,7 @@ describe("buildAttachmentContext", () => {
 
 ```typescript
 // server/src/services/attachment-context.ts
-import { db, attachments } from "@paperclipai/db";
+import { db, attachments } from "@sanadai/db";
 import { eq } from "drizzle-orm";
 import { storageService } from "../storage/service.js";
 
@@ -1222,7 +1222,7 @@ curl http://localhost:8200/health   # expect: {"status":"ok"}
 
 **Step 3: Run DB migration**
 ```bash
-pnpm --filter @paperclipai/db migrate
+pnpm --filter @sanadai/db migrate
 ```
 
 **Step 4: Set environment variables**
@@ -1234,7 +1234,7 @@ PAPERCLIP_ATTACHMENT_MAX_BYTES=104857600
 PAPERCLIP_VIDEO_MAX_BYTES=2147483648
 ```
 
-**Step 5: Restart Paperclip server**
+**Step 5: Restart Sanad AI EOI server**
 ```bash
 docker compose restart server
 ```

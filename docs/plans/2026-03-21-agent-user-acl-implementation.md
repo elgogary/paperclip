@@ -6,7 +6,7 @@
 
 **Architecture:** New `agent_user_access` table (Drizzle + Postgres). Service layer for CRUD. Filter injected into existing agent list endpoint. New "Access" tab on Agent Detail page.
 
-**Tech Stack:** Drizzle ORM, Express, React, @tanstack/react-query, Paperclip UI components (PageTabBar, Tabs).
+**Tech Stack:** Drizzle ORM, Express, React, @tanstack/react-query, Sanad AI EOI UI components (PageTabBar, Tabs).
 
 ---
 
@@ -113,8 +113,8 @@ git commit -m "feat(shared): add AgentUserAccess type"
 
 ```typescript
 import { and, eq } from "drizzle-orm";
-import type { Db } from "@paperclipai/db";
-import { agentUserAccess } from "@paperclipai/db";
+import type { Db } from "@sanadai/db";
+import { agentUserAccess } from "@sanadai/db";
 
 export function agentAccessService(db: Db) {
   return {
@@ -178,7 +178,7 @@ git commit -m "feat(server): add agent-access service for ACL CRUD"
 
 ```typescript
 import { Router } from "express";
-import type { Db } from "@paperclipai/db";
+import type { Db } from "@sanadai/db";
 import { agentAccessService } from "../services/index.js";
 import { assertCompanyAccess, getActorInfo } from "./authz.js";
 
@@ -332,7 +332,7 @@ git commit -m "feat(server): filter agent list by user ACL grants"
 **Step 1: Create API client**
 
 ```typescript
-import type { AgentUserAccess } from "@paperclipai/shared";
+import type { AgentUserAccess } from "@sanadai/shared";
 import { api } from "./client";
 
 export const agentAccessApi = {
