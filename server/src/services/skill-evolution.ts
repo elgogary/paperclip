@@ -199,11 +199,16 @@ export function skillEvolutionService(db: Db) {
         .where(eq(evolutionEvents.id, eventId));
     },
 
-    async listEvents(companyId: string, limit = 50): Promise<EvolutionEvent[]> {
+    async listEvents(companyId: string, opts?: { limit?: number; status?: string }): Promise<EvolutionEvent[]> {
+      const limit = opts?.limit ?? 50;
+      const conditions = [eq(evolutionEvents.companyId, companyId)];
+      if (opts?.status) {
+        conditions.push(eq(evolutionEvents.status, opts.status));
+      }
       return db
         .select()
         .from(evolutionEvents)
-        .where(eq(evolutionEvents.companyId, companyId))
+        .where(and(...conditions))
         .orderBy(desc(evolutionEvents.createdAt))
         .limit(limit);
     },

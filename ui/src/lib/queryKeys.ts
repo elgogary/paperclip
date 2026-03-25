@@ -87,6 +87,11 @@ export const queryKeys = {
     detail: (companyId: string, jobId: string) => ["scheduled-jobs", companyId, jobId] as const,
     runs: (companyId: string, jobId: string) => ["scheduled-job-runs", companyId, jobId] as const,
   },
+  evolution: {
+    events: (companyId: string, status?: string) => ["evolution", "events", companyId, status] as const,
+    eventDetail: (companyId: string, eventId: string) => ["evolution", "event", companyId, eventId] as const,
+    skillMetrics: (companyId: string, skillId: string) => ["evolution", "metrics", companyId, skillId] as const,
+  },
   skills: {
     list: (companyId: string) => ["skills", companyId] as const,
     detail: (companyId: string, skillId: string) => ["skills", companyId, skillId] as const,

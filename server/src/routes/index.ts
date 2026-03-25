@@ -18,3 +18,4 @@ export { skillRoutes } from "./skills.js";
 export { mcpServerRoutes } from "./mcp-servers.js";
 export { connectorRoutes } from "./connectors.js";
 export { pluginRoutes } from "./plugins.js";
+export { evolutionRoutes } from "./evolution.js";

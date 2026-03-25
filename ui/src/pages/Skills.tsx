@@ -13,7 +13,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Plus, Sparkles, BookOpenCheck, type LucideIcon } from "lucide-react";
+import { EvolutionTimeline } from "../components/skills/EvolutionTimeline";
+import { EvolutionPendingReviews } from "../components/skills/EvolutionPendingReviews";
+import { Plus, Sparkles, BookOpenCheck, Dna, ChevronDown, ChevronRight, type LucideIcon } from "lucide-react";
 
 export function Skills() {
   const { selectedCompanyId } = useCompany();
@@ -23,6 +25,7 @@ export function Skills() {
   const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [aiCreateOpen, setAiCreateOpen] = useState(false);
+  const [evoOpen, setEvoOpen] = useState(false);
 
   // Create form state
   const [newName, setNewName] = useState("");
@@ -93,6 +96,14 @@ export function Skills() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant={evoOpen ? "secondary" : "outline"}
+            size="sm"
+            onClick={() => setEvoOpen(!evoOpen)}
+          >
+            <Dna className="h-3.5 w-3.5 mr-1.5" />
+            Evolution
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setAiCreateOpen(true)}>
             <Sparkles className="h-3.5 w-3.5 mr-1.5" />
             AI Create
@@ -122,6 +133,34 @@ export function Skills() {
             <p className="text-xs text-muted-foreground/60 mt-1">
               Or create a new one with the button above.
             </p>
+          </div>
+        )}
+
+        {/* Evolution side panel */}
+        {evoOpen && (
+          <div className="w-[320px] border-l border-border shrink-0 flex flex-col bg-background overflow-hidden">
+            <div className="px-4 py-3 border-b border-border shrink-0 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Dna className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-sm font-semibold">Evolution</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEvoOpen(false)}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Close
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-5">
+              <EvolutionPendingReviews />
+              <div className="border-t border-border pt-4">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                  Recent Activity
+                </p>
+                <EvolutionTimeline />
+              </div>
+            </div>
           </div>
         )}
       </div>

@@ -11,9 +11,10 @@ import { SkillCodeEditor } from "./SkillCodeEditor";
 import { SkillVersionHistory } from "./SkillVersionHistory";
 import { SkillAuditCard } from "./SkillAuditCard";
 import { AgentAccessChips } from "../toolkit/AgentAccessChips";
+import { SkillMetricsCard } from "./SkillMetricsCard";
 import {
   Eye, Code2, Save, Undo2, Trash2, Copy,
-  ChevronDown, ChevronRight, BarChart3, History, Users,
+  ChevronDown, ChevronRight, BarChart3, History, Users, Dna,
 } from "lucide-react";
 
 interface SkillDetailPanelProps {
@@ -21,7 +22,7 @@ interface SkillDetailPanelProps {
 }
 
 type ViewMode = "preview" | "code";
-type BottomSection = "audit" | "versions" | "agents";
+type BottomSection = "audit" | "versions" | "agents" | "evolution";
 
 export function SkillDetailPanel({ skill }: SkillDetailPanelProps) {
   const { selectedCompanyId } = useCompany();
@@ -295,6 +296,19 @@ export function SkillDetailPanel({ skill }: SkillDetailPanelProps) {
                     updateAccess.mutate(g);
                   }}
                 />
+              </div>
+            )}
+
+            {/* Evolution Metrics */}
+            <BottomSectionToggle
+              icon={Dna}
+              label="Evolution"
+              open={expandedSection === "evolution"}
+              onClick={() => toggleSection("evolution")}
+            />
+            {expandedSection === "evolution" && (
+              <div className="pl-6 pb-3">
+                <SkillMetricsCard skillId={skill.id} />
               </div>
             )}
           </div>
