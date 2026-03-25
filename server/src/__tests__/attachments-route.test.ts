@@ -353,9 +353,10 @@ describe("attachment routes", () => {
       expect(res.status).toBe(200);
       expect(res.body.downloadUrl).toBe("/api/attachments/att-1/content");
       expect(res.body.id).toBe("att-1");
-      // Fix 8: DTO should NOT include storageKey or htmlPreviewKey
+      // storageKey is internal — should NOT be in DTO
       expect(res.body).not.toHaveProperty("storageKey");
-      expect(res.body).not.toHaveProperty("htmlPreviewKey");
+      // htmlPreviewKey IS in DTO (needed by OfficeCard for preview route)
+      expect(res.body).toHaveProperty("htmlPreviewKey");
     });
 
     it("returns 401 for unauthenticated requests", async () => {

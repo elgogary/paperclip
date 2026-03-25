@@ -295,7 +295,7 @@ export function attachmentRoutes(db: Db, storage: StorageService) {
       .set(updateFields as any)
       .where(eq(attachments.id, attachmentId));
 
-    // Fire-and-forget thumbnail job
+    // Thumbnail job — fire async, write thumbnailKey back to DB on success
     if (needsThumbnail) {
       const mediaWorkerUrl =
         process.env.PAPERCLIP_MEDIA_WORKER_URL ??
@@ -309,9 +309,19 @@ export function attachmentRoutes(db: Db, storage: StorageService) {
           storageKey: finalKey,
           mimeType: updated.mimeType,
         }),
+        signal: AbortSignal.timeout(15_000),
       })
-        .then((r) => { if (!r.ok) logger.warn("media-worker returned " + r.status); })
-        .catch((err: Error) => logger.warn("media-worker unreachable:", err.message));
+        .then((r) => r.ok ? r.json() : null)
+        .then(async (data: { thumbnailKey?: string } | null) => {
+          if (data?.thumbnailKey) {
+            await db.update(attachments)
+              .set({ thumbnailKey: data.thumbnailKey, updatedAt: new Date() })
+              .where(eq(attachments.id, attachmentId));
+          }
+        })
+        .catch((err: Error) => {
+          logger.warn(`[attachments] thumbnail generation failed for ${attachmentId}: ${err.message}`);
+        });
     }
 
     const actor = getActorInfo(req);
@@ -366,7 +376,101 @@ export function attachmentRoutes(db: Db, storage: StorageService) {
       .from(attachments)
       .where(and(eq(attachments.issueId, issueId), eq(attachments.companyId, companyId)));
 
-    res.json({ attachments: rows });
+    res.json({
+      attachments: rows.map((r) => ({
+        id: r.id,
+        issueId: r.issueId,
+        commentId: r.commentId,
+        uploaderType: r.uploaderType,
+        uploaderId: r.uploaderId,
+        filename: r.filename,
+        mimeType: r.mimeType,
+        sizeBytes: r.sizeBytes,
+        versionOf: r.versionOf,
+        versionNum: r.versionNum,
+        status: r.status,
+        publishUrl: r.publishUrl,
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
+        downloadUrl: "/api/attachments/" + r.id + "/content",
+        thumbnailUrl: r.thumbnailKey ? "/api/attachments/" + r.id + "/thumbnail" : null,
+        htmlPreviewKey: r.htmlPreviewKey ?? null,
+      })),
+    });
+  });
+
+  // GET /:attachmentId/preview — stream the HTML preview file
+  router.get("/:attachmentId/preview", async (req, res, next) => {
+    if (req.actor.type === "none") {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    const { attachmentId } = req.params;
+
+    const [row] = await db
+      .select()
+      .from(attachments)
+      .where(eq(attachments.id, attachmentId));
+
+    if (!row) {
+      res.status(404).json({ error: "not_found" });
+      return;
+    }
+    assertCompanyAccess(req, row.companyId);
+
+    if (!row.htmlPreviewKey) {
+      res.status(404).json({ error: "no_preview" });
+      return;
+    }
+
+    try {
+      const object = await storage.getObject(row.companyId, row.htmlPreviewKey);
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.setHeader("Cache-Control", "private, max-age=60");
+      object.stream.on("error", (err) => next(err));
+      object.stream.pipe(res);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // GET /:attachmentId/thumbnail — stream the thumbnail image
+  router.get("/:attachmentId/thumbnail", async (req, res, next) => {
+    if (req.actor.type === "none") {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    const { attachmentId } = req.params;
+
+    const [row] = await db
+      .select()
+      .from(attachments)
+      .where(eq(attachments.id, attachmentId));
+
+    if (!row) {
+      res.status(404).json({ error: "not_found" });
+      return;
+    }
+    assertCompanyAccess(req, row.companyId);
+
+    if (!row.thumbnailKey) {
+      res.status(404).json({ error: "no_thumbnail" });
+      return;
+    }
+
+    try {
+      const object = await storage.getObject(row.companyId, row.thumbnailKey);
+      res.setHeader("Content-Type", "image/jpeg");
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      object.stream.on("error", (err) => next(err));
+      object.stream.pipe(res);
+    } catch (err) {
+      next(err);
+    }
   });
 
   // Fix 8: GET /:attachmentId — metadata + download URL (DTO response)
@@ -406,6 +510,7 @@ export function attachmentRoutes(db: Db, storage: StorageService) {
       updatedAt: row.updatedAt,
       downloadUrl: "/api/attachments/" + attachmentId + "/content",
       thumbnailUrl: row.thumbnailKey ? "/api/attachments/" + attachmentId + "/thumbnail" : null,
+      htmlPreviewKey: row.htmlPreviewKey ?? null,
     });
   });
 

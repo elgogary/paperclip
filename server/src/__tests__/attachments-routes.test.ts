@@ -399,9 +399,10 @@ describe("GET /api/attachments/:attachmentId", () => {
     expect(res.status).toBe(200);
     expect(res.body.id).toBe("att-1");
     expect(res.body.downloadUrl).toContain("/api/attachments/att-1/content");
-    // Fix 8: should NOT leak storageKey or htmlPreviewKey
+    // storageKey is internal — should NOT be in DTO
     expect(res.body).not.toHaveProperty("storageKey");
-    expect(res.body).not.toHaveProperty("htmlPreviewKey");
+    // htmlPreviewKey IS in DTO (needed by OfficeCard for preview route)
+    expect(res.body).toHaveProperty("htmlPreviewKey");
   });
 
   it("returns 404 for non-existent attachment", async () => {

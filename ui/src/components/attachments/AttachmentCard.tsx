@@ -198,10 +198,10 @@ function PdfCard({ filename, downloadUrl, thumbnailUrl, sizeBytes, versionNum }:
   );
 }
 
-function OfficeCard({ filename, downloadUrl, htmlPreviewKey, sizeBytes, versionNum }: AttachmentCardProps) {
+function OfficeCard({ attachmentId, filename, downloadUrl, htmlPreviewKey, sizeBytes, versionNum }: AttachmentCardProps) {
   const [open, setOpen] = useState(false);
   const previewUrl = htmlPreviewKey
-    ? `/api/attachments/${htmlPreviewKey}/content`
+    ? `/api/attachments/${attachmentId}/preview`
     : null;
 
   return (

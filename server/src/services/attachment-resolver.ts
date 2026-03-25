@@ -1,5 +1,6 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import { eq } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
 import { attachments } from "@paperclipai/db";
 import type { StorageService } from "../storage/types.js";
@@ -37,6 +38,9 @@ export function parseAttachTokens(body: string): AttachToken[] {
   return tokens;
 }
 
+// Note: produces Markdown link format [filename](attachment:uuid) — NOT [[attachment:uuid]].
+// The [[attachment:uuid]] syntax is a separate client-side annotation handled in MarkdownBody.tsx.
+// Both formats are intercepted by the MarkdownBody `a` component override via parseAttachmentHref().
 export function replaceAttachTokens(
   body: string,
   resolved: ResolvedToken[],
@@ -189,9 +193,17 @@ export async function resolveAttachTokens(
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ attachmentId: attachment.id, storageKey: stored.objectKey, mimeType }),
+          signal: AbortSignal.timeout(15_000),
         })
-          .then((r) => { if (!r.ok) console.warn(`[attach-resolver] media-worker ${r.status}`); })
-          .catch((err) => console.warn("[attach-resolver] media-worker unreachable:", (err as Error).message));
+          .then((r) => r.ok ? r.json() : null)
+          .then(async (data: { thumbnailKey?: string } | null) => {
+            if (data?.thumbnailKey) {
+              await db.update(attachments)
+                .set({ thumbnailKey: data.thumbnailKey, updatedAt: new Date() })
+                .where(eq(attachments.id, attachment.id));
+            }
+          })
+          .catch((err) => console.warn(`[attach-resolver] thumbnail failed for ${attachment.id}:`, (err as Error).message));
       }
 
       resolved.push({ ...token, attachmentId: attachment.id, filename });

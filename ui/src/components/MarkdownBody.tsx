@@ -120,6 +120,9 @@ function MermaidDiagramBlock({ source, darkMode }: { source: string; darkMode: b
   );
 }
 
+// Note: handles [[attachment:uuid]] tokens from client-side annotations.
+// Agent-generated attachments use [filename](attachment:uuid) Markdown link format (from attachment-resolver.ts).
+// Both formats are handled by the `a` component override in the components map.
 function preprocessContent(content: string): string {
   return content.replace(
     /\[\[attachment:([a-f0-9-]{36})\]\]/g,
