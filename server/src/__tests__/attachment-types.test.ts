@@ -6,6 +6,8 @@ import {
   isAllowedContentType,
   isVideoType,
   maxBytesForType,
+  MAX_ATTACHMENT_BYTES,
+  MAX_VIDEO_BYTES,
 } from "../attachment-types.js";
 
 describe("parseAllowedTypes", () => {
@@ -113,7 +115,7 @@ describe("matchesContentType", () => {
 });
 
 describe("DEFAULT_ALLOWED_TYPES", () => {
-  it("includes all image types", () => {
+  it("includes all required image types", () => {
     expect(DEFAULT_ALLOWED_TYPES).toContain("image/png");
     expect(DEFAULT_ALLOWED_TYPES).toContain("image/gif");
   });
@@ -125,6 +127,13 @@ describe("DEFAULT_ALLOWED_TYPES", () => {
     expect(DEFAULT_ALLOWED_TYPES).toContain("application/pdf");
     expect(DEFAULT_ALLOWED_TYPES).toContain("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
   });
+  it("includes audio types", () => {
+    expect(DEFAULT_ALLOWED_TYPES).toContain("audio/mpeg");
+  });
+  it("includes text/code types", () => {
+    expect(DEFAULT_ALLOWED_TYPES).toContain("text/plain");
+    expect(DEFAULT_ALLOWED_TYPES).toContain("application/json");
+  });
 });
 
 describe("isVideoType", () => {
@@ -132,12 +141,14 @@ describe("isVideoType", () => {
   it("returns true for video/webm", () => expect(isVideoType("video/webm")).toBe(true));
   it("returns false for image/png", () => expect(isVideoType("image/png")).toBe(false));
   it("returns false for application/pdf", () => expect(isVideoType("application/pdf")).toBe(false));
+  it("returns true for mixed-case Video/mp4", () => expect(isVideoType("Video/mp4")).toBe(true));
+  it("returns false for mixed-case Image/PNG", () => expect(isVideoType("Image/PNG")).toBe(false));
 });
 
 describe("maxBytesForType", () => {
-  it("returns 2GB for video/mp4", () => expect(maxBytesForType("video/mp4")).toBe(2 * 1024 * 1024 * 1024));
-  it("returns 100MB for application/pdf", () => expect(maxBytesForType("application/pdf")).toBe(100 * 1024 * 1024));
-  it("returns 100MB for image/png", () => expect(maxBytesForType("image/png")).toBe(100 * 1024 * 1024));
+  it("returns MAX_VIDEO_BYTES for video/mp4", () => expect(maxBytesForType("video/mp4")).toBe(MAX_VIDEO_BYTES));
+  it("returns MAX_ATTACHMENT_BYTES for application/pdf", () => expect(maxBytesForType("application/pdf")).toBe(MAX_ATTACHMENT_BYTES));
+  it("returns MAX_ATTACHMENT_BYTES for image/png", () => expect(maxBytesForType("image/png")).toBe(MAX_ATTACHMENT_BYTES));
 });
 
 describe("isAllowedContentType", () => {

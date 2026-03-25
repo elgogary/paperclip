@@ -34,7 +34,7 @@ import { logger } from "../middleware/logger.js";
 import { forbidden, HttpError, unauthorized } from "../errors.js";
 import { assertCompanyAccess, getActorInfo } from "./authz.js";
 import { shouldWakeAssigneeOnCheckout } from "./issues-checkout-wakeup.js";
-import { isAllowedContentType, MAX_ATTACHMENT_BYTES } from "../attachment-types.js";
+import { isAllowedContentType, MAX_ATTACHMENT_BYTES, MAX_VIDEO_BYTES } from "../attachment-types.js";
 import { queueIssueAssignmentWakeup } from "../services/issue-assignment-wakeup.js";
 
 const MAX_ISSUE_COMMENT_LIMIT = 500;
@@ -54,7 +54,7 @@ export function issueRoutes(db: Db, storage: StorageService) {
   const routinesSvc = routineService(db);
   const upload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: MAX_ATTACHMENT_BYTES, files: 1 },
+    limits: { fileSize: MAX_VIDEO_BYTES, files: 1 },
   });
 
   function withContentPath<T extends { id: string }>(attachment: T) {

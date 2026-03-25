@@ -73,20 +73,32 @@ const allowedPatterns: string[] = parseAllowedTypes(
   process.env.PAPERCLIP_ALLOWED_ATTACHMENT_TYPES,
 );
 
-/** Convenience wrapper using the process-level allowed list. */
+/**
+ * Convenience wrapper using the process-level allowed list.
+ * The list is fixed at startup from PAPERCLIP_ALLOWED_ATTACHMENT_TYPES;
+ * restart the process to pick up changes to that env var.
+ */
 export function isAllowedContentType(contentType: string): boolean {
   return matchesContentType(contentType, allowedPatterns);
 }
 
-export const MAX_ATTACHMENT_BYTES =
-  Number(process.env.PAPERCLIP_ATTACHMENT_MAX_BYTES) || 100 * 1024 * 1024; // 100 MB
+function parseEnvBytes(key: string, defaultBytes: number): number {
+  const raw = process.env[key];
+  if (raw === undefined) return defaultBytes;
+  const parsed = Number(raw);
+  if (isNaN(parsed)) {
+    console.warn(`[attachment-types] Invalid value for ${key}: "${raw}", using default ${defaultBytes}`);
+    return defaultBytes;
+  }
+  return parsed;
+}
 
-export const MAX_VIDEO_BYTES =
-  Number(process.env.PAPERCLIP_VIDEO_MAX_BYTES) || 2 * 1024 * 1024 * 1024; // 2 GB
+export const MAX_ATTACHMENT_BYTES = parseEnvBytes("PAPERCLIP_ATTACHMENT_MAX_BYTES", 100 * 1024 * 1024);
+export const MAX_VIDEO_BYTES = parseEnvBytes("PAPERCLIP_VIDEO_MAX_BYTES", 2 * 1024 * 1024 * 1024);
 
 /** Returns true if the MIME type is a video format. */
 export function isVideoType(mimeType: string): boolean {
-  return mimeType.startsWith("video/");
+  return mimeType.toLowerCase().startsWith("video/");
 }
 
 /** Returns the maximum allowed bytes for a given MIME type. */

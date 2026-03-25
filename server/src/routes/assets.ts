@@ -6,7 +6,7 @@ import type { Db } from "@paperclipai/db";
 import { createAssetImageMetadataSchema } from "@paperclipai/shared";
 import type { StorageService } from "../storage/types.js";
 import { assetService, logActivity } from "../services/index.js";
-import { isAllowedContentType, MAX_ATTACHMENT_BYTES } from "../attachment-types.js";
+import { isAllowedContentType, MAX_ATTACHMENT_BYTES, MAX_VIDEO_BYTES } from "../attachment-types.js";
 import { assertCompanyAccess, getActorInfo } from "./authz.js";
 const SVG_CONTENT_TYPE = "image/svg+xml";
 const ALLOWED_COMPANY_LOGO_CONTENT_TYPES = new Set([
@@ -87,11 +87,11 @@ export function assetRoutes(db: Db, storage: StorageService) {
   const svc = assetService(db);
   const assetUpload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: MAX_ATTACHMENT_BYTES, files: 1 },
+    limits: { fileSize: MAX_VIDEO_BYTES, files: 1 },
   });
   const companyLogoUpload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: MAX_ATTACHMENT_BYTES, files: 1 },
+    limits: { fileSize: MAX_VIDEO_BYTES, files: 1 },
   });
 
   async function runSingleFileUpload(
