@@ -427,10 +427,20 @@ export const pluginsApi = {
 export interface Plugin {
   id: string;
   companyId: string;
-  pluginKey: string;
   name: string;
+  slug: string;
+  description: string | null;
+  icon: string | null;
+  transport: string | null;
+  command: string | null;
+  args: string[] | null;
+  env: Record<string, string> | null;
+  url: string | null;
+  toolCount: number;
+  tools: { name: string; description: string }[] | null;
+  healthStatus: string | null;
+  lastHealthCheck: string | null;
   enabled: boolean;
-  config: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
 }
@@ -444,9 +454,14 @@ export interface PluginAgentAccess {
 }
 
 export interface CreatePluginInput {
-  pluginKey: string;
   name: string;
-  config?: Record<string, unknown>;
+  description?: string | null;
+  icon?: string | null;
+  transport?: string | null;
+  command?: string | null;
+  args?: string[] | null;
+  env?: Record<string, string> | null;
+  url?: string | null;
 }
 
 export type UpdatePluginInput = Partial<CreatePluginInput & { enabled: boolean }>;
