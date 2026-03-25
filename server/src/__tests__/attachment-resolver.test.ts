@@ -487,6 +487,40 @@ describe("resolveAttachTokens", () => {
     );
   });
 
+  it("rejects symlink that escapes workspace root (stat succeeds but realpath outside)", async () => {
+    // File exists at /workspace/evil-link but realpath resolves to /etc/passwd
+    vi.mocked(fsPromises.realpath).mockResolvedValue("/etc/passwd");
+    vi.mocked(fsPromises.stat).mockResolvedValue({ size: 100 } as any);
+
+    const tokens = [{ raw: "[[attach:/workspace/evil-link]]", path: "/workspace/evil-link" }];
+    const { resolved, failed } = await resolveAttachTokens(tokens, {
+      ...baseOpts,
+      db: mockDb as any,
+      storage: mockStorage as any,
+    });
+
+    expect(resolved).toHaveLength(0);
+    expect(failed).toHaveLength(1);
+    expect(failed[0].reason).toBe("path_outside_workspace");
+    expect(mockStorage.putFile).not.toHaveBeenCalled();
+    // stat should NOT have been called — realpath check catches it first
+    expect(fsPromises.stat).not.toHaveBeenCalled();
+  });
+
+  it("rejects path containing null bytes", async () => {
+    const tokens = [{ raw: "[[attach:/workspace/evil\0.pdf]]", path: "/workspace/evil\0.pdf" }];
+    const { resolved, failed } = await resolveAttachTokens(tokens, {
+      ...baseOpts,
+      db: mockDb as any,
+      storage: mockStorage as any,
+    });
+
+    expect(resolved).toHaveLength(0);
+    expect(failed).toHaveLength(1);
+    expect(failed[0].reason).toBe("path_outside_workspace");
+    expect(mockStorage.putFile).not.toHaveBeenCalled();
+  });
+
   it("processes tokens normally when uploaderType is agent", async () => {
     mockFsSuccess("/workspace/file.pdf");
 

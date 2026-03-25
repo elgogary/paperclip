@@ -94,24 +94,29 @@ export async function resolveAttachTokens(
     let uploadedKey: string | undefined;
 
     try {
-      // Resolve the path — if absolute use directly, otherwise resolve relative to workspaceRoot
+      // Null byte guard — reject before any fs operations
+      if (token.path.includes('\0')) {
+        throw new Error(`Path traversal detected: ${token.path}`);
+      }
+
+      // Pre-resolve check: reject obviously bad paths (relative traversal, absolute outside workspace)
+      if (!isSafePath(token.path, workspaceRoot)) {
+        throw new Error(`Path traversal detected: ${token.path}`);
+      }
+
+      // Resolve the path for fs operations
       const normalized = path.isAbsolute(token.path)
         ? path.resolve(token.path)
         : path.resolve(workspaceRoot, token.path);
 
-      if (!isSafePath(normalized, workspaceRoot)) {
-        throw new Error(`Path traversal detected: ${token.path}`);
-      }
-
-      // Fix 1: resolve symlinks and re-validate
+      // Post-realpath check: catch symlink escapes
       let realPath: string;
       try {
         realPath = await fs.realpath(normalized);
       } catch {
         throw new Error(`File not found: ${token.path}`);
       }
-      const root = workspaceRoot.endsWith("/") ? workspaceRoot : `${workspaceRoot}/`;
-      if (realPath !== workspaceRoot && !realPath.startsWith(root)) {
+      if (!realPath.startsWith(workspaceRoot + path.sep) && realPath !== workspaceRoot) {
         throw new Error(`Path traversal detected: ${token.path}`);
       }
 

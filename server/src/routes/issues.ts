@@ -916,6 +916,8 @@ export function issueRoutes(db: Db, storage: StorageService) {
           agentId: actor.agentId,
           db,
           storage,
+          workspaceRoot: process.env.PAPERCLIP_WORKSPACE_ROOT ?? "/workspace",
+          uploaderType: actor.actorType === "agent" ? "agent" : "user",
         });
         resolvedCommentBody = replaceAttachTokens(resolvedCommentBody, patchResult.resolved, patchResult.failed);
       }
@@ -1318,6 +1320,8 @@ export function issueRoutes(db: Db, storage: StorageService) {
         agentId: actor.agentId,
         db,
         storage,
+        workspaceRoot: process.env.PAPERCLIP_WORKSPACE_ROOT ?? "/workspace",
+        uploaderType: actor.actorType === "agent" ? "agent" : "user",
       });
       commentBody = replaceAttachTokens(commentBody, attachResult.resolved, attachResult.failed);
     }
