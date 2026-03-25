@@ -100,3 +100,42 @@ describe("POST /convert", () => {
     expect(res.body.error).toMatch(/SSRF/);
   });
 });
+
+describe("POST /extract", () => {
+  let app;
+  beforeEach(() => {
+    app = createApp();
+  });
+
+  it("returns 400 when storageUrl is missing", async () => {
+    const res = await request(app)
+      .post("/extract")
+      .send({ mimeType: "application/pdf" });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/storageUrl/);
+  });
+
+  it("returns 400 when mimeType is missing", async () => {
+    const res = await request(app)
+      .post("/extract")
+      .send({ storageUrl: "https://example.com/file.pdf" });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/mimeType/);
+  });
+
+  it("returns 422 for unsupported mime type", async () => {
+    const res = await request(app)
+      .post("/extract")
+      .send({ storageUrl: "https://example.com/file.png", mimeType: "image/png" });
+    expect(res.status).toBe(422);
+    expect(res.body.error).toMatch(/Unsupported/);
+  });
+
+  it("blocks SSRF attempts to loopback", async () => {
+    const res = await request(app)
+      .post("/extract")
+      .send({ storageUrl: "http://127.0.0.1:9000/file.pdf", mimeType: "application/pdf" });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/SSRF/);
+  });
+});

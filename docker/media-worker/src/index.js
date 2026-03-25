@@ -9,6 +9,7 @@ import { URL } from "node:url";
 import { fileURLToPath } from "node:url";
 import { generateThumbnail } from "./thumbnail.js";
 import { convertToHtml, isOfficeType, MIME_TO_EXT } from "./convert.js";
+import { extractText, SUPPORTED_EXTRACT_TYPES } from "./extract.js";
 
 const VERSION = "1.0.0";
 
@@ -131,6 +132,43 @@ export function createApp() {
       res.status(500).json({ error: err.message || "Conversion failed" });
     }
     // workDir cleanup is handled inside convertToHtml's finally block
+  });
+
+  // POST /extract — extract text from a document
+  app.post("/extract", async (req, res) => {
+    const { storageUrl, mimeType } = req.body ?? {};
+
+    if (!storageUrl || !mimeType) {
+      res.status(400).json({ error: "storageUrl and mimeType are required" });
+      return;
+    }
+
+    try {
+      assertSafeUrl(storageUrl);
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+      return;
+    }
+
+    if (!SUPPORTED_EXTRACT_TYPES.has(mimeType)) {
+      res.status(422).json({ error: "Unsupported MIME type for extraction: " + mimeType });
+      return;
+    }
+
+    const workDir = await mkdtemp(join(tmpdir(), "media-extract-"));
+    const ext = mimeType.split("/")[1]?.split("+")[0] || "bin";
+    const inputPath = join(workDir, `input.${ext}`);
+
+    try {
+      await downloadToFile(storageUrl, inputPath);
+      const buffer = await fs.readFile(inputPath);
+      const text = await extractText(buffer, mimeType);
+      res.json({ text: text ?? "" });
+    } catch (err) {
+      res.status(500).json({ error: err.message || "Text extraction failed" });
+    } finally {
+      try { await fs.rm(workDir, { recursive: true, force: true }); } catch {}
+    }
   });
 
   return app;
