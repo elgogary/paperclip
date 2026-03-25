@@ -28,6 +28,12 @@ export function pluginRoutes(db: Db) {
   const router = Router();
   const svc = pluginsService(db);
 
+  // Upstream UI calls this to load dynamic plugin UI bundles.
+  // We don't run a plugin worker runtime — return empty array to suppress the error banner.
+  router.get("/plugins/ui-contributions", (_req, res) => {
+    res.json([]);
+  });
+
   router.get("/companies/:companyId/plugins", async (req, res) => {
     assertBoard(req);
     const { companyId } = req.params as { companyId: string };
