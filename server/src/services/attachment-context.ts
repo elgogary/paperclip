@@ -13,6 +13,7 @@ import { attachments, issueComments } from "@paperclipai/db";
 import type { Db } from "@paperclipai/db";
 import { eq, inArray, and, asc } from "drizzle-orm";
 import type { StorageService } from "../storage/types.js";
+import { extractPdfText, extractDocxText, extractSpreadsheetRows } from "./attachment-extractors.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -44,6 +45,8 @@ const MAX_IMAGE_BYTES_PER_RUN = 10 * 1024 * 1024; // 10 MB
 const MAX_DOC_EXTRACTS_PER_RUN = 3;
 const MAX_DOC_CHARS = 2000;
 const MAX_CODE_CHARS = 3000;
+const MAX_DIRECT_EXTRACT_BYTES = 2 * 1024 * 1024; // 2 MB source file cap for direct extraction
+const MAX_SPREADSHEET_ROWS = 50;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -62,6 +65,22 @@ function isDocMime(mime: string): boolean {
     mime === "application/pdf" ||
     mime.startsWith("application/vnd.openxmlformats-officedocument.")
   );
+}
+
+function isSpreadsheetMime(mime: string): boolean {
+  return (
+    mime === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+    mime === "application/vnd.ms-excel" ||
+    mime === "text/csv"
+  );
+}
+
+function isPdfMime(mime: string): boolean {
+  return mime === "application/pdf";
+}
+
+function isDocxMime(mime: string): boolean {
+  return mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 }
 
 function isTextMime(mime: string): boolean {
@@ -187,8 +206,33 @@ async function processAttachment(
     return { imageBytes: 0, fileNotes: [`[Video attached: ${filename} (${sizeLabel})]`] };
   }
 
+  // ----- Spreadsheet attachments (XLSX, XLS, CSV) -----
+  if (isSpreadsheetMime(mimeType)) {
+    if (sizeBytes > MAX_DIRECT_EXTRACT_BYTES) {
+      return { imageBytes: 0, fileNotes: [`[Spreadsheet attached: ${filename} (${sizeLabel}) \u2014 too large for extraction]`] };
+    }
+    try {
+      const obj = await deps.storage.getObject(deps.companyId, storageKey);
+      const buf = await streamToBuffer(obj.stream);
+      const rows = await extractSpreadsheetRows(buf, mimeType, MAX_SPREADSHEET_ROWS);
+      const json = JSON.stringify(rows, null, 2);
+      const text = json.slice(0, MAX_DOC_CHARS);
+      const wasTruncated = json.length > MAX_DOC_CHARS;
+      return {
+        imageBytes: 0,
+        textSnippet: `--- Spreadsheet: ${filename} (first ${Math.min(rows.length, MAX_SPREADSHEET_ROWS)} rows) ---\n${text}${wasTruncated ? "\n[...truncated]" : ""}`,
+        isDocExtract: true,
+        budgetSkipNote: `[Spreadsheet attached: ${filename} (${sizeLabel}) \u2014 extract limit reached]`,
+      };
+    } catch (err) {
+      console.warn(`[attachment-context] Failed to extract spreadsheet ${filename}:`, (err as Error).message);
+      return { imageBytes: 0, fileNotes: [`[Spreadsheet attached: ${filename} (${sizeLabel}) \u2014 extraction failed]`] };
+    }
+  }
+
   // ----- Document attachments (PDF, Office) -----
   if (isDocMime(mimeType)) {
+    // Try pre-generated HTML preview first
     if (htmlPreviewKey) {
       try {
         const obj = await deps.storage.getObject(deps.companyId, htmlPreviewKey);
@@ -205,9 +249,39 @@ async function processAttachment(
         };
       } catch (err) {
         console.warn(`[attachment-context] Failed to download HTML preview for ${filename}:`, (err as Error).message);
-        return { imageBytes: 0, fileNotes: [`[Document attached: ${filename} (${sizeLabel}) \u2014 text preview unavailable]`] };
+        // Fall through to direct extraction
       }
     }
+
+    // Direct extraction fallback for PDF and DOCX
+    if (sizeBytes > MAX_DIRECT_EXTRACT_BYTES) {
+      return { imageBytes: 0, fileNotes: [`[Document attached: ${filename} (${sizeLabel}) \u2014 too large for extraction]`] };
+    }
+    try {
+      const obj = await deps.storage.getObject(deps.companyId, storageKey);
+      const buf = await streamToBuffer(obj.stream);
+      let extracted: string | null = null;
+
+      if (isPdfMime(mimeType)) {
+        extracted = await extractPdfText(buf);
+      } else if (isDocxMime(mimeType)) {
+        extracted = await extractDocxText(buf);
+      }
+
+      if (extracted && extracted.trim().length > 0) {
+        const text = extracted.slice(0, MAX_DOC_CHARS);
+        const wasTruncated = extracted.length > MAX_DOC_CHARS;
+        return {
+          imageBytes: 0,
+          textSnippet: `--- Document: ${filename} ---\n${text}${wasTruncated ? "\n[...truncated]" : ""}`,
+          isDocExtract: true,
+          budgetSkipNote: `[Document attached: ${filename} (${sizeLabel}) \u2014 extract limit reached]`,
+        };
+      }
+    } catch (err) {
+      console.warn(`[attachment-context] Direct extraction failed for ${filename}:`, (err as Error).message);
+    }
+
     return { imageBytes: 0, fileNotes: [`[Document attached: ${filename} (${sizeLabel}) \u2014 text preview unavailable]`] };
   }
 

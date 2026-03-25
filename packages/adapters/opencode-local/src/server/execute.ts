@@ -263,10 +263,12 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       ? renderTemplate(bootstrapPromptTemplate, templateData).trim()
       : "";
   const sessionHandoffNote = asString(context.paperclipSessionHandoffMarkdown, "").trim();
+  const attachmentMarkdown = asString(context.paperclipAttachmentMarkdown, "").trim();
   const prompt = joinPromptSections([
     instructionsPrefix,
     renderedBootstrapPrompt,
     sessionHandoffNote,
+    attachmentMarkdown ? `[Attached files in this issue thread:\n${attachmentMarkdown}]` : "",
     renderedPrompt,
   ]);
   const promptMetrics = {
@@ -274,6 +276,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     instructionsChars: instructionsPrefix.length,
     bootstrapPromptChars: renderedBootstrapPrompt.length,
     sessionHandoffChars: sessionHandoffNote.length,
+    attachmentMarkdownChars: attachmentMarkdown.length,
     heartbeatPromptChars: renderedPrompt.length,
   };
 

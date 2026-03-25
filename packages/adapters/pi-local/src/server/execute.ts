@@ -301,9 +301,11 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       ? renderTemplate(bootstrapPromptTemplate, templateData).trim()
       : "";
   const sessionHandoffNote = asString(context.paperclipSessionHandoffMarkdown, "").trim();
+  const attachmentMarkdown = asString(context.paperclipAttachmentMarkdown, "").trim();
   const userPrompt = joinPromptSections([
     renderedBootstrapPrompt,
     sessionHandoffNote,
+    attachmentMarkdown ? `[Attached files in this issue thread:\n${attachmentMarkdown}]` : "",
     renderedHeartbeatPrompt,
   ]);
   const promptMetrics = {
@@ -311,6 +313,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     promptChars: userPrompt.length,
     bootstrapPromptChars: renderedBootstrapPrompt.length,
     sessionHandoffChars: sessionHandoffNote.length,
+    attachmentMarkdownChars: attachmentMarkdown.length,
     heartbeatPromptChars: renderedHeartbeatPrompt.length,
   };
 
