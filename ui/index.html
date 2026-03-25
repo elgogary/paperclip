@@ -6,21 +6,30 @@
     <meta name="theme-color" content="#18181b" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<<<<<<< HEAD
     <meta name="apple-mobile-web-app-title" content="Paperclip" />
     <title>Paperclip</title>
     <!-- PAPERCLIP_RUNTIME_BRANDING_START -->
     <!-- PAPERCLIP_RUNTIME_BRANDING_END -->
     <!-- PAPERCLIP_FAVICON_START -->
+=======
+    <meta name="apple-mobile-web-app-title" content="Sanad AI EOI" />
+    <title>Sanad AI EOI</title>
+    <!-- SANAD_FAVICON_START -->
+>>>>>>> feature/chat-ui
     <link rel="icon" href="/favicon.ico" sizes="48x48" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-    <!-- PAPERCLIP_FAVICON_END -->
+    <!-- SANAD_FAVICON_END -->
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital@1&display=swap" rel="stylesheet" />
     <script>
       (() => {
-        const key = "paperclip.theme";
+        const key = "sanad-eoi.theme";
         const darkThemeColor = "#18181b";
         const lightThemeColor = "#ffffff";
         try {
@@ -39,8 +48,99 @@
         }
       })();
     </script>
+    <style>
+      #sanad-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        transition: opacity 0.4s ease-out;
+      }
+      .dark #sanad-splash { background: #18181b; }
+      :not(.dark) #sanad-splash { background: #ffffff; }
+      #sanad-splash.fade-out {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #sanad-splash svg {
+        animation: sanad-pulse 1.5s ease-in-out infinite;
+      }
+      #sanad-splash .sanad-dots circle,
+      #sanad-splash .sanad-dots line {
+        animation: sanad-dots-fade 2s ease-in-out infinite;
+      }
+      #sanad-splash .sanad-dots circle:nth-child(2) { animation-delay: 0.3s; }
+      #sanad-splash .sanad-dots circle:nth-child(3) { animation-delay: 0.6s; }
+      #sanad-splash .sanad-dots circle:nth-child(4) { animation-delay: 0.9s; }
+      #sanad-splash .sanad-sparkle-path {
+        animation: sanad-sparkle-pulse 1.5s ease-in-out infinite alternate;
+      }
+      #sanad-splash .sanad-brand {
+        margin-top: 12px;
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        opacity: 0.9;
+      }
+      #sanad-splash .sanad-tagline {
+        margin-top: 6px;
+        font-family: 'Libre Baskerville', serif;
+        font-size: 12px;
+        font-style: italic;
+        font-weight: 400;
+        letter-spacing: 0.3px;
+        opacity: 0.45;
+      }
+      .dark #sanad-splash .sanad-brand { color: #fafafa; }
+      :not(.dark) #sanad-splash .sanad-brand { color: #18181b; }
+      .dark #sanad-splash .sanad-tagline { color: #a1a1aa; }
+      :not(.dark) #sanad-splash .sanad-tagline { color: #71717a; }
+      .dark #sanad-splash .sanad-letter { fill: #fafafa; stroke: #fafafa; }
+      :not(.dark) #sanad-splash .sanad-letter { fill: #18181b; stroke: #18181b; }
+      .dark #sanad-splash .sanad-sparkle-path { fill: #fafafa; }
+      :not(.dark) #sanad-splash .sanad-sparkle-path { fill: #18181b; }
+      @keyframes sanad-pulse {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.05); opacity: 0.85; }
+      }
+      @keyframes sanad-dots-fade {
+        0%, 100% { opacity: 0.3; }
+        50% { opacity: 0.9; }
+      }
+      @keyframes sanad-sparkle-pulse {
+        0% { opacity: 0.3; }
+        100% { opacity: 0.8; }
+      }
+    </style>
   </head>
   <body>
+    <!-- Splash screen — removed by React on mount -->
+    <div id="sanad-splash">
+      <svg viewBox="0 0 72 72" fill="none" width="72" height="72">
+        <text class="sanad-letter" x="36" y="46" text-anchor="middle"
+          font-family="system-ui,-apple-system,sans-serif" font-weight="900"
+          font-size="40">S</text>
+        <g class="sanad-dots">
+          <circle class="sanad-letter" cx="58" cy="12" r="2" opacity="0.8"/>
+          <circle class="sanad-letter" cx="64" cy="22" r="1.2" opacity="0.5"/>
+          <circle class="sanad-letter" cx="54" cy="6" r="1" opacity="0.4"/>
+          <circle class="sanad-letter" cx="62" cy="16" r="0.8" opacity="0.3"/>
+          <line class="sanad-letter" x1="58" y1="12" x2="64" y2="22" stroke-width="0.5" opacity="0.2"/>
+          <line class="sanad-letter" x1="58" y1="12" x2="54" y2="6" stroke-width="0.5" opacity="0.2"/>
+          <line class="sanad-letter" x1="64" y1="22" x2="62" y2="16" stroke-width="0.5" opacity="0.15"/>
+        </g>
+        <path class="sanad-sparkle-path"
+          d="M60 8 L60.5 9.5 L62 10 L60.5 10.5 L60 12 L59.5 10.5 L58 10 L59.5 9.5Z"
+          opacity="0.6"/>
+      </svg>
+      <div class="sanad-brand">SANAD AI</div>
+      <div class="sanad-tagline">Intelligent Enterprise Operations</div>
+    </div>
+
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

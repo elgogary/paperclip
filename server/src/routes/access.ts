@@ -2642,7 +2642,28 @@ export function accessRoutes(
     const companyId = req.params.companyId as string;
     await assertCompanyPermission(req, companyId, "users:manage_permissions");
     const members = await access.listMembers(companyId);
-    res.json(members);
+
+    // Enrich with user name/email for human members
+    const userIds = members
+      .filter((m) => m.principalType === "user")
+      .map((m) => m.principalId);
+
+    let userMap: Record<string, { name: string | null; email: string | null }> = {};
+    if (userIds.length > 0) {
+      const { authUsers } = await import("@paperclipai/db");
+      const { inArray } = await import("drizzle-orm");
+      const users = await db
+        .select({ id: authUsers.id, name: authUsers.name, email: authUsers.email })
+        .from(authUsers)
+        .where(inArray(authUsers.id, userIds));
+      userMap = Object.fromEntries(users.map((u) => [u.id, { name: u.name, email: u.email }]));
+    }
+
+    const enriched = members.map((m) => ({
+      ...m,
+      user: m.principalType === "user" ? (userMap[m.principalId] ?? null) : null,
+    }));
+    res.json(enriched);
   });
 
   router.patch(

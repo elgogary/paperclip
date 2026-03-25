@@ -5,12 +5,15 @@ import {
   LayoutDashboard,
   DollarSign,
   History,
+  MessageSquare,
+  BookOpen,
   Search,
   SquarePen,
   Network,
   Boxes,
   Repeat,
   Settings,
+  Brain,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { SidebarSection } from "./SidebarSection";
@@ -88,6 +91,8 @@ export function Sidebar() {
             badgeTone={inboxBadge.failedRuns > 0 ? "danger" : "default"}
             alert={inboxBadge.failedRuns > 0}
           />
+          <SidebarNavItem to="/chat" label="Chat" icon={MessageSquare} />
+          <SidebarNavItem to="/docs" label="Docs" icon={BookOpen} />
           <PluginSlotOutlet
             slotTypes={["sidebar"]}
             context={pluginContext}
@@ -110,6 +115,7 @@ export function Sidebar() {
         <SidebarSection label="Company">
           <SidebarNavItem to="/org" label="Org" icon={Network} />
           <SidebarNavItem to="/skills" label="Skills" icon={Boxes} />
+          <SidebarNavItem to="/brain" label="Brain" icon={Brain} />
           <SidebarNavItem to="/costs" label="Costs" icon={DollarSign} />
           <SidebarNavItem to="/activity" label="Activity" icon={History} />
           <SidebarNavItem to="/company/settings" label="Settings" icon={Settings} />

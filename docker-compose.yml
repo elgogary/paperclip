@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:17-alpine
+    image: postgres:16-alpine
     environment:
       POSTGRES_USER: paperclip
       POSTGRES_PASSWORD: paperclip
@@ -29,7 +29,12 @@ services:
       PAPERCLIP_DEPLOYMENT_EXPOSURE: "private"
       PAPERCLIP_PUBLIC_URL: "${PAPERCLIP_PUBLIC_URL:-http://localhost:3100}"
       BETTER_AUTH_SECRET: "${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET must be set}"
+<<<<<<< HEAD
       PAPERCLIP_MEDIA_WORKER_URL: "http://paperclip-media-worker:3200"
+=======
+      SANAD_BRAIN_URL: "http://100.109.59.30:8100"
+      SANAD_BRAIN_API_KEY: "c246f4294bf4a99ccfb2883f68352a9889789076414b7cf93cbd3fb01f735d4e"
+>>>>>>> feature/chat-ui
     volumes:
       - paperclip-data:/paperclip
     depends_on:

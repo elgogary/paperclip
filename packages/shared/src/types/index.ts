@@ -138,7 +138,11 @@ export type {
   JoinRequest,
   InstanceUserRoleGrant,
 } from "./access.js";
+<<<<<<< HEAD
 export type { QuotaWindow, ProviderQuotaResult } from "./quota.js";
+=======
+export type { AgentUserAccess } from "./agent-access.js";
+>>>>>>> feature/chat-ui
 export type {
   CompanyPortabilityInclude,
   CompanyPortabilityEnvInput,

@@ -14,5 +14,10 @@ export { dashboardRoutes } from "./dashboard.js";
 export { sidebarBadgeRoutes } from "./sidebar-badges.js";
 export { llmRoutes } from "./llms.js";
 export { accessRoutes } from "./access.js";
+<<<<<<< HEAD
 export { attachmentRoutes } from "./attachments.js";
 export { instanceSettingsRoutes } from "./instance-settings.js";
+=======
+export { agentAccessRoutes } from "./agent-access.js";
+export { sanadBrainRoutes } from "./sanad-brain.js";
+>>>>>>> feature/chat-ui

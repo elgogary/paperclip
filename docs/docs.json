@@ -1,7 +1,7 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "name": "Paperclip",
-  "description": "The control plane for autonomous AI companies",
+  "name": "Sanad AI EOI",
+  "description": "Enterprise Operational Intelligence — AI agent crew coordination platform",
   "theme": "mint",
   "colors": {
     "primary": "#2563EB",

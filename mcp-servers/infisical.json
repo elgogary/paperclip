@@ -1,0 +1,12 @@
+{
+  "name": "infisical",
+  "command": "npx",
+  "args": ["-y", "@infisical/mcp"],
+  "description": "Secrets management — create, read, update, delete secrets across projects and environments",
+  "env": {
+    "INFISICAL_HOST_URL": "${INFISICAL_HOST_URL}",
+    "INFISICAL_UNIVERSAL_AUTH_CLIENT_ID": "${INFISICAL_UNIVERSAL_AUTH_CLIENT_ID}",
+    "INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET": "${INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET}"
+  },
+  "tools": ["list-projects", "list-secrets", "get-secret", "create-secret", "update-secret", "delete-secret", "create-project", "create-environment", "create-folder", "invite-members-to-project"]
+}

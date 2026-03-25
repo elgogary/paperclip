@@ -45,6 +45,7 @@ import {
   EyeOff,
   Hexagon,
   ListTree,
+  MessageCircle,
   MessageSquare,
   MoreHorizontal,
   Paperclip,
@@ -1004,6 +1005,10 @@ export function IssueDetail() {
               {item.label}
             </TabsTrigger>
           ))}
+          <TabsTrigger value="chat" className="gap-1.5">
+            <MessageCircle className="h-3.5 w-3.5" />
+            Chat
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="comments">
@@ -1124,6 +1129,20 @@ export function IssueDetail() {
             />
           </TabsContent>
         )}
+        <TabsContent value="chat">
+          <div className="rounded-md border bg-muted/30 p-4 text-center space-y-2">
+            <p className="text-sm text-muted-foreground">
+              Open full chat view for this issue
+            </p>
+            <Link
+              to={`/chat/${issue.assigneeAgentId}/${issue.id}`}
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+            >
+              <MessageCircle className="h-4 w-4" />
+              Open Chat
+            </Link>
+          </div>
+        </TabsContent>
       </Tabs>
 
       {linkedApprovals && linkedApprovals.length > 0 && (

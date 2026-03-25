@@ -1,0 +1,13 @@
+{
+  "name": "sanad-brain",
+  "command": "sanad-brain-mcp",
+  "description": "Persistent memory, knowledge RAG, and tool management for AI agents",
+  "env": {
+    "SANAD_BRAIN_URL": "http://100.109.59.30:8100",
+    "SANAD_BRAIN_API_KEY": "${SANAD_BRAIN_API_KEY}",
+    "SANAD_COMPANY_ID": "${SANAD_COMPANY_ID}",
+    "SANAD_USER_ID": "${SANAD_USER_ID}",
+    "SANAD_AGENT_ID": "${SANAD_AGENT_ID}"
+  },
+  "tools": ["recall", "remember", "remember_fact", "remember_raw", "remember_raw_batch", "forget", "build_context", "consolidate", "feedback", "memory_stats"]
+}

@@ -20,6 +20,8 @@ import { BudgetPolicyCard } from "../components/BudgetPolicyCard";
 import { IssuesList } from "../components/IssuesList";
 import { PageSkeleton } from "../components/PageSkeleton";
 import { PageTabBar } from "../components/PageTabBar";
+import { ProjectGraphTab } from "../components/ProjectGraphTab";
+import { ProjectAccessTab } from "../components/ProjectAccessTab";
 import { projectRouteRef, cn } from "../lib/utils";
 import { Tabs } from "@/components/ui/tabs";
 import { PluginLauncherOutlet } from "@/plugins/launchers";
@@ -27,7 +29,7 @@ import { PluginSlotMount, PluginSlotOutlet, usePluginSlots } from "@/plugins/slo
 
 /* ── Top-level tab types ── */
 
-type ProjectBaseTab = "overview" | "list" | "configuration" | "budget";
+type ProjectBaseTab = "overview" | "list" | "configuration" | "budget" | "graph" | "access";
 type ProjectPluginTab = `plugin:${string}`;
 type ProjectTab = ProjectBaseTab | ProjectPluginTab;
 
@@ -44,6 +46,8 @@ function resolveProjectTab(pathname: string, projectId: string): ProjectTab | nu
   if (tab === "configuration") return "configuration";
   if (tab === "budget") return "budget";
   if (tab === "issues") return "list";
+  if (tab === "graph") return "graph";
+  if (tab === "access") return "access";
   return null;
 }
 
@@ -345,6 +349,14 @@ export function ProjectDetail() {
       navigate(`/projects/${canonicalProjectRef}/budget`, { replace: true });
       return;
     }
+    if (activeTab === "graph") {
+      navigate(`/projects/${canonicalProjectRef}/graph`, { replace: true });
+      return;
+    }
+    if (activeTab === "access") {
+      navigate(`/projects/${canonicalProjectRef}/access`, { replace: true });
+      return;
+    }
     if (activeTab === "list") {
       if (filter) {
         navigate(`/projects/${canonicalProjectRef}/issues/${filter}`, { replace: true });
@@ -495,6 +507,10 @@ export function ProjectDetail() {
       navigate(`/projects/${canonicalProjectRef}/budget`);
     } else if (tab === "configuration") {
       navigate(`/projects/${canonicalProjectRef}/configuration`);
+    } else if (tab === "graph") {
+      navigate(`/projects/${canonicalProjectRef}/graph`);
+    } else if (tab === "access") {
+      navigate(`/projects/${canonicalProjectRef}/access`);
     } else {
       navigate(`/projects/${canonicalProjectRef}/issues`);
     }
@@ -563,6 +579,8 @@ export function ProjectDetail() {
             { value: "overview", label: "Overview" },
             { value: "configuration", label: "Configuration" },
             { value: "budget", label: "Budget" },
+            { value: "graph", label: "Graph" },
+            { value: "access", label: "Access" },
             ...pluginTabItems.map((item) => ({
               value: item.value,
               label: item.label,
@@ -626,6 +644,14 @@ export function ProjectDetail() {
           }}
           missingBehavior="placeholder"
         />
+      )}
+
+      {activeTab === "graph" && (
+        <ProjectGraphTab project={project} />
+      )}
+
+      {activeTab === "access" && (
+        <ProjectAccessTab project={project} />
       )}
     </div>
   );

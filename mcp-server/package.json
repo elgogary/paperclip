@@ -1,0 +1,13 @@
+{
+  "name": "@sanad-ai/mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server for Sanad AI EOI — connects Claude Code to the agent crew",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1"
+  }
+}
