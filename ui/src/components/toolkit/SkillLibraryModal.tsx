@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "../../lib/utils";
+import { SKILL_CATEGORY_BADGE } from "./toolkit-constants";
 import { X } from "lucide-react";
 
 interface SkillLibraryModalProps {
@@ -30,14 +31,6 @@ const TEMPLATES: SkillTemplate[] = [
 
 const CATEGORIES = ["All", "Coding", "Research", "Communication", "Data", "Custom"];
 
-const CATEGORY_BADGE: Record<string, string> = {
-  Coding: "bg-indigo-500/14 text-indigo-300",
-  Research: "bg-cyan-500/12 text-cyan-300",
-  Communication: "bg-pink-500/12 text-pink-300",
-  Data: "bg-cyan-500/12 text-cyan-300",
-  Custom: "bg-amber-500/12 text-amber-300",
-};
-
 export function SkillLibraryModal({ open, onClose, onAdd }: SkillLibraryModalProps) {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
@@ -56,7 +49,7 @@ export function SkillLibraryModal({ open, onClose, onAdd }: SkillLibraryModalPro
       <DialogContent showCloseButton={false} className="sm:max-w-[680px] p-0 gap-0">
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
           <h3 className="text-base font-bold">Skill Library</h3>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <button onClick={onClose} aria-label="Close" className="text-muted-foreground hover:text-foreground">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -96,7 +89,7 @@ export function SkillLibraryModal({ open, onClose, onAdd }: SkillLibraryModalPro
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2">{tpl.description}</p>
                 <div className="flex items-center justify-between mt-2.5">
-                  <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium", CATEGORY_BADGE[tpl.category] ?? "bg-muted text-muted-foreground")}>
+                  <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium", SKILL_CATEGORY_BADGE[tpl.category] ?? "bg-muted text-muted-foreground")}>
                     {tpl.category}
                   </span>
                   <Button size="sm" variant="default" className="h-6 px-2.5 text-xs bg-emerald-600 hover:bg-emerald-500 text-white" onClick={() => onAdd(tpl)}>

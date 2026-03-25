@@ -1,6 +1,7 @@
 import { asc, eq } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
 import { connectors } from "@paperclipai/db";
+import { toSlug } from "../utils/slug.js";
 
 export type Connector = typeof connectors.$inferSelect;
 
@@ -37,10 +38,7 @@ export function connectorsService(db: Db) {
 
     async create(input: CreateConnectorInput): Promise<Connector> {
       const now = new Date();
-      const slug = input.name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "");
+      const slug = toSlug(input.name);
       const rows = await db
         .insert(connectors)
         .values({

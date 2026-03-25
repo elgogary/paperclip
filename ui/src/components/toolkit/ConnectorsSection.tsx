@@ -144,6 +144,7 @@ export function ConnectorsSection() {
             <input
               type="text"
               placeholder="Search connectors..."
+              aria-label="Search connectors"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-8 pr-3 py-1.5 rounded-md border border-border bg-card text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-ring"

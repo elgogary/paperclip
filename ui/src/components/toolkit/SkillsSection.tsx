@@ -13,19 +13,13 @@ import { SkillLibraryModal } from "./SkillLibraryModal";
 import { cn } from "../../lib/utils";
 import {
   Plus, BookOpen, Search, LayoutGrid, List,
-  FileText, Bug, Code2, BarChart3, Microscope,
+  FileText, Code2,
 } from "lucide-react";
+
+import { SKILL_CATEGORY_BADGE, AGENT_COLORS, getInitials } from "./toolkit-constants";
 
 type ViewMode = "cards" | "list";
 type Filter = "all" | "custom" | "builtin";
-
-const CATEGORY_BADGE: Record<string, string> = {
-  Coding: "bg-indigo-500/14 text-indigo-300",
-  Research: "bg-cyan-500/12 text-cyan-300",
-  Communication: "bg-pink-500/12 text-pink-300",
-  Data: "bg-cyan-500/12 text-cyan-300",
-  Custom: "bg-amber-500/12 text-amber-300",
-};
 
 const SKILL_ICONS: Record<string, string> = {
   "add-api-method": "\u{1F4E6}",
@@ -35,19 +29,6 @@ const SKILL_ICONS: Record<string, string> = {
   research: "\u{1F50D}",
   "data-analysis": "\u{1F4CA}",
 };
-
-const AGENT_COLORS = [
-  { bg: "rgba(168,85,247,.15)", fg: "#c084fc" },
-  { bg: "rgba(59,130,246,.15)", fg: "#93c5fd" },
-  { bg: "rgba(236,72,153,.15)", fg: "#f9a8d4" },
-  { bg: "rgba(34,197,94,.15)", fg: "#86efac" },
-  { bg: "rgba(251,191,36,.15)", fg: "#fcd34d" },
-  { bg: "rgba(249,115,22,.15)", fg: "#fdba74" },
-];
-
-function getInitials(name: string): string {
-  return name.split(/[\s-]+/).map((w) => w[0]).join("").toUpperCase().slice(0, 2);
-}
 
 export function SkillsSection() {
   const { selectedCompanyId } = useCompany();
@@ -116,7 +97,7 @@ export function SkillsSection() {
 
   const customCount = skills.filter((s) => s.source === "user").length;
   const builtinCount = skills.filter((s) => s.source === "builtin").length;
-  const agentsUsingCount = skills.length;
+  const agentsUsingCount = agents.length;
 
   function openDetail(skill: Skill) {
     setSelectedSkill(skill);
@@ -202,6 +183,7 @@ export function SkillsSection() {
             <input
               type="text"
               placeholder="Search skills..."
+              aria-label="Search skills"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-8 pr-3 py-1.5 rounded-md border border-border bg-card text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-ring"
@@ -224,6 +206,7 @@ export function SkillsSection() {
           <div className="ml-auto flex items-center gap-0.5 rounded-md border border-border p-0.5">
             <button
               onClick={() => setViewMode("cards")}
+              aria-label="Card view"
               className={cn(
                 "rounded p-1 transition-colors",
                 viewMode === "cards" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground",
@@ -233,6 +216,7 @@ export function SkillsSection() {
             </button>
             <button
               onClick={() => setViewMode("list")}
+              aria-label="List view"
               className={cn(
                 "rounded p-1 transition-colors",
                 viewMode === "list" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground",
@@ -268,6 +252,7 @@ export function SkillsSection() {
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); toggleSkill.mutate(skill); }}
+                    aria-label={`${skill.enabled ? "Disable" : "Enable"} ${skill.name}`}
                     className={cn(
                       "relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0",
                       skill.enabled ? "bg-emerald-500" : "bg-muted",
@@ -285,7 +270,7 @@ export function SkillsSection() {
                 <div className="flex items-center justify-between">
                   <span className={cn(
                     "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium",
-                    CATEGORY_BADGE[skill.category ?? "Custom"] ?? "bg-muted text-muted-foreground",
+                    SKILL_CATEGORY_BADGE[skill.category ?? "Custom"] ?? "bg-muted text-muted-foreground",
                   )}>
                     {skill.category ?? "Custom"}
                   </span>
@@ -344,7 +329,7 @@ export function SkillsSection() {
                     <td className="px-3 py-2.5">
                       <span className={cn(
                         "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium",
-                        CATEGORY_BADGE[skill.category ?? "Custom"] ?? "bg-muted text-muted-foreground",
+                        SKILL_CATEGORY_BADGE[skill.category ?? "Custom"] ?? "bg-muted text-muted-foreground",
                       )}>
                         {skill.category ?? "Custom"}
                       </span>
@@ -359,6 +344,7 @@ export function SkillsSection() {
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); toggleSkill.mutate(skill); }}
+                        aria-label={`${skill.enabled ? "Disable" : "Enable"} ${skill.name}`}
                         className={cn(
                           "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
                           skill.enabled ? "bg-emerald-500" : "bg-muted",

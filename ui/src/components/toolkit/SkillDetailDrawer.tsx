@@ -79,8 +79,9 @@ export function SkillDetailDrawer({ open, onClose, skill }: SkillDetailDrawerPro
   });
 
   function handleSave() {
-    updateSkill.mutate();
-    updateAccess.mutate(grants);
+    updateSkill.mutate(undefined, {
+      onSuccess: () => updateAccess.mutate(grants),
+    });
   }
 
   if (!skill) return null;
@@ -103,6 +104,7 @@ export function SkillDetailDrawer({ open, onClose, skill }: SkillDetailDrawerPro
             <button
               type="button"
               onClick={() => setEnabled(!enabled)}
+              aria-label={enabled ? "Disable skill" : "Enable skill"}
               className={cn(
                 "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
                 enabled ? "bg-emerald-500" : "bg-muted",
@@ -159,6 +161,7 @@ export function SkillDetailDrawer({ open, onClose, skill }: SkillDetailDrawerPro
             className="text-destructive hover:text-destructive"
             onClick={() => deleteSkill.mutate()}
             disabled={deleteSkill.isPending}
+            aria-label="Delete skill"
           >
             <Trash2 className="h-3.5 w-3.5 mr-1.5" />
             Delete

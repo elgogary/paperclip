@@ -3,6 +3,7 @@ import { useCompany } from "../../context/CompanyContext";
 import { agentsApi } from "../../api/agents";
 import { queryKeys } from "../../lib/queryKeys";
 import { cn } from "../../lib/utils";
+import { getInitials, getAgentColor } from "./toolkit-constants";
 import { Check } from "lucide-react";
 
 interface AgentGrant {
@@ -13,30 +14,6 @@ interface AgentGrant {
 interface AgentAccessChipsProps {
   grants: AgentGrant[];
   onUpdate: (grants: AgentGrant[]) => void;
-}
-
-const AGENT_COLORS = [
-  { bg: "rgba(168,85,247,.15)", fg: "#c084fc" },
-  { bg: "rgba(59,130,246,.15)", fg: "#93c5fd" },
-  { bg: "rgba(236,72,153,.15)", fg: "#f9a8d4" },
-  { bg: "rgba(34,197,94,.15)", fg: "#86efac" },
-  { bg: "rgba(251,191,36,.15)", fg: "#fcd34d" },
-  { bg: "rgba(249,115,22,.15)", fg: "#fdba74" },
-  { bg: "rgba(6,182,212,.15)", fg: "#67e8f9" },
-  { bg: "rgba(99,102,241,.15)", fg: "#a5b4fc" },
-];
-
-function getInitials(name: string): string {
-  return name
-    .split(/[\s-]+/)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
-
-function getColor(index: number) {
-  return AGENT_COLORS[index % AGENT_COLORS.length]!;
 }
 
 export function AgentAccessChips({ grants, onUpdate }: AgentAccessChipsProps) {
@@ -66,13 +43,14 @@ export function AgentAccessChips({ grants, onUpdate }: AgentAccessChipsProps) {
       {activeAgents.map((agent, i) => {
         const grant = grants.find((g) => g.agentId === agent.id);
         const isGranted = grant?.granted ?? false;
-        const color = getColor(i);
+        const color = getAgentColor(i);
 
         return (
           <button
             key={agent.id}
             type="button"
             onClick={() => toggleGrant(agent.id)}
+            aria-label={`${isGranted ? "Revoke" : "Grant"} access for ${agent.name}`}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs transition-colors cursor-pointer",
               isGranted

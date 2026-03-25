@@ -1,6 +1,6 @@
 import { api } from "./client";
 
-export type ScheduledJobType = "knowledge_sync" | "webhook" | "agent_run";
+export type ScheduledJobType = "knowledge_sync" | "webhook" | "agent_run" | "dream" | "memory_ingest";
 export type OverlapPolicy = "skip" | "queue";
 export type MissedRunPolicy = "skip" | "run_once";
 export type ScheduledJobRunStatus = "running" | "success" | "failed";

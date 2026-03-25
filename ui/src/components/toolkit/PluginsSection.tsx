@@ -123,6 +123,7 @@ export function PluginsSection() {
             <input
               type="text"
               placeholder="Search plugins..."
+              aria-label="Search plugins"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-8 pr-3 py-1.5 rounded-md border border-border bg-card text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-ring"
@@ -163,6 +164,7 @@ export function PluginsSection() {
                   <button
                     type="button"
                     onClick={() => togglePlugin.mutate(plugin)}
+                    aria-label={`${plugin.enabled ? "Disable" : "Enable"} ${plugin.name}`}
                     className={cn(
                       "relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0",
                       plugin.enabled ? "bg-emerald-500" : "bg-muted",
@@ -193,6 +195,7 @@ export function PluginsSection() {
                   <div className="flex-1" />
                   <button
                     onClick={() => { if (window.confirm("Delete this plugin? This cannot be undone.")) deletePlugin.mutate(plugin.id); }}
+                    aria-label={`Delete ${plugin.name}`}
                     className="flex h-6 w-6 items-center justify-center rounded border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors"
                   >
                     <Trash2 className="h-3 w-3" />

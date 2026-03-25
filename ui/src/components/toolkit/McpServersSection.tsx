@@ -189,6 +189,7 @@ export function McpServersSection() {
             <input
               type="text"
               placeholder="Search servers..."
+              aria-label="Search servers"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-8 pr-3 py-1.5 rounded-md border border-border bg-card text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-ring"
@@ -211,6 +212,7 @@ export function McpServersSection() {
           <div className="ml-auto flex items-center gap-0.5 rounded-md border border-border p-0.5">
             <button
               onClick={() => setViewMode("cards")}
+              aria-label="Card view"
               className={cn(
                 "rounded p-1 transition-colors",
                 viewMode === "cards" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground",
@@ -220,6 +222,7 @@ export function McpServersSection() {
             </button>
             <button
               onClick={() => setViewMode("list")}
+              aria-label="List view"
               className={cn(
                 "rounded p-1 transition-colors",
                 viewMode === "list" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground",
@@ -263,6 +266,7 @@ export function McpServersSection() {
                   <button
                     type="button"
                     onClick={() => toggleServer.mutate(server)}
+                    aria-label={`${server.enabled ? "Disable" : "Enable"} ${server.name}`}
                     className={cn(
                       "relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0",
                       server.enabled ? "bg-emerald-500" : "bg-muted",
@@ -304,6 +308,7 @@ export function McpServersSection() {
                   <div className="flex-1" />
                   <button
                     onClick={() => { if (window.confirm("Delete this server? This cannot be undone.")) deleteServer.mutate(server.id); }}
+                    aria-label={`Delete ${server.name}`}
                     className="flex h-6 w-6 items-center justify-center rounded border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors"
                   >
                     <Trash2 className="h-3 w-3" />
@@ -371,6 +376,7 @@ export function McpServersSection() {
                       <button
                         type="button"
                         onClick={() => toggleServer.mutate(server)}
+                        aria-label={`${server.enabled ? "Disable" : "Enable"} ${server.name}`}
                         className={cn(
                           "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
                           server.enabled ? "bg-emerald-500" : "bg-muted",

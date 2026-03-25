@@ -46,7 +46,6 @@ export interface McpCatalogEntry {
 
 export interface CreateMcpServerInput {
   name: string;
-  slug: string;
   direction?: string;
   transport?: string;
   command?: string | null;

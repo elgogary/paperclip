@@ -56,7 +56,7 @@ export function McpMarketplaceModal({ open, onClose, installedSlugs, onInstall }
       <DialogContent showCloseButton={false} className="sm:max-w-[680px] p-0 gap-0">
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
           <h3 className="text-base font-bold">MCP Marketplace</h3>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <button onClick={onClose} aria-label="Close" className="text-muted-foreground hover:text-foreground">
             <X className="h-4 w-4" />
           </button>
         </div>

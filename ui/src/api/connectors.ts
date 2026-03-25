@@ -19,7 +19,6 @@ export interface Connector {
 
 export interface CreateConnectorInput {
   name: string;
-  slug: string;
   provider: string;
   scopes?: string[] | null;
   metadata?: Record<string, unknown> | null;

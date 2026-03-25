@@ -31,7 +31,6 @@ export interface PluginAgentAccess {
 
 export interface CreatePluginInput {
   name: string;
-  slug: string;
   description?: string | null;
   icon?: string | null;
   transport?: string | null;

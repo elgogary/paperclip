@@ -67,8 +67,9 @@ export function McpDetailDrawer({ open, onClose, server }: McpDetailDrawerProps)
   });
 
   function handleSave() {
-    updateServer.mutate();
-    updateAccess.mutate(grants);
+    updateServer.mutate(undefined, {
+      onSuccess: () => updateAccess.mutate(grants),
+    });
   }
 
   function addEnvRow() {
@@ -81,8 +82,9 @@ export function McpDetailDrawer({ open, onClose, server }: McpDetailDrawerProps)
 
   if (!server) return null;
 
-  // Derive tools from configJson if available
-  const tools: string[] = (server.configJson as any)?.tools ?? [];
+  const tools: string[] = Array.isArray((server.configJson as Record<string, unknown> | null)?.tools)
+    ? ((server.configJson as Record<string, unknown>).tools as string[])
+    : [];
 
   return (
     <Sheet open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
@@ -144,7 +146,7 @@ export function McpDetailDrawer({ open, onClose, server }: McpDetailDrawerProps)
                   className="flex-1"
                   placeholder="value"
                 />
-                <button onClick={() => removeEnvRow(i)} className="text-muted-foreground hover:text-foreground">
+                <button onClick={() => removeEnvRow(i)} aria-label="Remove variable" className="text-muted-foreground hover:text-foreground">
                   <X className="h-3.5 w-3.5" />
                 </button>
               </div>
