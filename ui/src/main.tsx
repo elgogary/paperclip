@@ -51,8 +51,8 @@ createRoot(document.getElementById("root")!).render(
       <ThemeProvider>
         <CompanyProvider>
           <ToastProvider>
-            <LiveUpdatesProvider>
-              <BrowserRouter>
+            <BrowserRouter>
+              <LiveUpdatesProvider>
                 <TooltipProvider>
                   <BreadcrumbProvider>
                     <SidebarProvider>
@@ -66,8 +66,8 @@ createRoot(document.getElementById("root")!).render(
                     </SidebarProvider>
                   </BreadcrumbProvider>
                 </TooltipProvider>
-              </BrowserRouter>
-            </LiveUpdatesProvider>
+              </LiveUpdatesProvider>
+            </BrowserRouter>
           </ToastProvider>
         </CompanyProvider>
       </ThemeProvider>
