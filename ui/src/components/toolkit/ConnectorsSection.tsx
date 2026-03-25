@@ -1,11 +1,10 @@
 import { useState, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useCompany } from "../../context/CompanyContext";
 import { connectorsApi, type Connector } from "../../api/connectors";
 import { queryKeys } from "../../lib/queryKeys";
-import { Button } from "@/components/ui/button";
 import { cn } from "../../lib/utils";
-import { Search, CheckCircle2, AlertTriangle, Plus } from "lucide-react";
+import { Search, CheckCircle2, AlertTriangle } from "lucide-react";
 
 type Filter = "all" | "connected" | "pending";
 
@@ -18,24 +17,12 @@ const CONNECTOR_ICONS: Record<string, { icon: string; bg: string }> = {
   jira: { icon: "\u{1F3AF}", bg: "rgba(59,130,246,.1)" },
 };
 
-// TODO: replace with real connectors API
-const MOCK_CONNECTORS = [
-  { id: "mock-gmail", name: "Gmail", slug: "gmail", provider: "google", status: "needs_auth", description: "Read, send, and manage emails" },
-  { id: "mock-gcal", name: "Google Calendar", slug: "google-calendar", provider: "google", status: "needs_auth", description: "View and create calendar events" },
-  { id: "mock-gsheets", name: "Google Sheets", slug: "google-sheets", provider: "google", status: "connected", description: "Read and write spreadsheet data" },
-  { id: "mock-slack", name: "Slack OAuth", slug: "slack-oauth", provider: "slack", status: "connected", description: "Full workspace access via OAuth" },
-  { id: "mock-notion", name: "Notion", slug: "notion", provider: "notion", status: "coming_soon", description: "Access pages, databases, and blocks" },
-  { id: "mock-jira", name: "Jira", slug: "jira", provider: "atlassian", status: "coming_soon", description: "Track issues and sprints" },
-];
-
 function getStatusInfo(status: string) {
   switch (status) {
     case "connected":
       return { label: "Connected", color: "text-emerald-400", icon: "\u{2713}" };
     case "needs_auth":
       return { label: "Needs Auth", color: "text-amber-400", icon: "\u{26A0}" };
-    case "coming_soon":
-      return { label: "Coming soon", color: "text-muted-foreground", icon: "\u{23F3}" };
     default:
       return { label: status, color: "text-muted-foreground", icon: "" };
   }
@@ -43,7 +30,6 @@ function getStatusInfo(status: string) {
 
 export function ConnectorsSection() {
   const { selectedCompanyId } = useCompany();
-  const queryClient = useQueryClient();
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -54,44 +40,20 @@ export function ConnectorsSection() {
     enabled: !!selectedCompanyId,
   });
 
-  const realConnectors: Connector[] = connectorsData?.connectors ?? [];
-
-  // Merge real connectors with mock data for display
-  const allConnectors = useMemo(() => {
-    const realSlugs = new Set(realConnectors.map((c) => c.slug));
-    const merged = realConnectors.map((c) => ({
-      id: c.id,
-      name: c.name,
-      slug: c.slug,
-      status: c.status,
-      description: MOCK_CONNECTORS.find((m) => m.slug === c.slug)?.description ?? "OAuth connector",
-    }));
-    MOCK_CONNECTORS.forEach((m) => {
-      if (!realSlugs.has(m.slug)) {
-        merged.push(m);
-      }
-    });
-    return merged;
-  }, [realConnectors]);
-
-  const disconnect = useMutation({
-    mutationFn: (connectorId: string) => connectorsApi.disconnect(selectedCompanyId!, connectorId),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: queryKeys.connectors.list(selectedCompanyId!) }),
-  });
+  const connectors: Connector[] = connectorsData?.connectors ?? [];
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return allConnectors.filter((c) => {
+    return connectors.filter((c) => {
       if (q && !c.name.toLowerCase().includes(q)) return false;
       if (filter === "connected" && c.status !== "connected") return false;
       if (filter === "pending" && c.status !== "needs_auth") return false;
       return true;
     });
-  }, [allConnectors, search, filter]);
+  }, [connectors, search, filter]);
 
-  const connectedCount = allConnectors.filter((c) => c.status === "connected").length;
-  const needsAuthCount = allConnectors.filter((c) => c.status === "needs_auth").length;
+  const connectedCount = connectors.filter((c) => c.status === "connected").length;
+  const needsAuthCount = connectors.filter((c) => c.status === "needs_auth").length;
 
   return (
     <div className="flex flex-col h-full">
@@ -103,10 +65,7 @@ export function ConnectorsSection() {
             OAuth-based integrations — click Connect to authorize, no API keys needed
           </p>
         </div>
-        <Button size="sm">
-          <Plus className="h-3.5 w-3.5 mr-1.5" />
-          Browse Connectors
-        </Button>
+        <span className="text-xs text-muted-foreground italic">OAuth connectors coming soon</span>
       </div>
 
       {/* Content */}
@@ -196,26 +155,20 @@ export function ConnectorsSection() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold">{connector.name}</p>
-                  <p className="text-[11px] text-muted-foreground">{connector.description}</p>
+                  <p className="text-[11px] text-muted-foreground">OAuth connector</p>
                   <p className={cn("text-[11px] mt-1", statusInfo.color)}>
                     {statusInfo.icon} {statusInfo.label}
                   </p>
                 </div>
-                {connector.status === "needs_auth" && (
-                  <Button size="sm" className="shrink-0">Connect</Button>
-                )}
-                {connector.status === "connected" && (
-                  <Button variant="outline" size="sm" className="shrink-0">Manage</Button>
-                )}
-                {connector.status === "coming_soon" && (
-                  <span className="text-xs text-muted-foreground shrink-0">Soon</span>
-                )}
               </div>
             );
           })}
         </div>}
 
-        {!isLoading && !isError && filtered.length === 0 && (
+        {!isLoading && !isError && connectors.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-12">No connectors yet. OAuth connectors will be available soon.</p>
+        )}
+        {!isLoading && !isError && connectors.length > 0 && filtered.length === 0 && (
           <p className="text-sm text-muted-foreground text-center py-12">No connectors match the current filter.</p>
         )}
       </div>

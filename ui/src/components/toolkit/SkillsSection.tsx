@@ -376,7 +376,10 @@ export function SkillsSection() {
           </div>
         )}
 
-        {filtered.length === 0 && (
+        {!isLoading && !isError && skills.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-12">No skills yet. Create one or browse the library.</p>
+        )}
+        {!isLoading && !isError && skills.length > 0 && filtered.length === 0 && (
           <p className="text-sm text-muted-foreground text-center py-12">No skills match the current filter.</p>
         )}
       </div>
@@ -462,10 +465,12 @@ export function SkillsSection() {
         onClose={() => setLibraryOpen(false)}
         onAdd={(tpl) => {
           setLibraryOpen(false);
-          setNewName(tpl.name);
-          setNewDesc(tpl.description);
-          setNewCategory(tpl.category);
-          setCreateOpen(true);
+          createSkill.mutate({
+            name: tpl.name,
+            description: tpl.description,
+            category: tpl.category,
+            instructions: "",
+          });
         }}
       />
     </div>

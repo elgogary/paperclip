@@ -8,6 +8,7 @@ import { McpDetailDrawer } from "./McpDetailDrawer";
 import { McpLogsDrawer } from "./McpLogsDrawer";
 import { McpMarketplaceModal } from "./McpMarketplaceModal";
 import { cn } from "../../lib/utils";
+import { useToast } from "../../context/ToastContext";
 import {
   Plus, Search, LayoutGrid, List, ShoppingCart,
   Wrench, CheckCircle2, AlertTriangle, Trash2,
@@ -34,6 +35,7 @@ const SERVER_ICONS: Record<string, string> = {
 export function McpServersSection() {
   const { selectedCompanyId } = useCompany();
   const queryClient = useQueryClient();
+  const { pushToast } = useToast();
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -60,8 +62,13 @@ export function McpServersSection() {
 
   const testServer = useMutation({
     mutationFn: (serverId: string) => mcpServersApi.test(selectedCompanyId!, serverId),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: queryKeys.mcpServers.list(selectedCompanyId!) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.mcpServers.list(selectedCompanyId!) });
+      pushToast({ title: "Connection test passed", tone: "success" });
+    },
+    onError: () => {
+      pushToast({ title: "Connection test failed", body: "Server did not respond or returned an error.", tone: "error" });
+    },
   });
 
   const deleteServer = useMutation({
@@ -416,7 +423,10 @@ export function McpServersSection() {
           </div>
         )}
 
-        {filtered.length === 0 && (
+        {!isLoading && !isError && servers.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-12">No MCP servers connected. Add one from the marketplace or configure manually.</p>
+        )}
+        {!isLoading && !isError && servers.length > 0 && filtered.length === 0 && (
           <p className="text-sm text-muted-foreground text-center py-12">No servers match the current filter.</p>
         )}
       </div>

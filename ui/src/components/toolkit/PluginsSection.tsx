@@ -6,7 +6,8 @@ import { queryKeys } from "../../lib/queryKeys";
 import { Button } from "@/components/ui/button";
 import { PluginDetailDrawer } from "./PluginDetailDrawer";
 import { cn } from "../../lib/utils";
-import { Search, Wrench, CheckCircle2, Trash2, BookOpen } from "lucide-react";
+import { useToast } from "../../context/ToastContext";
+import { Search, Wrench, CheckCircle2, Trash2 } from "lucide-react";
 
 const PLUGIN_ICONS: Record<string, { icon: string; bg: string }> = {
   context7: { icon: "\u{1F4DA}", bg: "rgba(99,102,241,.1)" },
@@ -19,6 +20,7 @@ const PLUGIN_ICONS: Record<string, { icon: string; bg: string }> = {
 export function PluginsSection() {
   const { selectedCompanyId } = useCompany();
   const queryClient = useQueryClient();
+  const { pushToast } = useToast();
 
   const [search, setSearch] = useState("");
   const [selectedPlugin, setSelectedPlugin] = useState<Plugin | null>(null);
@@ -41,8 +43,13 @@ export function PluginsSection() {
 
   const testPlugin = useMutation({
     mutationFn: (pluginId: string) => pluginsApi.test(selectedCompanyId!, pluginId),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: queryKeys.plugins.list(selectedCompanyId!) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.plugins.list(selectedCompanyId!) });
+      pushToast({ title: "Plugin test passed", tone: "success" });
+    },
+    onError: () => {
+      pushToast({ title: "Plugin test failed", body: "Plugin did not respond or returned an error.", tone: "error" });
+    },
   });
 
   const deletePlugin = useMutation({
@@ -82,10 +89,7 @@ export function PluginsSection() {
             Dynamic MCP plugins auto-discovered at runtime — extend agent capabilities
           </p>
         </div>
-        <Button size="sm">
-          <BookOpen className="h-3.5 w-3.5 mr-1.5" />
-          Browse Plugins
-        </Button>
+        <span className="text-xs text-muted-foreground italic">Auto-discovered from MCP config</span>
       </div>
 
       {/* Content */}
@@ -217,7 +221,10 @@ export function PluginsSection() {
           })}
         </div>}
 
-        {!isLoading && !isError && filtered.length === 0 && (
+        {!isLoading && !isError && plugins.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-12">No plugins installed. Plugins are auto-discovered from your MCP configuration.</p>
+        )}
+        {!isLoading && !isError && plugins.length > 0 && filtered.length === 0 && (
           <p className="text-sm text-muted-foreground text-center py-12">No plugins match the current filter.</p>
         )}
       </div>
