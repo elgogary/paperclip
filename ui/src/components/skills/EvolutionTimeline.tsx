@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCompany } from "../../context/CompanyContext";
 import { evolutionApi, type EvolutionEvent } from "../../api/evolution";
@@ -30,15 +31,25 @@ export function EvolutionTimeline() {
     enabled: !!selectedCompanyId,
   });
 
+  const [mutatingEventId, setMutatingEventId] = useState<string | null>(null);
+
   const approveMutation = useMutation({
-    mutationFn: (eventId: string) => evolutionApi.approveEvent(selectedCompanyId!, eventId),
+    mutationFn: (eventId: string) => {
+      setMutatingEventId(eventId);
+      return evolutionApi.approveEvent(selectedCompanyId!, eventId);
+    },
+    onSettled: () => setMutatingEventId(null),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.evolution.events(selectedCompanyId!) });
     },
   });
 
   const rejectMutation = useMutation({
-    mutationFn: (eventId: string) => evolutionApi.rejectEvent(selectedCompanyId!, eventId),
+    mutationFn: (eventId: string) => {
+      setMutatingEventId(eventId);
+      return evolutionApi.rejectEvent(selectedCompanyId!, eventId);
+    },
+    onSettled: () => setMutatingEventId(null),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.evolution.events(selectedCompanyId!) });
     },
@@ -76,7 +87,7 @@ export function EvolutionTimeline() {
           isLast={idx === events.length - 1}
           onApprove={() => approveMutation.mutate(event.id)}
           onReject={() => rejectMutation.mutate(event.id)}
-          isPending={approveMutation.isPending || rejectMutation.isPending}
+          isPending={mutatingEventId === event.id}
         />
       ))}
     </div>

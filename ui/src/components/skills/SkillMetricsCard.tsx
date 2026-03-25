@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useCompany } from "../../context/CompanyContext";
 import { evolutionApi, type SkillAgentMetric } from "../../api/evolution";
@@ -26,7 +27,10 @@ export function SkillMetricsCard({ skillId }: SkillMetricsCardProps) {
   });
 
   const metrics = metricsData?.metrics ?? [];
-  const agentMap = new Map((agents ?? []).map((a) => [a.id, a.name]));
+  const agentMap = useMemo(
+    () => new Map((agents ?? []).map((a) => [a.id, a.name])),
+    [agents],
+  );
 
   if (metricsLoading) {
     return (

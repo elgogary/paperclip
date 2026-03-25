@@ -143,7 +143,17 @@ export function mcpServerRoutes(db: Db) {
       res.status(400).json({ error: "grants must be an array" });
       return;
     }
-    await svc.bulkUpdateAccess(serverId, grants);
+    const valid = grants.every(
+      (g: unknown) =>
+        typeof g === "object" && g !== null &&
+        typeof (g as Record<string, unknown>).agentId === "string" &&
+        typeof (g as Record<string, unknown>).granted === "boolean",
+    );
+    if (!valid) {
+      res.status(400).json({ error: "Each grant must have { agentId: string, granted: boolean }" });
+      return;
+    }
+    await svc.bulkUpdateAccess(serverId, grants as { agentId: string; granted: boolean }[]);
     res.json({ ok: true });
   });
 
