@@ -1,7 +1,7 @@
 import type { Db } from "@paperclipai/db";
 import { logger } from "../middleware/logger.js";
 import { scheduledJobsService, type ScheduledJob } from "./scheduled-jobs.js";
-import { executeKnowledgeSync, executeWebhook, executeAgentRun, isPrivateUrl } from "./scheduled-job-executors.js";
+import { executeKnowledgeSync, executeWebhook, executeAgentRun, executeDream, executeMemoryIngest, isPrivateUrl } from "./scheduled-job-executors.js";
 import { secretService } from "./secrets.js";
 import { logActivity } from "./activity-log.js";
 
@@ -77,6 +77,10 @@ async function runJobWithRetry(
       result = await executeWebhook(job, (secretId) => secSvc.resolveById(job.companyId, secretId));
     } else if (job.jobType === "agent_run") {
       result = await executeAgentRun(job, db);
+    } else if (job.jobType === "dream") {
+      result = await executeDream(job, brainApiUrl, brainApiKey);
+    } else if (job.jobType === "memory_ingest") {
+      result = await executeMemoryIngest(job, brainApiUrl, brainApiKey);
     } else {
       result = { output: "", error: `Unknown job type: ${job.jobType}` };
     }

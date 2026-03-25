@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Scheduled Jobs — Paperclip Prototype</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: { extend: { colors: {
+      background: 'oklch(0.145 0 0)', foreground: 'oklch(0.985 0 0)',
+      card: 'oklch(0.205 0 0)', border: 'oklch(0.27 0 0)',
+      muted: 'oklch(0.27 0 0)', 'muted-fg': 'oklch(0.556 0 0)',
+      accent: 'oklch(0.27 0 0)', primary: 'oklch(0.922 0 0)',
+      destructive: 'oklch(0.704 0.191 22.216)', ring: 'oklch(0.556 0 0)',
+    }}}
+  }
+</script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: oklch(0.145 0 0); color: oklch(0.985 0 0); font-family: system-ui, -apple-system, sans-serif; font-size: 14px; }
+  :root {
+    --bg: oklch(0.145 0 0); --bg2: oklch(0.205 0 0); --bg3: oklch(0.27 0 0);
+    --border: oklch(0.27 0 0); --text: oklch(0.985 0 0); --muted: oklch(0.556 0 0);
+    --primary: oklch(0.922 0 0); --green: oklch(0.723 0.178 142.5);
+    --red: oklch(0.627 0.194 12.5); --yellow: oklch(0.795 0.184 86.047);
+    --blue: oklch(0.623 0.214 259.815); --cyan: oklch(0.789 0.154 211.1);
+    --orange: oklch(0.75 0.183 55.934); --violet: oklch(0.702 0.183 294.541);
+    --radius: 0.5rem;
+  }
+  .pill { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:9999px; font-size:11px; font-weight:500; }
+  .pill-green  { background:oklch(0.723 0.178 142.5 / 0.15); color:oklch(0.723 0.178 142.5); }
+  .pill-red    { background:oklch(0.627 0.194 12.5 / 0.15);  color:oklch(0.627 0.194 12.5); }
+  .pill-yellow { background:oklch(0.795 0.184 86.047 / 0.15); color:oklch(0.795 0.184 86.047); }
+  .pill-blue   { background:oklch(0.623 0.214 259.815 / 0.15); color:oklch(0.623 0.214 259.815); }
+  .pill-cyan   { background:oklch(0.789 0.154 211.1 / 0.15); color:oklch(0.789 0.154 211.1); }
+  .pill-orange { background:oklch(0.75 0.183 55.934 / 0.15); color:oklch(0.75 0.183 55.934); }
+  .pill-violet { background:oklch(0.702 0.183 294.541 / 0.15); color:oklch(0.702 0.183 294.541); }
+  .pill-gray   { background:oklch(0.27 0 0); color:oklch(0.556 0 0); }
+  .scope-company { background:oklch(0.623 0.214 259.815/0.15); color:oklch(0.623 0.214 259.815); }
+  .scope-project { background:oklch(0.702 0.183 294.541/0.15); color:oklch(0.702 0.183 294.541); }
+  .scope-agent   { background:oklch(0.789 0.154 211.1/0.15);  color:oklch(0.789 0.154 211.1); }
+  .scope-global  { background:oklch(0.556 0 0/0.15); color:oklch(0.556 0 0); }
+  .type-sync    { background:oklch(0.723 0.178 142.5/0.12); color:oklch(0.723 0.178 142.5); }
+  .type-webhook { background:oklch(0.795 0.184 86.047/0.12); color:oklch(0.795 0.184 86.047); }
+  .type-agent   { background:oklch(0.789 0.154 211.1/0.12); color:oklch(0.789 0.154 211.1); }
+
+  .btn { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:var(--radius); font-size:13px; font-weight:500; cursor:pointer; border:none; transition:opacity .15s; }
+  .btn:hover { opacity:.85; }
+  .btn-primary { background:var(--primary); color:var(--bg); }
+  .btn-outline { background:transparent; color:var(--text); border:1px solid var(--border); }
+  .btn-ghost   { background:transparent; color:var(--muted); padding:5px 8px; }
+  .btn-ghost:hover { background:var(--bg3); color:var(--text); }
+  .btn-icon    { padding:5px; }
+  .btn-danger  { background:transparent; color:var(--red); border:1px solid var(--red); }
+
+  table { width:100%; border-collapse:collapse; }
+  th { text-align:left; padding:8px 12px; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); border-bottom:1px solid var(--border); }
+  td { padding:10px 12px; font-size:13px; border-bottom:1px solid oklch(0.27 0 0 / 0.5); vertical-align:middle; }
+  tr:hover td { background:oklch(0.27 0 0 / 0.3); }
+  tr:last-child td { border-bottom:none; }
+
+  .sidebar { width:240px; background:var(--bg2); border-right:1px solid var(--border); display:flex; flex-direction:column; padding:12px 0; flex-shrink:0; }
+  .sidebar-item { display:flex; align-items:center; gap:10px; padding:7px 16px; font-size:13px; cursor:pointer; color:var(--muted); transition:background .1s; }
+  .sidebar-item:hover { background:var(--bg3); color:var(--text); }
+  .sidebar-item.active { background:var(--bg3); color:var(--text); }
+  .sidebar-section { padding:16px 16px 4px; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+
+  .dialog-overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; z-index:100; }
+  .dialog { background:var(--bg2); border:1px solid var(--border); border-radius:0.75rem; padding:24px; width:620px; max-height:92vh; overflow-y:auto; }
+  .dialog h2 { font-size:16px; font-weight:600; }
+
+  .drawer-overlay { position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:90; }
+  .drawer { position:fixed; right:0; top:0; bottom:0; width:540px; background:var(--bg2); border-left:1px solid var(--border); z-index:95; display:flex; flex-direction:column; }
+  .drawer-header { padding:20px 24px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+  .drawer-body { flex:1; overflow-y:auto; padding:20px 24px; }
+
+  .field-group { margin-bottom:16px; }
+  .field-label { font-size:12px; font-weight:500; color:var(--muted); margin-bottom:6px; display:flex; align-items:center; gap:6px; }
+  .field-hint  { font-size:11px; color:var(--muted); margin-top:4px; }
+  .field-input { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); padding:8px 12px; font-size:13px; color:var(--text); outline:none; }
+  .field-input:focus { border-color:oklch(0.556 0 0); }
+  .field-select { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); padding:8px 12px; font-size:13px; color:var(--text); outline:none; cursor:pointer; appearance:none; }
+  .field-textarea { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); padding:8px 12px; font-size:13px; color:var(--text); outline:none; resize:vertical; min-height:72px; }
+
+  .job-card { background:var(--bg2); border:1px solid var(--border); border-radius:0.625rem; padding:16px; transition:border-color .15s; }
+  .job-card:hover { border-color:var(--muted); }
+
+  .dot { width:6px; height:6px; border-radius:50%; display:inline-block; flex-shrink:0; }
+  .dot-green { background:var(--green); }
+  .dot-red   { background:var(--red); }
+  .dot-yellow{ background:var(--yellow); animation:pulse 2s infinite; }
+  .dot-gray  { background:var(--muted); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  .tab-bar { display:flex; border-bottom:1px solid var(--border); }
+  .tab { padding:8px 14px; font-size:13px; font-weight:500; cursor:pointer; color:var(--muted); border-bottom:2px solid transparent; }
+  .tab.active { color:var(--text); border-bottom-color:var(--text); }
+  .tab:hover { color:var(--text); }
+
+  .view-toggle { display:flex; background:var(--bg3); border-radius:var(--radius); padding:2px; }
+  .view-btn { padding:4px 10px; border-radius:calc(var(--radius) - 2px); font-size:12px; cursor:pointer; color:var(--muted); }
+  .view-btn.active { background:var(--bg2); color:var(--text); }
+
+  .cron-preview { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); padding:8px 12px; font-size:12px; color:var(--cyan); font-family:monospace; margin-top:8px; }
+
+  .log-entry { display:flex; align-items:flex-start; gap:12px; padding:12px 0; border-bottom:1px solid oklch(0.27 0 0 / 0.6); }
+  .log-entry:last-child { border-bottom:none; }
+
+  .section-divider { padding:8px 0; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); border-bottom:1px solid var(--border); margin-bottom:8px; }
+
+  /* Section accordion */
+  .accordion { border:1px solid var(--border); border-radius:var(--radius); margin-bottom:16px; overflow:hidden; }
+  .accordion-header { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; cursor:pointer; font-size:13px; font-weight:500; background:var(--bg); }
+  .accordion-header:hover { background:oklch(0.18 0 0); }
+  .accordion-body { padding:14px; border-top:1px solid var(--border); background:var(--bg); display:none; }
+  .accordion-body.open { display:block; }
+
+  /* Toggle switch */
+  .toggle-row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; }
+  .toggle-label { font-size:13px; }
+  .toggle-sub { font-size:11px; color:var(--muted); margin-top:1px; }
+  .toggle { position:relative; width:36px; height:20px; flex-shrink:0; }
+  .toggle input { opacity:0; width:0; height:0; }
+  .toggle-slider { position:absolute; inset:0; background:var(--bg3); border-radius:10px; cursor:pointer; transition:.2s; }
+  .toggle-slider:before { content:''; position:absolute; height:14px; width:14px; left:3px; bottom:3px; background:var(--muted); border-radius:50%; transition:.2s; }
+  .toggle input:checked + .toggle-slider { background:oklch(0.723 0.178 142.5 / 0.4); }
+  .toggle input:checked + .toggle-slider:before { transform:translateX(16px); background:var(--green); }
+
+  /* Option pills (radio-like) */
+  .option-group { display:flex; gap:6px; flex-wrap:wrap; }
+  .option-pill { padding:4px 12px; border-radius:9999px; font-size:12px; border:1px solid var(--border); cursor:pointer; color:var(--muted); background:var(--bg); transition:all .1s; }
+  .option-pill.selected { border-color:var(--cyan); color:var(--cyan); background:oklch(0.789 0.154 211.1 / 0.08); }
+
+  /* Preset buttons */
+  .preset-btn { padding:4px 10px; font-size:11px; height:28px; border-radius:9999px; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; }
+  .preset-btn:hover { border-color:var(--muted); color:var(--text); }
+  .preset-btn.active { border-color:var(--cyan); color:var(--cyan); }
+
+  /* Timeout default badge */
+  .default-badge { font-size:10px; background:oklch(0.27 0 0); color:var(--muted); padding:2px 6px; border-radius:9999px; }
+
+  ::-webkit-scrollbar { width:6px; }
+  ::-webkit-scrollbar-track { background:var(--bg); }
+  ::-webkit-scrollbar-thumb { background:var(--bg3); border-radius:3px; }
+</style>
+</head>
+<body>
+<div style="display:flex; height:100vh; overflow:hidden;">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div style="padding:12px 16px 16px; display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--border); margin-bottom:8px;">
+      <div style="width:28px;height:28px;background:var(--primary);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;color:var(--bg)">S</div>
+      <span style="font-weight:700;font-size:14px;">SANAD AI</span>
+    </div>
+    <div class="sidebar-section">Workspace</div>
+    <div class="sidebar-item">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </div>
+    <div class="sidebar-item">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      Agents
+    </div>
+    <div class="sidebar-item">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Issues
+    </div>
+    <div class="sidebar-item">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
+      Projects
+    </div>
+    <div class="sidebar-item active">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Scheduled Jobs
+    </div>
+    <div class="sidebar-section" style="margin-top:8px;">Tools</div>
+    <div class="sidebar-item">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 0 0-2 2v4"/><path d="M9 3h10a2 2 0 0 1 2 2v4"/><path d="M9 3v18"/><path d="M3 9h18"/></svg>
+      Knowledge
+    </div>
+    <div class="sidebar-item">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Brain Health
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+
+    <!-- Breadcrumb -->
+    <div style="padding:10px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:6px; font-size:13px; flex-shrink:0;">
+      <span style="color:var(--muted)">Optiflow</span>
+      <span style="color:var(--muted)">/</span>
+      <span>Scheduled Jobs</span>
+      <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+        <span style="font-size:12px; color:var(--muted)">5 jobs · 3 active · 1 error</span>
+      </div>
+    </div>
+
+    <!-- Jobs content -->
+    <div id="view-jobs-table" style="flex:1; overflow-y:auto; padding:20px 24px;">
+
+      <!-- Header -->
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+        <div>
+          <h1 style="font-size:20px; font-weight:700;">Scheduled Jobs</h1>
+          <p style="font-size:13px; color:var(--muted); margin-top:2px;">Recurring tasks across agents, projects, and integrations</p>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateDialog()">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          New Job
+        </button>
+      </div>
+
+      <!-- Filter bar -->
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
+        <div style="position:relative; flex:1; min-width:200px;">
+          <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="field-input" style="padding-left:32px;height:34px;" placeholder="Search jobs…" />
+        </div>
+        <select class="field-select" style="width:auto; height:34px; padding:0 10px;">
+          <option>All scopes</option><option>Company</option><option>Project</option><option>Agent</option>
+        </select>
+        <select class="field-select" style="width:auto; height:34px; padding:0 10px;">
+          <option>All types</option><option>Knowledge Sync</option><option>Webhook</option><option>Agent Run</option>
+        </select>
+        <select class="field-select" style="width:auto; height:34px; padding:0 10px;">
+          <option>All statuses</option><option>Active</option><option>Paused</option><option>Error</option>
+        </select>
+        <div class="view-toggle">
+          <div class="view-btn active" onclick="setView('table',this)">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+          </div>
+          <div class="view-btn" onclick="setView('cards',this)">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- TABLE VIEW -->
+      <div id="table-view">
+        <div style="background:var(--bg2); border:1px solid var(--border); border-radius:0.625rem; overflow:hidden;">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Scope</th>
+                <th>Type</th>
+                <th>Schedule</th>
+                <th>Last Run</th>
+                <th>Next Run</th>
+                <th>Status</th>
+                <th style="width:130px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Row 1 — active -->
+              <tr>
+                <td>
+                  <div style="font-weight:500;">Sync AccuBuild Codegraph</div>
+                  <div style="font-size:11px; color:var(--muted); margin-top:1px;">Refresh code graph in Sanad Brain</div>
+                </td>
+                <td><span class="pill pill-blue scope-company">company</span></td>
+                <td><span class="pill type-sync">
+                  <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> sync
+                </span></td>
+                <td>
+                  <div style="font-size:12px;">Daily at 3:00 AM</div>
+                  <div style="font-size:10px; color:var(--muted); font-family:monospace; margin-top:1px;">0 3 * * *</div>
+                </td>
+                <td>
+                  <div style="font-size:12px; display:flex; align-items:center; gap:5px;"><span class="dot dot-green"></span> 2h ago · 11.6s</div>
+                </td>
+                <td style="font-size:12px; color:var(--muted);">in 22h</td>
+                <td><span class="pill pill-green">active</span></td>
+                <td>
+                  <div style="display:flex; gap:2px;">
+                    <button class="btn btn-ghost btn-icon" title="Run now" onclick="showRunFeedback()">
+                      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    </button>
+                    <button class="btn btn-ghost btn-icon" title="View logs" onclick="openLogsDrawer('sync')">
+                      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    </button>
+                    <button class="btn btn-ghost btn-icon" title="Pause">
+                      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                    </button>
+                    <button class="btn btn-ghost btn-icon" title="Edit" onclick="openCreateDialog('edit')">
+                      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <button class="btn btn-ghost btn-icon" title="Delete" style="color:var(--red);">
+                      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Row 2 — active webhook -->
+              <tr>
+                <td>
+                  <div style="font-weight:500;">Daily CEO Report</div>
+                  <div style="font-size:11px; color:var(--muted); margin-top:1px;">POST summary to Slack · retries: 3 × 5min</div>
+                </td>
+                <td><span class="pill pill-violet scope-agent">CEO Agent</span></td>
+                <td><span class="pill type-webhook">
+                  <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> webhook
+                </span></td>
+                <td>
+                  <div style="font-size:12px;">Weekdays at 8:00 AM</div>
+                  <div style="font-size:10px; color:var(--muted); font-family:monospace; margin-top:1px;">0 8 * * 1-5</div>
+                </td>
+                <td><div style="font-size:12px; display:flex; align-items:center; gap:5px;"><span class="dot dot-green"></span> 14h ago · 0.8s</div></td>
+                <td style="font-size:12px; color:var(--muted);">tomorrow</td>
+                <td><span class="pill pill-green">active</span></td>
+                <td>
+                  <div style="display:flex; gap:2px;">
+                    <button class="btn btn-ghost btn-icon" title="Run now" onclick="showRunFeedback()"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg></button>
+                    <button class="btn btn-ghost btn-icon" title="View logs" onclick="openLogsDrawer('webhook')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></button>
+                    <button class="btn btn-ghost btn-icon" title="Pause"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg></button>
+                    <button class="btn btn-ghost btn-icon" title="Edit" onclick="openCreateDialog('edit')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                    <button class="btn btn-ghost btn-icon" style="color:var(--red);"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Row 3 — running -->
+              <tr style="background:oklch(0.789 0.154 211.1/0.04);">
+                <td>
+                  <div style="font-weight:500; display:flex; align-items:center; gap:6px;">
+                    Sync Frappe Sales Data
+                    <span class="pill pill-cyan" style="font-size:10px;">running · 3m</span>
+                  </div>
+                  <div style="font-size:11px; color:var(--muted); margin-top:1px;">Sync Sales Orders from AccuBuild staging · skip if running</div>
+                </td>
+                <td><span class="pill pill-blue scope-company">company</span></td>
+                <td><span class="pill type-sync"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> sync</span></td>
+                <td>
+                  <div style="font-size:12px;">Every hour</div>
+                  <div style="font-size:10px; color:var(--muted); font-family:monospace; margin-top:1px;">0 * * * *</div>
+                </td>
+                <td><div style="font-size:12px; display:flex; align-items:center; gap:5px;"><span class="dot dot-yellow"></span> started 3min ago</div></td>
+                <td style="font-size:12px; color:var(--muted);">—</td>
+                <td><span class="pill pill-cyan">running</span></td>
+                <td>
+                  <div style="display:flex; gap:2px;">
+                    <button class="btn btn-ghost btn-icon" title="Cancel" style="color:var(--red);"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></button>
+                    <button class="btn btn-ghost btn-icon" title="View logs" onclick="openLogsDrawer('sync')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Row 4 — error with retry info -->
+              <tr>
+                <td>
+                  <div style="font-weight:500;">Weekly Bid Reminder</div>
+                  <div style="font-size:11px; color:var(--muted); margin-top:1px;">Trigger agent to check open bids · retries: 2 × 15min</div>
+                </td>
+                <td><span class="pill pill-violet scope-project">AccuBuild</span></td>
+                <td><span class="pill type-agent"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg> agent run</span></td>
+                <td>
+                  <div style="font-size:12px;">Mon at 9:00 AM</div>
+                  <div style="font-size:10px; color:var(--muted); font-family:monospace; margin-top:1px;">0 9 * * 1</div>
+                </td>
+                <td>
+                  <div style="font-size:12px; display:flex; align-items:center; gap:5px;"><span class="dot dot-red"></span> 5d ago</div>
+                  <div style="font-size:10px; color:var(--red); margin-top:2px;">Failed after 3 attempts · timeout</div>
+                </td>
+                <td style="font-size:12px; color:var(--muted);">Mon 9am</td>
+                <td><span class="pill pill-red">error</span></td>
+                <td>
+                  <div style="display:flex; gap:2px;">
+                    <button class="btn btn-ghost btn-icon" title="Retry now" onclick="showRunFeedback()"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg></button>
+                    <button class="btn btn-ghost btn-icon" title="View logs" onclick="openLogsDrawer('agent')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></button>
+                    <button class="btn btn-ghost btn-icon" title="Edit" onclick="openCreateDialog('edit')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                    <button class="btn btn-ghost btn-icon" style="color:var(--red);"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Row 5 — paused -->
+              <tr style="opacity:0.55;">
+                <td>
+                  <div style="font-weight:500;">Monthly Cost Report</div>
+                  <div style="font-size:11px; color:var(--muted); margin-top:1px;">Send cost summary to finance webhook</div>
+                </td>
+                <td><span class="pill pill-blue scope-company">company</span></td>
+                <td><span class="pill type-webhook"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> webhook</span></td>
+                <td>
+                  <div style="font-size:12px;">1st of month, 6am</div>
+                  <div style="font-size:10px; color:var(--muted); font-family:monospace; margin-top:1px;">0 6 1 * *</div>
+                </td>
+                <td style="font-size:12px; color:var(--muted);">28d ago</td>
+                <td style="font-size:12px; color:var(--muted);">—</td>
+                <td><span class="pill pill-gray">paused</span></td>
+                <td>
+                  <div style="display:flex; gap:2px;">
+                    <button class="btn btn-ghost btn-icon" title="Resume"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg></button>
+                    <button class="btn btn-ghost btn-icon" title="Edit" onclick="openCreateDialog('edit')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                    <button class="btn btn-ghost btn-icon" style="color:var(--red);"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- CARDS VIEW -->
+      <div id="cards-view" style="display:none;">
+        <div class="section-divider"><div style="display:flex;align-items:center;gap:8px;"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Company Jobs <span style="font-weight:400;color:var(--muted);">3</span></div></div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:12px; margin-bottom:24px;">
+          <div class="job-card">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">
+              <div><div style="font-weight:500;font-size:13px;margin-bottom:4px;">Sync AccuBuild Codegraph</div><div style="display:flex;gap:6px;"><span class="pill type-sync" style="font-size:10px;">sync</span><span class="pill pill-blue" style="font-size:10px;">company</span></div></div>
+              <span class="pill pill-green" style="font-size:10px;">active</span>
+            </div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Refresh code dependency graph in Sanad Brain</div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:12px;background:var(--bg);border-radius:var(--radius);padding:8px 10px;">
+              <div><div style="color:var(--text);font-weight:500;margin-bottom:1px;">Daily 3:00 AM</div><div style="font-family:monospace;font-size:10px;">0 3 * * *</div></div>
+              <div style="text-align:right;"><div>Last: <span style="color:var(--green);">✓ 2h ago · 11.6s</span></div><div>Next: in 22h</div></div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-outline" style="flex:1;height:30px;font-size:12px;" onclick="showRunFeedback()"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run now</button>
+              <button class="btn btn-ghost" style="height:30px;font-size:12px;" onclick="openLogsDrawer('sync')">Logs</button>
+              <button class="btn btn-ghost btn-icon" onclick="openCreateDialog('edit')"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+            </div>
+          </div>
+          <div class="job-card" style="border-color:oklch(0.627 0.194 12.5 / 0.35);">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">
+              <div><div style="font-weight:500;font-size:13px;margin-bottom:4px;">Weekly Bid Reminder</div><div style="display:flex;gap:6px;"><span class="pill type-agent" style="font-size:10px;">agent run</span><span class="pill pill-violet" style="font-size:10px;">project</span></div></div>
+              <span class="pill pill-red" style="font-size:10px;">error</span>
+            </div>
+            <div style="font-size:11px;color:var(--red);background:oklch(0.627 0.194 12.5/0.08);border-radius:var(--radius);padding:6px 8px;margin-bottom:10px;">Failed after 3 attempts — connection timeout (60s)</div>
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-outline" style="flex:1;height:30px;font-size:12px;" onclick="showRunFeedback()"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg> Retry</button>
+              <button class="btn btn-ghost" style="height:30px;font-size:12px;" onclick="openLogsDrawer('agent')">Logs</button>
+              <button class="btn btn-ghost btn-icon" onclick="openCreateDialog('edit')"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===================== CREATE / EDIT DIALOG ===================== -->
+<div id="create-dialog" class="dialog-overlay" style="display:none;" onclick="closeIfOverlay(event,'create-dialog')">
+  <div class="dialog" onclick="event.stopPropagation()">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <h2 id="dialog-title">New Scheduled Job</h2>
+      <button class="btn btn-ghost btn-icon" onclick="closeDialog('create-dialog')">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <!-- Basic info -->
+    <div class="field-group">
+      <div class="field-label">Job Name *</div>
+      <input class="field-input" placeholder="e.g. Daily CEO Report" />
+    </div>
+    <div class="field-group">
+      <div class="field-label">Description</div>
+      <input class="field-input" placeholder="What does this job do?" />
+    </div>
+
+    <!-- Scope + Assignment -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+      <div class="field-group">
+        <div class="field-label">Scope *</div>
+        <select class="field-select" onchange="updateScopeFields(this.value)">
+          <option value="company">Company</option>
+          <option value="project">Project</option>
+          <option value="agent">Agent</option>
+        </select>
+      </div>
+      <div class="field-group" id="scope-assignment">
+        <div class="field-label" id="scope-assignment-label">Assign to Agent</div>
+        <select class="field-select">
+          <option>— select —</option>
+          <option>CEO Agent</option><option>TechLead</option><option>BackendEngineer</option>
+          <option>FrontendEngineer</option><option>ProductManager</option><option>DevOps</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Job Type -->
+    <div class="field-group">
+      <div class="field-label">Job Type *</div>
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px;">
+        <div class="type-card selected-type" data-type="knowledge_sync" onclick="selectType(this)" style="background:var(--bg);border:2px solid var(--cyan);border-radius:var(--radius);padding:10px;cursor:pointer;text-align:center;">
+          <svg width="18" height="18" fill="none" stroke="oklch(0.789 0.154 211.1)" stroke-width="2" viewBox="0 0 24 24" style="margin:0 auto 4px;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          <div style="font-size:11px;font-weight:600;color:oklch(0.789 0.154 211.1);">Knowledge Sync</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;">default 15min</div>
+        </div>
+        <div class="type-card" data-type="webhook" onclick="selectType(this)" style="background:var(--bg);border:2px solid var(--border);border-radius:var(--radius);padding:10px;cursor:pointer;text-align:center;">
+          <svg width="18" height="18" fill="none" stroke="var(--muted)" stroke-width="2" viewBox="0 0 24 24" style="margin:0 auto 4px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          <div style="font-size:11px;font-weight:600;color:var(--muted);">Webhook</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;">default 5min</div>
+        </div>
+        <div class="type-card" data-type="agent_run" onclick="selectType(this)" style="background:var(--bg);border:2px solid var(--border);border-radius:var(--radius);padding:10px;cursor:pointer;text-align:center;">
+          <svg width="18" height="18" fill="none" stroke="var(--muted)" stroke-width="2" viewBox="0 0 24 24" style="margin:0 auto 4px;"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
+          <div style="font-size:11px;font-weight:600;color:var(--muted);">Agent Run</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;">default 60min</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dynamic config -->
+    <div id="type-config">
+      <div id="config-knowledge_sync">
+        <div class="field-group">
+          <div class="field-label">Knowledge Source *</div>
+          <select class="field-select">
+            <option>— select source —</option>
+            <option>AccuBuild Core — Code Graph</option>
+            <option>AccuBuild Frappe Sales Data</option>
+            <option>AccuBuild Docs (web)</option>
+          </select>
+        </div>
+      </div>
+      <div id="config-webhook" style="display:none;">
+        <div style="display:grid; grid-template-columns:1fr 80px; gap:8px;">
+          <div class="field-group">
+            <div class="field-label">Webhook URL *</div>
+            <input class="field-input" placeholder="https://hooks.slack.com/…" />
+          </div>
+          <div class="field-group">
+            <div class="field-label">Method</div>
+            <select class="field-select"><option>POST</option><option>GET</option><option>PUT</option></select>
+          </div>
+        </div>
+        <div class="field-group">
+          <div class="field-label">
+            Auth Secret
+            <span style="font-size:10px;background:oklch(0.623 0.214 259.815/0.15);color:oklch(0.623 0.214 259.815);padding:1px 6px;border-radius:9999px;">stored securely</span>
+          </div>
+          <select class="field-select">
+            <option value="">— no auth —</option>
+            <option>SLACK_WEBHOOK_TOKEN</option>
+            <option>FINANCE_API_KEY</option>
+            <option>+ Add new secret…</option>
+          </select>
+          <div class="field-hint">Headers with API keys are stored as secrets, not plain text</div>
+        </div>
+        <div class="field-group">
+          <div class="field-label">Body (JSON, optional)</div>
+          <textarea class="field-textarea" placeholder='{"text": "Daily report ready"}'></textarea>
+        </div>
+      </div>
+      <div id="config-agent_run" style="display:none;">
+        <div class="field-group">
+          <div class="field-label">Agent *</div>
+          <select class="field-select"><option>— select agent —</option><option>CEO Agent</option><option>TechLead</option><option>ProductManager</option></select>
+        </div>
+        <div class="field-group">
+          <div class="field-label">Task Title *</div>
+          <input class="field-input" placeholder="Weekly bid status check" />
+        </div>
+        <div class="field-group">
+          <div class="field-label">Task Description</div>
+          <textarea class="field-textarea" placeholder="Check all open bids and summarize status…"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Schedule builder -->
+    <div class="field-group">
+      <div class="field-label">Schedule *</div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
+        <button class="preset-btn" onclick="setCron('* * * * *',this)">Every minute</button>
+        <button class="preset-btn" onclick="setCron('0 * * * *',this)">Hourly</button>
+        <button class="preset-btn active" onclick="setCron('0 3 * * *',this)">Daily</button>
+        <button class="preset-btn" onclick="setCron('0 9 * * 1',this)">Weekly</button>
+        <button class="preset-btn" onclick="setCron('0 6 1 * *',this)">Monthly</button>
+        <button class="preset-btn" onclick="setCron('',this)">Custom</button>
+      </div>
+      <input id="cron-input" class="field-input" value="0 3 * * *" oninput="updateCronPreview(this.value)" style="font-family:monospace;" />
+      <div id="cron-preview" class="cron-preview">→ Every day at 03:00 AM</div>
+    </div>
+
+    <!-- Timezone -->
+    <div class="field-group">
+      <div class="field-label">Timezone</div>
+      <select class="field-select" style="width:auto;">
+        <option>Asia/Riyadh (UTC+3)</option>
+        <option>UTC</option>
+        <option>America/New_York (UTC-5)</option>
+        <option>Europe/London (UTC+0)</option>
+      </select>
+    </div>
+
+    <!-- ── EXECUTION SETTINGS accordion ── -->
+    <div class="accordion">
+      <div class="accordion-header" onclick="toggleAccordion(this)">
+        <span>Execution Settings</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;color:var(--muted);">timeout · overlap · missed runs</span>
+          <svg id="acc-exec-chevron" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="transition:transform .2s;"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
+      <div class="accordion-body" id="acc-exec-body">
+
+        <!-- Timeout -->
+        <div class="field-group" style="margin-bottom:12px;">
+          <div class="field-label">
+            Timeout
+            <span id="timeout-default" class="default-badge">auto: 15 min for sync</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+              <input type="radio" name="timeout" value="auto" checked onchange="toggleTimeout(false)" style="accent-color:var(--cyan);"> Use default
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+              <input type="radio" name="timeout" value="custom" onchange="toggleTimeout(true)"> Custom
+            </label>
+            <div id="timeout-custom" style="display:none;display:flex;align-items:center;gap:6px;">
+              <input class="field-input" type="number" value="15" min="1" style="width:70px;" />
+              <select class="field-select" style="width:90px;"><option>minutes</option><option>hours</option></select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Overlap policy -->
+        <div class="field-group" style="margin-bottom:12px;">
+          <div class="field-label">If job is still running when schedule fires</div>
+          <div class="option-group">
+            <div class="option-pill selected" onclick="selectOption(this,'overlap')">Skip (default)</div>
+            <div class="option-pill" onclick="selectOption(this,'overlap')">Queue next run</div>
+          </div>
+        </div>
+
+        <!-- Missed run policy -->
+        <div class="field-group" style="margin-bottom:0;">
+          <div class="field-label">If server was down and missed scheduled run</div>
+          <div class="option-group">
+            <div class="option-pill selected" onclick="selectOption(this,'missed')">Skip (default)</div>
+            <div class="option-pill" onclick="selectOption(this,'missed')">Run once on restart</div>
+          </div>
+          <div class="field-hint">e.g. server was down for 2h, hourly job was missed</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── RETRY accordion ── -->
+    <div class="accordion">
+      <div class="accordion-header" onclick="toggleAccordion(this)">
+        <span>Retry on Failure</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;color:var(--muted);">max retries · delay</span>
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="transition:transform .2s;"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
+      <div class="accordion-body">
+
+        <div class="field-group" style="margin-bottom:12px;">
+          <div class="field-label">Max retries</div>
+          <div class="option-group">
+            <div class="option-pill selected" onclick="selectOption(this,'retries')">0 (disabled)</div>
+            <div class="option-pill" onclick="selectOption(this,'retries')">1</div>
+            <div class="option-pill" onclick="selectOption(this,'retries')">2</div>
+            <div class="option-pill" onclick="selectOption(this,'retries')">3</div>
+            <div class="option-pill" onclick="selectOption(this,'retries')">5</div>
+          </div>
+        </div>
+
+        <div class="field-group" style="margin-bottom:0;">
+          <div class="field-label">Delay between retries</div>
+          <div class="option-group">
+            <div class="option-pill selected" onclick="selectOption(this,'delay')">5 min</div>
+            <div class="option-pill" onclick="selectOption(this,'delay')">15 min</div>
+            <div class="option-pill" onclick="selectOption(this,'delay')">1 hour</div>
+            <div class="option-pill" onclick="selectOption(this,'delay')">Custom</div>
+          </div>
+          <div class="field-hint">
+            ⚠ Webhook jobs with retries may deliver multiple times — only enable if your endpoint is idempotent
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── ON FAILURE accordion ── -->
+    <div class="accordion">
+      <div class="accordion-header" onclick="toggleAccordion(this)">
+        <span>On Failure — Notifications</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;color:var(--muted);">alerts · webhooks</span>
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="transition:transform .2s;"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
+      <div class="accordion-body">
+
+        <!-- In-app toggle -->
+        <div class="toggle-row" style="border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:12px;">
+          <div>
+            <div class="toggle-label">In-app notification</div>
+            <div class="toggle-sub">Bell icon + notification in Paperclip when job fails</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <!-- Failure webhook toggle -->
+        <div>
+          <div class="toggle-row" style="margin-bottom:8px;">
+            <div>
+              <div class="toggle-label">Send failure webhook</div>
+              <div class="toggle-sub">POST to external URL when job fails (after all retries)</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" onchange="toggleFailWebhook(this.checked)">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div id="fail-webhook-fields" style="display:none;">
+            <div class="field-group" style="margin-bottom:10px;">
+              <div class="field-label">Failure webhook URL</div>
+              <input class="field-input" placeholder="https://hooks.slack.com/services/…" />
+            </div>
+            <div class="field-group" style="margin-bottom:0;">
+              <div class="field-label">Auth Secret <span style="font-size:10px;background:oklch(0.623 0.214 259.815/0.15);color:oklch(0.623 0.214 259.815);padding:1px 6px;border-radius:9999px;">stored securely</span></div>
+              <select class="field-select">
+                <option>— no auth —</option>
+                <option>SLACK_WEBHOOK_TOKEN</option>
+                <option>+ Add new secret…</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px;padding-top:16px;border-top:1px solid var(--border);">
+      <button class="btn btn-outline" onclick="closeDialog('create-dialog')">Cancel</button>
+      <button class="btn btn-primary">Save Job</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== LOGS DRAWER ===================== -->
+<div id="logs-overlay" class="drawer-overlay" style="display:none;" onclick="closeLogsDrawer()"></div>
+<div id="logs-drawer" class="drawer" style="display:none;">
+  <div class="drawer-header">
+    <div>
+      <div id="logs-title" style="font-weight:600;font-size:15px;">Run Logs</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px;">Kept for 90 days · last 20 runs shown</div>
+    </div>
+    <button class="btn btn-ghost btn-icon" onclick="closeLogsDrawer()">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body" id="logs-body"></div>
+</div>
+
+<!-- ===================== TOAST ===================== -->
+<div id="toast" style="position:fixed;bottom:24px;right:24px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;font-size:13px;z-index:200;display:none;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.4);">
+  <span class="dot" style="width:8px;height:8px;background:var(--cyan);animation:pulse 1s infinite;"></span>
+  <span>Job triggered — running…</span>
+</div>
+
+<script>
+  // ── Log data ──────────────────────────────────────────────
+  const LOGS = {
+    sync: {
+      title: 'Sync AccuBuild Codegraph',
+      entries: [
+        { status:'success', time:'Today 03:00 AM', duration:'11.6s', attempt:1, detail:'149 chunks indexed · 1849 nodes processed',
+          output:'Loading codegraph...\nLoaded: 1849 nodes, 735 links\nBuilt 163 chunks\n✓ Sync complete: 149 vectors indexed in 11.59s' },
+        { status:'success', time:'Yesterday 03:00 AM', duration:'10.2s', attempt:1, detail:'149 chunks indexed' },
+        { status:'failed',  time:'2 days ago 03:00 AM', duration:'30.1s', attempt:1, detail:'Codegraph file not found: /data/codegraph-accubuild.json',
+          output:'ERROR: FileNotFoundError: /data/codegraph-accubuild.json\nJob status set to error.' },
+        { status:'success', time:'3 days ago', duration:'9.8s', attempt:1 },
+        { status:'success', time:'4 days ago', duration:'11.1s', attempt:1 },
+      ]
+    },
+    webhook: {
+      title: 'Daily CEO Report',
+      entries: [
+        { status:'success', time:'Today 08:00 AM', duration:'0.8s', attempt:1, detail:'HTTP 200 OK · Slack accepted' },
+        { status:'failed',  time:'Yesterday 08:00 AM', duration:'5.1s', attempt:1, detail:'HTTP 429 Too Many Requests — retrying…' },
+        { status:'success', time:'Yesterday 08:05 AM', duration:'0.6s', attempt:2, detail:'HTTP 200 OK · retry #1 succeeded',
+          output:'Retry 1/3 after 5min delay\nPOST https://hooks.slack.com/...\n← 200 OK in 612ms' },
+        { status:'success', time:'2 days ago', duration:'0.7s', attempt:1 },
+      ]
+    },
+    agent: {
+      title: 'Weekly Bid Reminder',
+      entries: [
+        { status:'failed',  time:'Mon 09:00 AM', duration:'60s', attempt:1, detail:'Timed out after 60s — agent did not respond',
+          agentRunId: 'run_abc123' },
+        { status:'failed',  time:'Mon 09:15 AM', duration:'60s', attempt:2, detail:'Retry #1 — timed out again',
+          agentRunId: 'run_abc124' },
+        { status:'failed',  time:'Mon 09:30 AM', duration:'60s', attempt:3, detail:'Retry #2 — timed out · giving up · in-app alert sent',
+          agentRunId: 'run_abc125' },
+        { status:'success', time:'Last Mon 09:00 AM', duration:'44s', attempt:1, detail:'Agent completed task successfully',
+          agentRunId: 'run_xyz001' },
+      ]
+    }
+  };
+
+  function openLogsDrawer(type) {
+    const data = LOGS[type] || LOGS.sync;
+    document.getElementById('logs-title').textContent = 'Run Logs — ' + data.title;
+    const body = document.getElementById('logs-body');
+    body.innerHTML = data.entries.map(e => {
+      const color = e.status === 'success' ? 'var(--green)' : 'var(--red)';
+      const dotClass = e.status === 'success' ? 'dot-green' : 'dot-red';
+      const attemptBadge = e.attempt > 1
+        ? `<span style="font-size:10px;background:oklch(0.795 0.184 86.047/0.15);color:oklch(0.795 0.184 86.047);padding:1px 6px;border-radius:9999px;margin-left:6px;">retry #${e.attempt - 1}</span>`
+        : '';
+      const outputBlock = e.output
+        ? `<div style="background:oklch(0.1 0 0);border-radius:4px;padding:6px 8px;font-family:monospace;font-size:10px;color:oklch(0.65 0 0);margin-top:6px;line-height:1.7;white-space:pre-wrap;">${e.output}</div>`
+        : '';
+      const agentLink = e.agentRunId
+        ? `<div style="margin-top:6px;"><a href="#" style="font-size:11px;color:var(--cyan);text-decoration:none;">→ View full agent run transcript (${e.agentRunId})</a></div>`
+        : '';
+      return `
+        <div class="log-entry">
+          <div style="margin-top:3px;flex-shrink:0;"><span class="dot ${dotClass}" style="width:8px;height:8px;"></span></div>
+          <div style="flex:1;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px;">
+              <span style="font-size:12px;font-weight:500;color:${color};">${e.status}${attemptBadge}</span>
+              <span style="font-size:11px;color:var(--muted);">${e.time} · ${e.duration}</span>
+            </div>
+            ${e.detail ? `<div style="font-size:11px;color:var(--muted);margin-top:3px;">${e.detail}</div>` : ''}
+            ${outputBlock}
+            ${agentLink}
+          </div>
+        </div>`;
+    }).join('');
+    document.getElementById('logs-drawer').style.display = 'flex';
+    document.getElementById('logs-overlay').style.display = 'block';
+  }
+
+  function closeLogsDrawer() {
+    document.getElementById('logs-drawer').style.display = 'none';
+    document.getElementById('logs-overlay').style.display = 'none';
+  }
+
+  // ── View toggle ───────────────────────────────────────────
+  function setView(v, el) {
+    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('table-view').style.display = v === 'table' ? 'block' : 'none';
+    document.getElementById('cards-view').style.display = v === 'cards' ? 'block' : 'none';
+  }
+
+  // ── Dialog ────────────────────────────────────────────────
+  function openCreateDialog(mode) {
+    document.getElementById('dialog-title').textContent = mode === 'edit' ? 'Edit Scheduled Job' : 'New Scheduled Job';
+    document.getElementById('create-dialog').style.display = 'flex';
+  }
+  function closeDialog(id) { document.getElementById(id).style.display = 'none'; }
+  function closeIfOverlay(e, id) { if (e.target === document.getElementById(id)) closeDialog(id); }
+
+  // ── Job type selection ────────────────────────────────────
+  const TYPE_TIMEOUTS = { knowledge_sync: '15 min for sync', webhook: '5 min for webhook', agent_run: '60 min for agent run' };
+  function selectType(el) {
+    document.querySelectorAll('.type-card').forEach(c => {
+      c.style.borderColor = 'var(--border)';
+      c.querySelector('svg').setAttribute('stroke', 'var(--muted)');
+      c.querySelector('div').style.color = 'var(--muted)';
+    });
+    el.style.borderColor = 'var(--cyan)';
+    el.querySelector('svg').setAttribute('stroke', 'oklch(0.789 0.154 211.1)');
+    el.querySelector('div').style.color = 'oklch(0.789 0.154 211.1)';
+    const t = el.dataset.type;
+    ['knowledge_sync','webhook','agent_run'].forEach(k => {
+      document.getElementById('config-' + k).style.display = k === t ? 'block' : 'none';
+    });
+    const badge = document.getElementById('timeout-default');
+    if (badge) badge.textContent = 'auto: ' + (TYPE_TIMEOUTS[t] || '');
+  }
+
+  // ── Scope fields ──────────────────────────────────────────
+  function updateScopeFields(scope) {
+    const el = document.getElementById('scope-assignment');
+    const label = document.getElementById('scope-assignment-label');
+    if (scope === 'agent') label.textContent = 'Assign to Agent *';
+    else if (scope === 'project') label.textContent = 'Assign to Project *';
+    else label.textContent = 'Assign to Project';
+  }
+
+  // ── Accordion ─────────────────────────────────────────────
+  function toggleAccordion(header) {
+    const body = header.nextElementSibling;
+    const chevron = header.querySelector('svg');
+    const isOpen = body.classList.contains('open');
+    body.classList.toggle('open', !isOpen);
+    if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+  }
+
+  // ── Option pills ──────────────────────────────────────────
+  function selectOption(el, group) {
+    el.closest('.option-group').querySelectorAll('.option-pill').forEach(p => p.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  // ── Timeout toggle ────────────────────────────────────────
+  function toggleTimeout(custom) {
+    const el = document.getElementById('timeout-custom');
+    if (el) el.style.display = custom ? 'flex' : 'none';
+  }
+
+  // ── Failure webhook toggle ────────────────────────────────
+  function toggleFailWebhook(show) {
+    const el = document.getElementById('fail-webhook-fields');
+    if (el) el.style.display = show ? 'block' : 'none';
+  }
+
+  // ── Cron presets ──────────────────────────────────────────
+  function setCron(expr, btn) {
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('cron-input').value = expr;
+    updateCronPreview(expr);
+  }
+  const cronMap = {
+    '* * * * *': 'Every minute',
+    '0 * * * *': 'Every hour at :00',
+    '0 3 * * *': 'Every day at 03:00 AM',
+    '0 9 * * 1': 'Every Monday at 09:00 AM',
+    '0 6 1 * *': '1st of every month at 06:00 AM',
+    '0 8 * * 1-5': 'Weekdays at 08:00 AM',
+    '*/5 * * * *': 'Every 5 minutes',
+    '0 12 * * *': 'Every day at 12:00 PM',
+    '0 0 * * 0': 'Every Sunday at midnight',
+  };
+  function updateCronPreview(val) {
+    const p = document.getElementById('cron-preview');
+    if (cronMap[val]) { p.textContent = '→ ' + cronMap[val]; p.style.color = 'oklch(0.789 0.154 211.1)'; }
+    else if (!val.trim()) { p.textContent = '→ Enter a cron expression'; p.style.color = 'var(--muted)'; }
+    else { p.textContent = '→ Custom schedule'; p.style.color = 'oklch(0.795 0.184 86.047)'; }
+  }
+
+  // ── Toast ─────────────────────────────────────────────────
+  function showRunFeedback() {
+    const t = document.getElementById('toast');
+    t.style.display = 'flex';
+    setTimeout(() => { t.style.display = 'none'; }, 3000);
+  }
+
+  // ── Keyboard shortcuts ────────────────────────────────────
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closeDialog('create-dialog'); closeLogsDrawer(); }
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); openCreateDialog(); }
+  });
+</script>
+</body>
+</html>

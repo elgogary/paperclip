@@ -23,10 +23,16 @@ function formatDate(iso: string): string {
   });
 }
 
+const STATUS_COLORS: Record<string, string> = {
+  success: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+  failed: "bg-red-500/15 text-red-600 dark:text-red-400",
+  running: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
+  timed_out: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+  cancelled: "bg-muted text-muted-foreground",
+};
+
 function RunRow({ run }: { run: ScheduledJobRun }) {
-  const isSuccess = run.status === "success";
-  const isFailed = run.status === "failed";
-  const isRunning = run.status === "running";
+  const statusKey = run.status as string;
 
   return (
     <div className="border border-border rounded-lg p-3 space-y-1.5">
@@ -35,12 +41,10 @@ function RunRow({ run }: { run: ScheduledJobRun }) {
           <span
             className={cn(
               "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium",
-              isSuccess && "bg-emerald-500/15 text-emerald-600",
-              isFailed && "bg-red-500/15 text-red-600",
-              isRunning && "bg-blue-500/15 text-blue-600",
+              STATUS_COLORS[statusKey] ?? "bg-muted text-muted-foreground",
             )}
           >
-            {run.status}
+            {run.status.replace("_", " ")}
           </span>
           {run.attempt > 1 && (
             <span className="inline-flex items-center rounded-full bg-amber-500/15 text-amber-600 px-2 py-0.5 text-[10px] font-medium">
@@ -57,10 +61,12 @@ function RunRow({ run }: { run: ScheduledJobRun }) {
       <p className="text-[10px] text-muted-foreground">{formatDate(run.startedAt)}</p>
 
       {run.output && (
-        <p className="text-xs font-mono bg-muted/40 rounded px-2 py-1 truncate">{run.output}</p>
+        <p className="text-xs font-mono bg-muted/40 rounded px-2 py-1 break-all whitespace-pre-wrap">
+          {run.output}
+        </p>
       )}
       {run.error && (
-        <p className="text-xs text-destructive bg-destructive/5 rounded px-2 py-1 truncate">
+        <p className="text-xs text-destructive bg-destructive/5 rounded px-2 py-1 break-all whitespace-pre-wrap">
           {run.error}
         </p>
       )}

@@ -2,7 +2,7 @@ import { type Response, Router } from "express";
 import type { Db } from "@paperclipai/db";
 import { assertBoard, assertCompanyAccess } from "./authz.js";
 import { scheduledJobsService, type ScheduledJob } from "../services/scheduled-jobs.js";
-import { executeKnowledgeSync, executeWebhook, executeAgentRun } from "../services/scheduled-job-executors.js";
+import { executeKnowledgeSync, executeWebhook, executeAgentRun, executeDream, executeMemoryIngest } from "../services/scheduled-job-executors.js";
 import { secretService } from "../services/secrets.js";
 import { logger } from "../middleware/logger.js";
 
@@ -138,6 +138,10 @@ export function scheduledJobRoutes(db: Db) {
             result = await executeKnowledgeSync(job, brainApiUrl, brainApiKey);
           } else if (job.jobType === "webhook") {
             result = await executeWebhook(job, (secretId) => secSvc.resolveById(companyId, secretId));
+          } else if (job.jobType === "dream") {
+            result = await executeDream(job, brainApiUrl, brainApiKey);
+          } else if (job.jobType === "memory_ingest") {
+            result = await executeMemoryIngest(job, brainApiUrl, brainApiKey);
           } else {
             result = await executeAgentRun(job, db);
           }

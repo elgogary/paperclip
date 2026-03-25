@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Customize — Prototype</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:       oklch(0.145 0 0);
+    --fg:       oklch(0.985 0 0);
+    --card:     oklch(0.205 0 0);
+    --border:   oklch(0.26 0 0);
+    --muted:    oklch(0.269 0 0);
+    --muted-fg: oklch(0.78 0 0);
+    --accent:   oklch(0.269 0 0);
+    --primary:  oklch(0.922 0 0);
+    --green:    #10b981;
+    --red:      #ef4444;
+    --yellow:   #f59e0b;
+    --blue:     #3b82f6;
+    --purple:   #8b5cf6;
+    --orange:   #f97316;
+    --cyan:     #06b6d4;
+  }
+  body { background: var(--bg); color: var(--fg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; height: 100vh; overflow: hidden; display: flex; }
+  ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: oklch(0.35 0 0); border-radius: 3px; }
+
+  /* ── App sidebar ── */
+  .app-sidebar { width: 228px; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 10px; gap: 12px; flex-shrink: 0; }
+  .co-name { font-size: 13px; font-weight: 700; padding: 4px 8px 10px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); }
+  .brand-dot { width: 14px; height: 14px; border-radius: 3px; background: #6366f1; flex-shrink: 0; }
+  .sec-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted-fg); padding: 0 8px 4px; }
+  .nav { display: flex; flex-direction: column; gap: 1px; }
+  .nav a { display: flex; align-items: center; gap: 9px; padding: 6px 8px; border-radius: 5px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.65); cursor: pointer; text-decoration: none; transition: background .1s, color .1s; }
+  .nav a:hover { background: var(--accent); color: var(--fg); }
+  .nav a.active { background: var(--accent); color: var(--fg); }
+
+  /* ── Main area ── */
+  .main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .breadcrumb { height: 38px; border-bottom: 1px solid var(--border); padding: 0 16px; display: flex; align-items: center; font-size: 12px; color: var(--muted-fg); flex-shrink: 0; gap: 6px; }
+
+  /* ── Customize layout: inner sidebar + panel ── */
+  .customize-layout { display: flex; flex: 1; overflow: hidden; }
+
+  /* Inner sidebar (Customize nav) */
+  .customize-nav { width: 200px; border-right: 1px solid var(--border); padding: 16px 12px; flex-shrink: 0; display: flex; flex-direction: column; gap: 2px; }
+  .customize-nav-title { font-size: 15px; font-weight: 700; padding: 0 8px 12px; display: flex; align-items: center; gap: 8px; }
+  .customize-nav-item { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 6px; font-size: 13px; font-weight: 500; color: var(--muted-fg); cursor: pointer; transition: all .12s; }
+  .customize-nav-item:hover { background: var(--accent); color: var(--fg); }
+  .customize-nav-item.active { background: var(--accent); color: var(--fg); }
+  .customize-nav-item .nav-icon { width: 18px; text-align: center; font-size: 14px; }
+  .customize-nav-item .nav-badge { margin-left: auto; font-size: 11px; background: var(--muted); padding: 1px 6px; border-radius: 10px; }
+  .customize-nav-sep { height: 1px; background: var(--border); margin: 8px 0; }
+  .customize-nav-hint { font-size: 11px; color: var(--muted-fg); padding: 8px 10px; line-height: 1.5; }
+
+  /* Main panel */
+  .customize-panel { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+
+  /* ── Buttons ── */
+  .btn { display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; font-family: inherit; }
+  .btn-primary { background: var(--primary); color: var(--bg); }
+  .btn-primary:hover { opacity: .88; }
+  .btn-cancel { background: transparent; color: var(--fg); border: 1px solid var(--border); }
+  .btn-cancel:hover { background: var(--accent); }
+  .btn-success { background: var(--green); color: #fff; border: none; }
+  .btn-success:hover { opacity: .88; }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+  .btn-icon { width: 28px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 5px; background: transparent; border: 1px solid var(--border); color: var(--muted-fg); cursor: pointer; }
+  .btn-icon:hover { background: var(--accent); color: var(--fg); }
+  .btn-ghost { background: transparent; color: var(--muted-fg); border: none; padding: 5px 8px; border-radius: 5px; cursor: pointer; }
+  .btn-ghost:hover { background: var(--accent); color: var(--fg); }
+
+  /* ── Toggle ── */
+  .toggle { position: relative; width: 36px; height: 20px; cursor: pointer; display: inline-block; }
+  .toggle input { display: none; }
+  .toggle-track { position: absolute; inset: 0; background: oklch(0.35 0 0); border-radius: 10px; transition: background .2s; }
+  .toggle input:checked + .toggle-track { background: var(--green); }
+  .toggle-thumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: transform .2s; }
+  .toggle input:checked ~ .toggle-thumb { transform: translateX(16px); }
+
+  /* ── Badges ── */
+  .badge { display: inline-flex; align-items: center; font-size: 11px; font-weight: 500; padding: 2px 7px; border-radius: 999px; white-space: nowrap; }
+  .badge-dev    { background: rgba(99,102,241,.14); color: #a5b4fc; }
+  .badge-comm   { background: rgba(236,72,153,.12); color: #f9a8d4; }
+  .badge-data   { background: rgba(6,182,212,.12); color: #67e8f9; }
+  .badge-search { background: rgba(249,115,22,.12); color: #fdba74; }
+  .badge-files  { background: rgba(34,197,94,.12); color: #86efac; }
+  .badge-ai     { background: rgba(168,85,247,.12); color: #d8b4fe; }
+  .badge-tools  { background: rgba(59,130,246,.12); color: #93c5fd; }
+  .badge-outbound { background: rgba(59,130,246,.12); color: #93c5fd; }
+  .badge-coding { background: rgba(99,102,241,.14); color: #a5b4fc; }
+  .badge-research { background: rgba(6,182,212,.12); color: #67e8f9; }
+  .badge-custom { background: rgba(251,191,36,.12); color: #fcd34d; }
+
+  /* ── Health dots ── */
+  .health-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .health-healthy { background: var(--green); box-shadow: 0 0 6px rgba(16,185,129,.4); }
+  .health-unhealthy { background: var(--red); box-shadow: 0 0 6px rgba(239,68,68,.4); }
+  .health-unknown { background: oklch(0.45 0 0); }
+
+  /* ── Form controls ── */
+  .form-group { margin-bottom: 16px; }
+  .form-label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 5px; }
+  .form-input { width: 100%; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; font-size: 13px; color: var(--fg); outline: none; font-family: inherit; }
+  .form-input:focus { border-color: oklch(0.55 0 0); }
+  .form-select { width: 100%; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; font-size: 13px; color: var(--fg); outline: none; font-family: inherit; }
+  .form-hint { font-size: 11px; color: var(--muted-fg); margin-top: 4px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* ── Skill editor ── */
+  .skill-editor { width: 100%; min-height: 300px; padding: 16px; background: oklch(0.12 0 0); border: 1px solid var(--border); border-radius: 6px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; color: var(--fg); outline: none; resize: vertical; line-height: 1.7; tab-size: 2; white-space: pre-wrap; }
+  .skill-editor:focus { border-color: oklch(0.55 0 0); }
+
+  /* ══════════════════════════════════════════════════ */
+  /* SKILLS SECTION                                      */
+  /* ══════════════════════════════════════════════════ */
+
+  /* Skills split: list + detail */
+  .skills-layout { display: flex; flex: 1; overflow: hidden; }
+  .skills-list-panel { width: 280px; border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+  .skills-list-header { padding: 12px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .skills-list-header h3 { font-size: 14px; font-weight: 600; flex: 1; }
+  .skills-search { padding: 8px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .skills-search input { width: 100%; padding: 6px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; font-size: 12px; color: var(--fg); outline: none; }
+  .skills-list { flex: 1; overflow-y: auto; }
+  .skills-section-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted-fg); padding: 10px 14px 4px; }
+  .skill-item { display: flex; align-items: center; gap: 10px; padding: 8px 14px; cursor: pointer; transition: background .1s; border-left: 3px solid transparent; }
+  .skill-item:hover { background: rgba(255,255,255,.03); }
+  .skill-item.active { background: var(--accent); border-left-color: var(--fg); }
+  .skill-item-icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; background: rgba(255,255,255,.06); flex-shrink: 0; }
+  .skill-item-name { font-size: 13px; font-weight: 500; }
+  .skill-item-sub { font-size: 11px; color: var(--muted-fg); margin-top: 1px; }
+
+  /* Skill detail panel */
+  .skill-detail { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .skill-detail-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; flex-shrink: 0; }
+  .skill-detail-title { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+  .skill-detail-meta { display: flex; gap: 16px; margin-top: 6px; font-size: 11px; color: var(--muted-fg); }
+  .skill-detail-body { flex: 1; overflow-y: auto; padding: 20px; }
+  .skill-detail-section { margin-bottom: 20px; }
+  .skill-detail-section h4 { font-size: 13px; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+
+  /* Agent access (compact) */
+  .agent-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 4px; border-radius: 6px; border: 1px solid var(--border); font-size: 12px; margin: 3px; cursor: pointer; transition: all .15s; }
+  .agent-chip:hover { border-color: var(--green); }
+  .agent-chip.granted { border-color: var(--green); background: rgba(16,185,129,.08); }
+  .agent-chip-avatar { width: 22px; height: 22px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; }
+  .agent-chip-check { width: 14px; height: 14px; border-radius: 3px; border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 9px; margin-left: 4px; }
+  .agent-chip.granted .agent-chip-check { border-color: var(--green); color: var(--green); background: rgba(16,185,129,.15); }
+
+  /* ══════════════════════════════════════════════════ */
+  /* MCP SERVERS SECTION                                 */
+  /* ══════════════════════════════════════════════════ */
+  .mcp-panel { padding: 16px 20px; overflow-y: auto; }
+  .mcp-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .mcp-header h3 { font-size: 16px; font-weight: 700; }
+
+  .server-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+  .server-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+  .server-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .server-card-icon { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+  .server-card-name { font-size: 13px; font-weight: 600; }
+  .server-card-sub { font-size: 11px; color: var(--muted-fg); font-family: monospace; }
+  .server-card-meta { display: flex; gap: 12px; font-size: 11px; color: var(--muted-fg); margin: 6px 0; }
+  .server-card-actions { display: flex; gap: 6px; padding-top: 10px; border-top: 1px solid var(--border); margin-top: 8px; }
+
+  /* ══════════════════════════════════════════════════ */
+  /* CONNECTORS SECTION                                  */
+  /* ══════════════════════════════════════════════════ */
+  .connector-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+  .connector-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; display: flex; align-items: center; gap: 14px; }
+  .connector-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+  .connector-info { flex: 1; }
+  .connector-name { font-size: 14px; font-weight: 600; }
+  .connector-desc { font-size: 11px; color: var(--muted-fg); margin-top: 2px; }
+  .connector-status { font-size: 11px; margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+
+  /* ══════════════════════════════════════════════════ */
+  /* GATEWAY SECTION                                     */
+  /* ══════════════════════════════════════════════════ */
+  .gateway-panel { padding: 16px 20px; overflow-y: auto; }
+  .gateway-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+  .gateway-card h4 { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+  .token-display { background: oklch(0.12 0 0); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; font-family: monospace; font-size: 13px; }
+  .client-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .client-row:last-child { border-bottom: none; }
+
+  /* ══════════════════════════════════════════════════ */
+  /* MODAL                                                */
+  /* ══════════════════════════════════════════════════ */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--card); border: 1px solid var(--border); border-radius: 10px; width: 620px; max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 16px 48px rgba(0,0,0,.4); }
+  .modal-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .modal-header h3 { font-size: 16px; font-weight: 700; }
+  .modal-close { background: none; border: none; color: var(--muted-fg); font-size: 18px; cursor: pointer; }
+  .modal-close:hover { color: var(--fg); }
+  .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+  .modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+
+  /* Library grid (in modal) */
+  .library-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .library-card { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; cursor: pointer; transition: all .15s; }
+  .library-card:hover { border-color: oklch(0.45 0 0); }
+  .library-card-name { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .library-card-desc { font-size: 11px; color: var(--muted-fg); margin-top: 4px; line-height: 1.4; }
+  .library-card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+
+  /* ── Catalog grid (marketplace) ── */
+  .catalog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+  .catalog-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; cursor: pointer; transition: all .15s; display: flex; flex-direction: column; }
+  .catalog-card:hover { border-color: oklch(0.45 0 0); }
+
+  .filter-chip { display: inline-flex; align-items: center; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--muted-fg); transition: all .15s; }
+  .filter-chip:hover { background: var(--accent); color: var(--fg); }
+  .filter-chip.active { background: rgba(255,255,255,.1); color: var(--fg); border-color: rgba(255,255,255,.2); }
+
+  .search-input { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-size: 13px; color: var(--fg); outline: none; font-family: inherit; }
+  .search-input::placeholder { color: var(--muted-fg); }
+
+  .proto-label { position: fixed; top: 8px; right: 8px; background: var(--red); color: #fff; padding: 3px 10px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; z-index: 200; letter-spacing: .5px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<span class="proto-label">Prototype</span>
+
+<!-- ─── App Sidebar ─── -->
+<div class="app-sidebar">
+  <div class="co-name"><div class="brand-dot"></div> Optiflow</div>
+  <div class="sec-label">Main</div>
+  <div class="nav">
+    <a>&#x1F4CA; Dashboard</a>
+    <a>&#x1F465; Agents</a>
+    <a>&#x1F4CB; Issues</a>
+    <a>&#x1F3AF; Goals</a>
+    <a>&#x1F4C1; Projects</a>
+    <a>&#x23F0; Scheduled Jobs</a>
+  </div>
+  <div class="sec-label">Platform</div>
+  <div class="nav">
+    <a class="active">&#x2699; Customize</a>
+    <a>&#x1F9E0; Brain</a>
+    <a>&#x1F4AC; Chat</a>
+  </div>
+</div>
+
+<!-- ─── Main Area ─── -->
+<div class="main-area">
+  <div class="breadcrumb">
+    <span>Optiflow</span> <span style="opacity:.4">/</span> <span style="color:var(--fg)">Customize</span>
+  </div>
+
+  <div class="customize-layout">
+
+    <!-- ─── Customize Inner Sidebar ─── -->
+    <div class="customize-nav">
+      <div class="customize-nav-title">&#x2699; Customize</div>
+
+      <div class="customize-nav-item active" onclick="switchSection(this,'skills')">
+        <span class="nav-icon">&#x1F4DC;</span> Skills
+        <span class="nav-badge">7</span>
+      </div>
+      <div class="customize-nav-item" onclick="switchSection(this,'mcp')">
+        <span class="nav-icon">&#x1F50C;</span> MCP Servers
+        <span class="nav-badge">4</span>
+      </div>
+      <div class="customize-nav-item" onclick="switchSection(this,'connectors')">
+        <span class="nav-icon">&#x1F517;</span> Connectors
+        <span class="nav-badge">2</span>
+      </div>
+
+      <div class="customize-nav-sep"></div>
+
+      <div class="customize-nav-item" onclick="switchSection(this,'gateway')">
+        <span class="nav-icon">&#x1F6E1;</span> Gateway
+      </div>
+
+      <div class="customize-nav-sep"></div>
+      <div class="customize-nav-hint">
+        Give your agents role-level expertise with skills, connect external tools via MCP, and manage access.
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- SECTION: Skills                                      -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <div class="customize-panel" id="section-skills">
+      <div class="skills-layout">
+
+        <!-- Skills list (left) -->
+        <div class="skills-list-panel">
+          <div class="skills-list-header">
+            <h3>Skills</h3>
+            <button class="btn-icon" title="Browse Library" onclick="openModal('skill-library')">&#x1F4DA;</button>
+            <button class="btn-icon" title="New Skill" onclick="openModal('new-skill')">&#x2795;</button>
+          </div>
+          <div class="skills-search">
+            <input type="text" placeholder="Search skills..." />
+          </div>
+          <div class="skills-list">
+            <div class="skills-section-label">My Skills</div>
+            <div class="skill-item active" onclick="selectSkill(this)">
+              <div class="skill-item-icon">&#x1F4E6;</div>
+              <div><div class="skill-item-name">add-api-method</div><div class="skill-item-sub">Added by User</div></div>
+            </div>
+            <div class="skill-item" onclick="selectSkill(this)">
+              <div class="skill-item-icon">&#x1F9EA;</div>
+              <div><div class="skill-item-name">til</div><div class="skill-item-sub">Added by User</div></div>
+            </div>
+            <div class="skill-item" onclick="selectSkill(this)">
+              <div class="skill-item-icon">&#x1F41B;</div>
+              <div><div class="skill-item-name">debug-agent</div><div class="skill-item-sub">Added by User</div></div>
+            </div>
+
+            <div class="skills-section-label">Built-in</div>
+            <div class="skill-item" onclick="selectSkill(this)">
+              <div class="skill-item-icon">&#x1F4DD;</div>
+              <div><div class="skill-item-name">code-review</div><div class="skill-item-sub">Built-in</div></div>
+            </div>
+            <div class="skill-item" onclick="selectSkill(this)">
+              <div class="skill-item-icon">&#x1F50D;</div>
+              <div><div class="skill-item-name">research</div><div class="skill-item-sub">Built-in</div></div>
+            </div>
+            <div class="skill-item" onclick="selectSkill(this)">
+              <div class="skill-item-icon">&#x1F4CA;</div>
+              <div><div class="skill-item-name">data-analysis</div><div class="skill-item-sub">Built-in</div></div>
+            </div>
+            <div class="skill-item" onclick="selectSkill(this)">
+              <div class="skill-item-icon">&#x1F4AC;</div>
+              <div><div class="skill-item-name">summarize</div><div class="skill-item-sub">Built-in</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Skill detail (right) -->
+        <div class="skill-detail">
+          <div class="skill-detail-header">
+            <div>
+              <div class="skill-detail-title">
+                &#x1F4E6; add-api-method
+                <label class="toggle"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+              </div>
+              <div class="skill-detail-meta">
+                <span>Added by <strong>User</strong></span>
+                <span>Last updated <strong>Mar 20, 2026</strong></span>
+                <span>Invoked by <strong>User or Agent</strong></span>
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-cancel btn-sm">&#x1F4CB; Duplicate</button>
+              <button class="btn-icon" style="color:var(--red);border-color:rgba(239,68,68,.3);" title="Delete">&#x1F5D1;</button>
+            </div>
+          </div>
+
+          <div class="skill-detail-body">
+            <!-- Description -->
+            <div class="skill-detail-section">
+              <h4>Description</h4>
+              <div class="form-input" style="min-height:40px;background:var(--card);">Add whitelisted API methods for any ERPNext/Frappe project with validation, transactions, project patterns via config.md</div>
+            </div>
+
+            <!-- Trigger -->
+            <div class="skill-detail-section">
+              <h4>&#x26A1; Trigger</h4>
+              <div class="form-input" style="min-height:40px;background:var(--card);">Use when code needs a new @frappe.whitelist() API endpoint, REST API method, or server-side function callable from client.</div>
+            </div>
+
+            <!-- Agent Access -->
+            <div class="skill-detail-section">
+              <h4>&#x1F916; Agent Access</h4>
+              <p style="font-size:11px;color:var(--muted-fg);margin-bottom:8px;">Click agents to grant/revoke access to this skill.</p>
+              <div>
+                <span class="agent-chip granted" onclick="this.classList.toggle('granted')">
+                  <span class="agent-chip-avatar" style="background:rgba(168,85,247,.15);color:#c084fc;">TL</span>
+                  TechLead
+                  <span class="agent-chip-check">&#x2713;</span>
+                </span>
+                <span class="agent-chip granted" onclick="this.classList.toggle('granted')">
+                  <span class="agent-chip-avatar" style="background:rgba(59,130,246,.15);color:#93c5fd;">BE</span>
+                  BackendEng
+                  <span class="agent-chip-check">&#x2713;</span>
+                </span>
+                <span class="agent-chip granted" onclick="this.classList.toggle('granted')">
+                  <span class="agent-chip-avatar" style="background:rgba(236,72,153,.15);color:#f9a8d4;">FE</span>
+                  FrontendEng
+                  <span class="agent-chip-check">&#x2713;</span>
+                </span>
+                <span class="agent-chip" onclick="this.classList.toggle('granted')">
+                  <span class="agent-chip-avatar" style="background:rgba(34,197,94,.15);color:#86efac;">DO</span>
+                  DevOps
+                  <span class="agent-chip-check"></span>
+                </span>
+                <span class="agent-chip" onclick="this.classList.toggle('granted')">
+                  <span class="agent-chip-avatar" style="background:rgba(251,191,36,.15);color:#fcd34d;">CE</span>
+                  CEO
+                  <span class="agent-chip-check"></span>
+                </span>
+                <span class="agent-chip" onclick="this.classList.toggle('granted')">
+                  <span class="agent-chip-avatar" style="background:rgba(249,115,22,.15);color:#fdba74;">SM</span>
+                  SalesManager
+                  <span class="agent-chip-check"></span>
+                </span>
+              </div>
+            </div>
+
+            <!-- Instructions Editor -->
+            <div class="skill-detail-section">
+              <h4>&#x1F4DD; Instructions</h4>
+              <textarea class="skill-editor">---
+name: add-api-method
+description: Add whitelisted API methods for any ERPNext/Frappe project
+trigger: Use when code needs a new @frappe.whitelist() endpoint
+invoked_by: user_or_agent
+---
+
+## Input
+
+**Required**:
+- **Method name** (snake_case): e.g., get_budget_summary, calculate_invoice_total
+- **Functionality**: What this API method does
+
+**Optional**:
+- **File location**: Module path (default from config.md)
+- **mode**: "fast" (default) or "deep"
+  - fast: Basic API with essential validation
+  - deep: Full API with transactions, comprehensive validation, caching
+- **Parameters**: List with types
+- **Return value**: What method returns
+- **Permission**: Role/permission required
+
+## Template
+
+```python
+@frappe.whitelist()
+def method_name(param1, param2=None):
+    """One-line description."""
+    frappe.has_permission("DocType", "read", throw=True)
+    # Implementation here
+    return result
+```</textarea>
+            </div>
+
+            <!-- Save bar -->
+            <div style="display:flex;gap:8px;justify-content:flex-end;padding:12px 0;">
+              <button class="btn btn-cancel">Discard Changes</button>
+              <button class="btn btn-primary">Save Skill</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- SECTION: MCP Servers                                 -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <div class="customize-panel hidden" id="section-mcp">
+      <div class="mcp-panel">
+        <div class="mcp-header">
+          <h3>MCP Servers</h3>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-cancel btn-sm" onclick="openModal('marketplace')">Browse Marketplace</button>
+            <button class="btn btn-primary btn-sm">+ Add Server</button>
+          </div>
+        </div>
+
+        <div class="server-grid">
+          <div class="server-card">
+            <div class="server-card-header">
+              <div class="server-card-icon" style="background:rgba(255,255,255,.08);">&#x1F4BB;</div>
+              <div style="flex:1"><div style="display:flex;align-items:center;gap:6px;"><div class="server-card-name">GitHub</div><span class="health-dot health-healthy"></span></div><div class="server-card-sub">@modelcontextprotocol/server-github</div></div>
+              <label class="toggle"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+            </div>
+            <div class="server-card-meta"><span class="badge badge-outbound">Outbound</span> <span>&#x1F527; 12 tools</span> <span>&#x1F916; 4 agents</span></div>
+            <div class="server-card-actions"><button class="btn btn-cancel btn-sm">Configure</button><button class="btn btn-cancel btn-sm">Test</button><button class="btn btn-cancel btn-sm">Logs</button></div>
+          </div>
+          <div class="server-card">
+            <div class="server-card-header">
+              <div class="server-card-icon" style="background:rgba(236,72,153,.1);">&#x1F4AC;</div>
+              <div style="flex:1"><div style="display:flex;align-items:center;gap:6px;"><div class="server-card-name">Slack</div><span class="health-dot health-healthy"></span></div><div class="server-card-sub">@anthropic/slack-mcp</div></div>
+              <label class="toggle"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+            </div>
+            <div class="server-card-meta"><span class="badge badge-outbound">Outbound</span> <span>&#x1F527; 8 tools</span> <span>&#x1F916; 3 agents</span></div>
+            <div class="server-card-actions"><button class="btn btn-cancel btn-sm">Configure</button><button class="btn btn-cancel btn-sm">Test</button><button class="btn btn-cancel btn-sm">Logs</button></div>
+          </div>
+          <div class="server-card">
+            <div class="server-card-header">
+              <div class="server-card-icon" style="background:rgba(6,182,212,.1);">&#x1F4BE;</div>
+              <div style="flex:1"><div style="display:flex;align-items:center;gap:6px;"><div class="server-card-name">PostgreSQL</div><span class="health-dot health-healthy"></span></div><div class="server-card-sub">@modelcontextprotocol/server-postgres</div></div>
+              <label class="toggle"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+            </div>
+            <div class="server-card-meta"><span class="badge badge-outbound">Outbound</span> <span>&#x1F527; 5 tools</span> <span>&#x1F916; 2 agents</span></div>
+            <div class="server-card-actions"><button class="btn btn-cancel btn-sm">Configure</button><button class="btn btn-cancel btn-sm">Test</button><button class="btn btn-cancel btn-sm">Logs</button></div>
+          </div>
+          <div class="server-card" style="border-color:rgba(239,68,68,.3);">
+            <div class="server-card-header">
+              <div class="server-card-icon" style="background:rgba(249,115,22,.1);">&#x1F50D;</div>
+              <div style="flex:1"><div style="display:flex;align-items:center;gap:6px;"><div class="server-card-name">Brave Search</div><span class="health-dot health-unhealthy"></span></div><div class="server-card-sub">@modelcontextprotocol/server-brave-search</div></div>
+              <label class="toggle"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+            </div>
+            <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:4px;padding:6px 10px;margin:6px 0;font-size:11px;color:#f87171;">Invalid API key</div>
+            <div class="server-card-meta"><span class="badge badge-outbound">Outbound</span> <span>&#x1F527; 2 tools</span></div>
+            <div class="server-card-actions"><button class="btn btn-cancel btn-sm">Configure</button><button class="btn btn-cancel btn-sm">Test</button><button class="btn btn-cancel btn-sm">Logs</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- SECTION: Connectors                                  -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <div class="customize-panel hidden" id="section-connectors">
+      <div class="mcp-panel">
+        <div class="mcp-header">
+          <h3>Connectors</h3>
+          <button class="btn btn-cancel btn-sm">Browse Connectors</button>
+        </div>
+        <p style="font-size:12px;color:var(--muted-fg);margin-bottom:16px;">OAuth-based integrations. Click "Connect" to authorize access — no API keys needed.</p>
+
+        <div class="connector-grid">
+          <div class="connector-card">
+            <div class="connector-icon" style="background:rgba(239,68,68,.1);">&#x1F4E7;</div>
+            <div class="connector-info">
+              <div class="connector-name">Gmail</div>
+              <div class="connector-desc">Read, send, and manage emails</div>
+              <div class="connector-status" style="color:var(--yellow);">&#x26A0; Needs Auth</div>
+            </div>
+            <button class="btn btn-primary btn-sm">Connect</button>
+          </div>
+          <div class="connector-card">
+            <div class="connector-icon" style="background:rgba(59,130,246,.1);">&#x1F4C5;</div>
+            <div class="connector-info">
+              <div class="connector-name">Google Calendar</div>
+              <div class="connector-desc">View and create calendar events</div>
+              <div class="connector-status" style="color:var(--yellow);">&#x26A0; Needs Auth</div>
+            </div>
+            <button class="btn btn-primary btn-sm">Connect</button>
+          </div>
+          <div class="connector-card">
+            <div class="connector-icon" style="background:rgba(34,197,94,.1);">&#x1F4C4;</div>
+            <div class="connector-info">
+              <div class="connector-name">Google Sheets</div>
+              <div class="connector-desc">Read and write spreadsheet data</div>
+              <div class="connector-status" style="color:var(--green);">&#x2713; Connected</div>
+            </div>
+            <button class="btn btn-cancel btn-sm">Disconnect</button>
+          </div>
+          <div class="connector-card">
+            <div class="connector-icon" style="background:rgba(168,85,247,.1);">&#x1F4AC;</div>
+            <div class="connector-info">
+              <div class="connector-name">Slack (OAuth)</div>
+              <div class="connector-desc">Full workspace access via OAuth</div>
+              <div class="connector-status" style="color:var(--green);">&#x2713; Connected</div>
+            </div>
+            <button class="btn btn-cancel btn-sm">Disconnect</button>
+          </div>
+          <div class="connector-card" style="opacity:.5;">
+            <div class="connector-icon" style="background:rgba(59,130,246,.1);">&#x1F4CE;</div>
+            <div class="connector-info">
+              <div class="connector-name">Notion</div>
+              <div class="connector-desc">Access pages, databases, and blocks</div>
+              <div class="connector-status" style="color:var(--muted-fg);">Coming soon</div>
+            </div>
+            <button class="btn btn-cancel btn-sm" disabled>Connect</button>
+          </div>
+          <div class="connector-card" style="opacity:.5;">
+            <div class="connector-icon" style="background:rgba(249,115,22,.1);">&#x1F4E6;</div>
+            <div class="connector-info">
+              <div class="connector-name">Jira</div>
+              <div class="connector-desc">Issues, boards, and sprints</div>
+              <div class="connector-status" style="color:var(--muted-fg);">Coming soon</div>
+            </div>
+            <button class="btn btn-cancel btn-sm" disabled>Connect</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- SECTION: Gateway                                     -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <div class="customize-panel hidden" id="section-gateway">
+      <div class="gateway-panel">
+        <div class="gateway-card">
+          <h4>&#x1F510; Inbound Access Tokens</h4>
+          <p style="font-size:12px;color:var(--muted-fg);margin-bottom:14px;">External clients (Claude Code, other AI agents) use these tokens to connect to your Paperclip instance via MCP.</p>
+          <div class="token-display" style="margin-bottom:10px;">
+            <span style="color:var(--muted-fg);">sk-mcp-&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;a7f3</span>
+            <div style="display:flex;gap:6px;"><button class="btn btn-cancel btn-sm">Show</button><button class="btn btn-cancel btn-sm">Copy</button></div>
+          </div>
+          <div style="display:flex;gap:8px;"><button class="btn btn-cancel btn-sm">Regenerate</button><button class="btn btn-cancel btn-sm">+ New Token</button></div>
+        </div>
+        <div class="gateway-card">
+          <h4>&#x1F4E1; Connected Clients</h4>
+          <div class="client-row"><div class="health-dot health-healthy"></div><div style="flex:1"><div style="font-weight:500;">Claude Code (eslam@laptop)</div><div style="font-size:11px;color:var(--muted-fg);">Connected 2h ago &middot; 142 calls today</div></div></div>
+          <div class="client-row"><div class="health-dot health-unknown"></div><div style="flex:1"><div style="font-weight:500;">n8n Webhook</div><div style="font-size:11px;color:var(--muted-fg);">Last seen 45m ago &middot; 23 calls today</div></div></div>
+        </div>
+        <div class="gateway-card">
+          <h4>&#x1F527; Exposed Tools (17)</h4>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;">
+            <span class="badge badge-tools">list_agents</span><span class="badge badge-tools">get_agent_detail</span><span class="badge badge-tools">wakeup_agent</span><span class="badge badge-tools">create_task</span><span class="badge badge-tools">list_tasks</span><span class="badge badge-tools">update_task</span><span class="badge badge-tools">delegate_to_agent</span><span class="badge badge-tools">comment_on_task</span><span class="badge badge-tools">list_runs</span><span class="badge badge-tools">read_run_log</span><span class="badge badge-tools">search_conversations</span>
+            <span style="font-size:11px;color:var(--muted-fg);padding:2px 7px;">+6 more</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /customize-layout -->
+</div><!-- /main-area -->
+
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- MODAL: Skill Library                                      -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-skill-library">
+  <div class="modal" style="width:680px;">
+    <div class="modal-header">
+      <h3>&#x1F4DA; Skill Library</h3>
+      <button class="modal-close" onclick="closeModal('skill-library')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <input class="search-input" type="text" placeholder="Search skills..." style="flex:1;" />
+        <button class="filter-chip active">All</button>
+        <button class="filter-chip">Coding</button>
+        <button class="filter-chip">Research</button>
+        <button class="filter-chip">Data</button>
+      </div>
+
+      <div class="library-grid">
+        <div class="library-card">
+          <div class="library-card-name">&#x1F4BB; skill-creator</div>
+          <div class="library-card-desc">Create new skills with proper structure, triggers, and instructions.</div>
+          <div class="library-card-footer"><span class="badge badge-coding">Coding</span><button class="btn btn-success btn-sm">Add</button></div>
+        </div>
+        <div class="library-card">
+          <div class="library-card-name">&#x1F3A8; brand-guidelines</div>
+          <div class="library-card-desc">Apply brand voice, colors, and typography across content.</div>
+          <div class="library-card-footer"><span class="badge badge-custom">Custom</span><button class="btn btn-success btn-sm">Add</button></div>
+        </div>
+        <div class="library-card">
+          <div class="library-card-name">&#x1F50C; mcp-builder</div>
+          <div class="library-card-desc">Build MCP servers with proper tool definitions and transport.</div>
+          <div class="library-card-footer"><span class="badge badge-coding">Coding</span><button class="btn btn-success btn-sm">Add</button></div>
+        </div>
+        <div class="library-card">
+          <div class="library-card-name">&#x1F4AC; internal-comms</div>
+          <div class="library-card-desc">Draft internal announcements, memos, and team updates.</div>
+          <div class="library-card-footer"><span class="badge badge-comm">Communication</span><button class="btn btn-success btn-sm">Add</button></div>
+        </div>
+        <div class="library-card">
+          <div class="library-card-name">&#x1F4CA; data-pipeline</div>
+          <div class="library-card-desc">ETL pipelines, data transformation, and validation patterns.</div>
+          <div class="library-card-footer"><span class="badge badge-data">Data</span><button class="btn btn-success btn-sm">Add</button></div>
+        </div>
+        <div class="library-card">
+          <div class="library-card-name">&#x1F310; web-scraper</div>
+          <div class="library-card-desc">Extract structured data from websites with error handling.</div>
+          <div class="library-card-footer"><span class="badge badge-research">Research</span><button class="btn btn-success btn-sm">Add</button></div>
+        </div>
+        <div class="library-card">
+          <div class="library-card-name">&#x1F4DD; doc-writer</div>
+          <div class="library-card-desc">Generate documentation, READMEs, and wikis from code.</div>
+          <div class="library-card-footer"><span class="badge badge-coding">Coding</span><button class="btn btn-success btn-sm">Add</button></div>
+        </div>
+        <div class="library-card">
+          <div class="library-card-name">&#x1F6E0; canvas-design</div>
+          <div class="library-card-desc">Design system components and UI pattern library.</div>
+          <div class="library-card-footer"><span class="badge badge-custom">Custom</span><button class="btn btn-success btn-sm">Add</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- MODAL: Marketplace                                       -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-marketplace">
+  <div class="modal" style="width:720px; max-height:85vh;">
+    <div class="modal-header">
+      <h3>&#x1F50C; MCP Marketplace</h3>
+      <button class="modal-close" onclick="closeModal('marketplace')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <input class="search-input" type="text" placeholder="Search MCP servers..." style="flex:1;" />
+        <button class="filter-chip active">All</button>
+        <button class="filter-chip">Dev</button>
+        <button class="filter-chip">Data</button>
+        <button class="filter-chip">Files</button>
+      </div>
+      <div class="library-grid">
+        <div class="library-card"><div class="library-card-name">&#x1F98A; GitLab</div><div class="library-card-desc">Repos, merge requests, pipelines</div><div class="library-card-footer"><span class="badge badge-dev">Dev</span><button class="btn btn-success btn-sm">Install</button></div></div>
+        <div class="library-card"><div class="library-card-name">&#x25B6; Linear</div><div class="library-card-desc">Issues, cycles, team workflows</div><div class="library-card-footer"><span class="badge badge-dev">Dev</span><button class="btn btn-success btn-sm">Install</button></div></div>
+        <div class="library-card"><div class="library-card-name">&#x1F3AE; Discord</div><div class="library-card-desc">Channel messaging, webhooks</div><div class="library-card-footer"><span class="badge badge-comm">Comm</span><button class="btn btn-success btn-sm">Install</button></div></div>
+        <div class="library-card"><div class="library-card-name">&#x1F4C2; Google Drive</div><div class="library-card-desc">Browse, search, read files</div><div class="library-card-footer"><span class="badge badge-files">Files</span><button class="btn btn-success btn-sm">Install</button></div></div>
+        <div class="library-card"><div class="library-card-name">&#x1F4C1; Filesystem</div><div class="library-card-desc">Local file read/write/search</div><div class="library-card-footer"><span class="badge badge-files">Files</span><button class="btn btn-success btn-sm">Install</button></div></div>
+        <div class="library-card"><div class="library-card-name">&#x1F310; Puppeteer</div><div class="library-card-desc">Browser automation, screenshots</div><div class="library-card-footer"><span class="badge badge-dev">Dev</span><button class="btn btn-success btn-sm">Install</button></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- MODAL: New Skill                                         -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-new-skill">
+  <div class="modal" style="width:540px;">
+    <div class="modal-header">
+      <h3>&#x2795; New Skill</h3>
+      <button class="modal-close" onclick="closeModal('new-skill')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Skill Name</label><input class="form-input" type="text" placeholder="my-custom-skill" /><div class="form-hint">lowercase, hyphens only (e.g., code-review, data-pipeline)</div></div>
+      <div class="form-group"><label class="form-label">Description</label><input class="form-input" type="text" placeholder="What does this skill do?" /></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Category</label><select class="form-select"><option>Coding</option><option>Research</option><option>Communication</option><option>Data</option><option selected>Custom</option></select></div>
+        <div class="form-group"><label class="form-label">Invoked by</label><select class="form-select"><option selected>User or Agent</option><option>User only</option><option>Agent only</option></select></div>
+      </div>
+      <div class="form-group"><label class="form-label">Trigger hint</label><input class="form-input" type="text" placeholder="Use when..." /><div class="form-hint">When should agents use this skill? This helps auto-selection.</div></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-cancel" onclick="closeModal('new-skill')">Cancel</button><button class="btn btn-primary">Create & Edit</button></div>
+  </div>
+</div>
+
+
+<script>
+// ── Section switching ──
+function switchSection(el, id) {
+  document.querySelectorAll('.customize-nav-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.customize-panel').forEach(p => p.classList.add('hidden'));
+  document.getElementById('section-' + id).classList.remove('hidden');
+}
+
+// ── Skill selection ──
+function selectSkill(el) {
+  document.querySelectorAll('.skill-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ── Modal ──
+function openModal(id) { document.getElementById('modal-' + id).classList.add('open'); }
+function closeModal(id) { document.getElementById('modal-' + id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+});
+</script>
+
+</body>
+</html>

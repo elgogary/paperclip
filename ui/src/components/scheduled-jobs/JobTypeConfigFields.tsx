@@ -1,13 +1,20 @@
 import type { ScheduledJobType } from "../../api/scheduled-jobs";
 
+interface Agent {
+  id: string;
+  title?: string | null;
+  name?: string;
+}
+
 interface Props {
   jobType: ScheduledJobType;
   config: Record<string, unknown>;
   onChange: (c: Record<string, unknown>) => void;
   secrets: { id: string; name: string }[];
+  agents?: Agent[];
 }
 
-export function JobTypeConfigFields({ jobType, config, onChange, secrets }: Props) {
+export function JobTypeConfigFields({ jobType, config, onChange, secrets, agents = [] }: Props) {
   function set(key: string, value: string) {
     onChange({ ...config, [key]: value });
   }
@@ -84,13 +91,28 @@ export function JobTypeConfigFields({ jobType, config, onChange, secrets }: Prop
     return (
       <div className="space-y-2">
         <div>
-          <label className="text-xs text-muted-foreground">Agent ID</label>
-          <input
-            className="w-full rounded-md border border-border bg-transparent px-2 py-1.5 text-xs font-mono outline-none mt-1"
-            placeholder="agent-uuid"
-            value={str("agent_id")}
-            onChange={(e) => set("agent_id", e.target.value)}
-          />
+          <label className="text-xs text-muted-foreground">Agent</label>
+          {agents.length > 0 ? (
+            <select
+              className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs outline-none mt-1"
+              value={str("agent_id")}
+              onChange={(e) => set("agent_id", e.target.value)}
+            >
+              <option value="">Select an agent…</option>
+              {agents.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.title ?? a.name ?? a.id}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              className="w-full rounded-md border border-border bg-transparent px-2 py-1.5 text-xs font-mono outline-none mt-1"
+              placeholder="agent-uuid"
+              value={str("agent_id")}
+              onChange={(e) => set("agent_id", e.target.value)}
+            />
+          )}
         </div>
         <div>
           <label className="text-xs text-muted-foreground">Task title</label>
@@ -111,6 +133,29 @@ export function JobTypeConfigFields({ jobType, config, onChange, secrets }: Prop
           />
         </div>
       </div>
+    );
+  }
+
+  if (jobType === "dream") {
+    return (
+      <div>
+        <label className="flex items-center gap-2 text-xs text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={(config.dry_run as boolean) ?? false}
+            onChange={(e) => onChange({ ...config, dry_run: e.target.checked })}
+          />
+          Dry run (report only, no changes)
+        </label>
+      </div>
+    );
+  }
+
+  if (jobType === "memory_ingest") {
+    return (
+      <p className="text-xs text-muted-foreground">
+        Triggers Brain's memory queue processing. No additional configuration needed — Brain processes all pending turns automatically.
+      </p>
     );
   }
 

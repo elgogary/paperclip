@@ -204,6 +204,13 @@
       "when": 1742810000000,
       "tag": "0028_scheduled_jobs",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1774396310193,
+      "tag": "0029_toolkit_capabilities",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Scheduled Jobs — UI v2</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:       oklch(0.145 0 0);
+    --fg:       oklch(0.985 0 0);
+    --card:     oklch(0.205 0 0);
+    --border:   oklch(0.26 0 0);
+    --muted:    oklch(0.269 0 0);
+    --muted-fg: oklch(0.708 0 0);
+    --accent:   oklch(0.269 0 0);
+    --primary:  oklch(0.922 0 0);
+  }
+  body { background: var(--bg); color: var(--fg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+  ::-webkit-scrollbar { width: 5px; height: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: oklch(0.35 0 0); border-radius: 3px; }
+
+  /* ── Layout ── */
+  .layout { display: flex; flex: 1; overflow: hidden; }
+  .sidebar { width: 228px; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 10px 10px; gap: 12px; flex-shrink: 0; overflow-y: auto; }
+  .main    { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ── Sidebar ── */
+  .co-name { font-size: 13px; font-weight: 700; padding: 4px 8px 10px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); }
+  .brand-dot { width: 14px; height: 14px; border-radius: 3px; background: #6366f1; flex-shrink: 0; }
+  .sec-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted-fg); padding: 0 8px 4px; }
+  .nav { display: flex; flex-direction: column; gap: 1px; }
+  .nav a { display: flex; align-items: center; gap: 9px; padding: 6px 8px; border-radius: 5px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.65); cursor: pointer; text-decoration: none; transition: background .1s, color .1s; }
+  .nav a:hover { background: var(--accent); color: var(--fg); }
+  .nav a.active { background: var(--accent); color: var(--fg); }
+  .nav svg { width: 15px; height: 15px; flex-shrink: 0; opacity: .85; }
+
+  /* ── Breadcrumb ── */
+  .breadcrumb { height: 38px; border-bottom: 1px solid var(--border); padding: 0 16px; display: flex; align-items: center; font-size: 12px; color: var(--muted-fg); flex-shrink: 0; gap: 6px; }
+
+  /* ── Page header ── */
+  .page-header { display: flex; align-items: flex-start; justify-content: space-between; padding: 14px 16px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .page-title  { font-size: 20px; font-weight: 700; line-height: 1.2; }
+  .page-sub    { font-size: 12px; color: var(--muted-fg); margin-top: 3px; }
+  .btn { display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: opacity .1s; font-family: inherit; }
+  .btn-primary { background: var(--primary); color: var(--bg); }
+  .btn-primary:hover { opacity: .88; }
+  .btn-ghost   { background: transparent; color: var(--muted-fg); padding: 5px; border-radius: 5px; }
+  .btn-ghost:hover { background: var(--accent); color: var(--fg); }
+  .btn-cancel  { background: transparent; color: var(--fg); border: 1px solid var(--border); }
+  .btn-cancel:hover { background: var(--accent); }
+  .btn-danger  { background: transparent; color: oklch(0.65 0.18 22); border: 1px solid oklch(0.65 0.18 22 / .4); }
+  .btn-danger:hover { background: oklch(0.65 0.18 22 / .1); }
+
+  /* ── Filters bar ── */
+  .filters { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; flex-wrap: wrap; }
+  .filter-select { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 5px 9px; font-size: 12px; color: var(--fg); cursor: pointer; outline: none; font-family: inherit; }
+  .filter-select:focus { border-color: oklch(0.55 0 0); }
+  .filter-divider { width: 1px; height: 18px; background: var(--border); }
+  .filter-count { font-size: 12px; color: var(--muted-fg); margin-left: auto; }
+
+  /* ── Table ── */
+  .table-wrap { flex: 1; overflow: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 860px; }
+  thead th { padding: 8px 12px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted-fg); border-bottom: 1px solid var(--border); white-space: nowrap; background: var(--bg); position: sticky; top: 0; z-index: 2; }
+  thead th:first-child { padding-left: 16px; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; cursor: pointer; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(255,255,255,0.025); }
+  tbody tr.paused { opacity: .48; }
+  tbody td { padding: 10px 12px; vertical-align: middle; }
+  tbody td:first-child { padding-left: 16px; }
+
+  /* ── Cell components ── */
+  .cell-name-title { font-size: 13px; font-weight: 500; color: var(--fg); display: flex; align-items: center; gap: 6px; }
+  .cell-name-sub   { font-size: 11px; color: var(--muted-fg); margin-top: 2px; }
+  .badge { display: inline-flex; align-items: center; font-size: 11px; font-weight: 500; padding: 2px 7px; border-radius: 999px; white-space: nowrap; }
+  .badge-scope-co   { background: rgba(99,102,241,.14); color: #a5b4fc; }
+  .badge-scope-ag   { background: rgba(34,197,94,.12); color: #86efac; }
+  .badge-scope-pr   { background: rgba(251,191,36,.12); color: #fcd34d; }
+  .badge-type-sync  { background: rgba(14,165,233,.12); color: #7dd3fc; }
+  .badge-type-hook  { background: rgba(168,85,247,.12); color: #d8b4fe; }
+  .badge-type-agent { background: rgba(249,115,22,.12); color: #fdba74; }
+  .cell-sched-desc  { font-size: 12px; font-weight: 500; color: var(--fg); }
+  .cell-sched-cron  { font-size: 11px; font-family: monospace; color: var(--muted-fg); margin-top: 1px; }
+  .cell-run-ago     { font-size: 12px; color: var(--fg); }
+  .cell-run-dur     { font-size: 11px; color: var(--muted-fg); margin-top: 1px; }
+  .cell-run-err     { font-size: 11px; color: oklch(0.65 0.18 22); margin-top: 2px; }
+  .cell-next        { font-size: 12px; color: var(--muted-fg); }
+  .cell-next.soon   { color: #a78bfa; }
+  .cell-next.overdue{ color: #f59e0b; font-weight: 500; }
+  .status-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+  .status-active  { background: rgba(16,185,129,.12); color: #34d399; }
+  .status-running { background: rgba(59,130,246,.12); color: #60a5fa; }
+  .status-error   { background: rgba(239,68,68,.12);  color: #f87171; }
+  .status-paused  { background: rgba(255,255,255,.07); color: var(--muted-fg); }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .dot-active  { background: #10b981; }
+  .dot-running { background: #3b82f6; animation: pulse 1.5s infinite; }
+  .dot-error   { background: #ef4444; }
+  .dot-paused  { background: oklch(0.45 0 0); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .actions-cell { display: flex; align-items: center; gap: 2px; }
+  .icon-btn { background: none; border: none; padding: 5px; border-radius: 5px; color: var(--muted-fg); cursor: pointer; transition: background .1s, color .1s; display: flex; align-items: center; }
+  .icon-btn:hover { background: var(--accent); color: var(--fg); }
+  .icon-btn.danger:hover { color: oklch(0.65 0.18 22); background: oklch(0.65 0.18 22 / .1); }
+
+  /* ── Dropdown ── */
+  .dd-wrap { position: relative; }
+  .dd-menu { position: absolute; right: 0; top: calc(100% + 4px); background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 4px; min-width: 152px; z-index: 50; box-shadow: 0 8px 24px rgba(0,0,0,.5); display: none; }
+  .dd-menu.open { display: block; }
+  .dd-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; font-size: 13px; border-radius: 5px; cursor: pointer; color: var(--fg); }
+  .dd-item:hover { background: var(--accent); }
+  .dd-item.danger { color: oklch(0.65 0.18 22); }
+  .dd-item.danger:hover { background: oklch(0.65 0.18 22 / .1); }
+  .dd-sep { height: 1px; background: var(--border); margin: 4px 0; }
+
+  /* ── Dialog ── */
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.65); z-index: 100; display: none; align-items: center; justify-content: center; }
+  .overlay.open { display: flex; }
+  .dialog { background: var(--card); border: 1px solid var(--border); border-radius: 12px; width: 500px; max-height: 88vh; display: flex; flex-direction: column; overflow: hidden; }
+  .dlg-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .dlg-title  { font-size: 14px; font-weight: 600; }
+  .dlg-body   { overflow-y: auto; flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+  .dlg-footer { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 10px 16px; border-top: 1px solid var(--border); flex-shrink: 0; }
+
+  /* ── Alert dialog ── */
+  .alert-dlg { background: var(--card); border: 1px solid var(--border); border-radius: 10px; width: 380px; padding: 20px; }
+  .alert-title { font-size: 15px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+  .alert-icon  { width: 34px; height: 34px; border-radius: 8px; background: oklch(0.65 0.18 22 / .12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .alert-body  { font-size: 13px; color: var(--muted-fg); margin-bottom: 18px; line-height: 1.55; }
+  .alert-btns  { display: flex; gap: 8px; justify-content: flex-end; }
+
+  /* ── Form fields ── */
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 12px; font-weight: 500; color: var(--muted-fg); }
+  .input { background: transparent; border: 1px solid var(--border); border-radius: 6px; padding: 7px 10px; font-size: 13px; color: var(--fg); outline: none; font-family: inherit; width: 100%; transition: border-color .15s, box-shadow .15s; }
+  .input:focus { border-color: oklch(0.55 0 0); box-shadow: 0 0 0 3px rgba(255,255,255,.05); }
+  .input::placeholder { color: oklch(0.42 0 0); }
+  .input.mono { font-family: 'SF Mono','Fira Code',monospace; font-size: 12px; }
+  textarea.input { resize: none; height: 60px; }
+  select.input { cursor: pointer; }
+  .input-title { background: none; border: none; outline: none; font-size: 15px; font-weight: 600; color: var(--fg); font-family: inherit; width: 100%; }
+  .input-title::placeholder { color: oklch(0.38 0 0); }
+  .input-sub { background: none; border: none; outline: none; font-size: 13px; color: var(--fg); font-family: inherit; width: 100%; margin-top: 3px; }
+  .input-sub::placeholder { color: oklch(0.35 0 0); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .cron-hint { font-size: 11px; color: #a78bfa; margin-top: 3px; display: flex; align-items: center; gap: 4px; }
+
+  /* ── Type cards ── */
+  .type-cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+  .type-card { border: 1px solid var(--border); border-radius: 8px; padding: 10px 11px; cursor: pointer; transition: border-color .1s, background .1s; }
+  .type-card:hover { background: rgba(255,255,255,.03); }
+  .type-card.sel { border-color: oklch(0.65 0 0); background: rgba(255,255,255,.04); }
+  .tc-title { font-size: 12px; font-weight: 600; }
+  .tc-desc  { font-size: 11px; color: var(--muted-fg); margin-top: 2px; }
+  .tc-to    { font-size: 10px; color: oklch(0.48 0 0); margin-top: 3px; }
+
+  /* ── Pills ── */
+  .pills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pill { border: 1px solid var(--border); border-radius: 999px; padding: 3px 11px; font-size: 12px; cursor: pointer; background: transparent; color: var(--fg); font-family: inherit; transition: all .1s; }
+  .pill:hover { background: rgba(255,255,255,.05); }
+  .pill.on { border-color: var(--fg); background: var(--fg); color: var(--bg); }
+
+  /* ── Toggle ── */
+  .toggle { width: 34px; height: 19px; border-radius: 999px; background: var(--border); position: relative; cursor: pointer; transition: background .2s; border: none; flex-shrink: 0; }
+  .toggle.on { background: oklch(0.65 0 0); }
+  .toggle-knob { position: absolute; width: 13px; height: 13px; background: #fff; border-radius: 50%; top: 3px; left: 3px; transition: transform .2s; }
+  .toggle.on .toggle-knob { transform: translateX(15px); }
+
+  /* ── Accordion ── */
+  .acc { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .acc-hd { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; font-size: 12px; font-weight: 500; cursor: pointer; transition: background .1s; }
+  .acc-hd:hover { background: rgba(255,255,255,.03); }
+  .acc-body { padding: 12px; border-top: 1px solid var(--border); display: none; flex-direction: column; gap: 10px; }
+  .acc-body.open { display: flex; }
+
+  /* ── Sheet ── */
+  .sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 100; display: none; }
+  .sheet-overlay.open { display: block; }
+  .sheet { position: fixed; top: 0; right: 0; bottom: 0; width: 480px; background: var(--card); border-left: 1px solid var(--border); display: flex; flex-direction: column; transform: translateX(100%); transition: transform .25s; z-index: 101; }
+  .sheet-overlay.open .sheet { transform: none; }
+  .sheet-hd { padding: 12px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; display: flex; align-items: flex-start; justify-content: space-between; }
+  .sheet-body { flex: 1; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+  .run-card { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+  .run-hd   { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+  .run-output { font-size: 11px; font-family: monospace; background: rgba(255,255,255,.04); border-radius: 5px; padding: 5px 8px; color: var(--muted-fg); cursor: pointer; }
+  .run-output.expanded { white-space: pre-wrap; word-break: break-all; }
+  .run-output.collapsed { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .run-err { font-size: 11px; font-family: monospace; background: oklch(0.65 0.18 22 / .08); border-radius: 5px; padding: 5px 8px; color: #f87171; margin-top: 4px; }
+
+  /* ── Toast ── */
+  .toast { position: fixed; bottom: 20px; right: 20px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 11px 14px; font-size: 13px; font-weight: 500; z-index: 200; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 24px rgba(0,0,0,.5); opacity: 0; transform: translateY(6px); transition: opacity .2s, transform .2s; pointer-events: none; }
+  .toast.show { opacity: 1; transform: none; }
+
+  /* ── Misc ── */
+  .ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tag-retry { font-size: 11px; color: var(--muted-fg); display: flex; align-items: center; gap: 3px; margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════ LAYOUT ═══════════════════════════ -->
+<div class="layout">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="co-name">
+      <div class="brand-dot"></div>Optiflow
+    </div>
+    <div>
+      <div class="sec-label">Workspace</div>
+      <nav class="nav">
+        <a>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          Dashboard
+        </a>
+        <a>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 13c0 5-3.5 7.5-8 8-4.5-.5-8-3-8-8V6l8-3 8 3v7z"/></svg>
+          Inbox
+        </a>
+        <a>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4m0 14v4M4.22 4.22l2.83 2.83m9.9 9.9 2.83 2.83M1 12h4m14 0h4M4.22 19.78l2.83-2.83m9.9-9.9 2.83-2.83"/></svg>
+          Brain
+        </a>
+      </nav>
+    </div>
+    <div>
+      <div class="sec-label">Company</div>
+      <nav class="nav">
+        <a>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 1 0 0 7h5a3.5 3.5 0 1 1 0 7H6"/></svg>
+          Costs
+        </a>
+        <a>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Activity
+        </a>
+        <a class="active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Scheduled Jobs
+        </a>
+        <a>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+          Settings
+        </a>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="breadcrumb">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Scheduled Jobs
+    </div>
+
+    <!-- Page header -->
+    <div class="page-header">
+      <div>
+        <div class="page-title">Scheduled Jobs</div>
+        <div class="page-sub">Automate recurring tasks — sync, webhook, or agent wakeup.</div>
+      </div>
+      <button class="btn btn-primary" onclick="openDialog()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New job
+      </button>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters">
+      <select class="filter-select" onchange="applyFilters()">
+        <option value="all">All scopes</option>
+        <option value="company">Company</option>
+        <option value="agent">Agent</option>
+        <option value="project">Project</option>
+      </select>
+      <div class="filter-divider"></div>
+      <select class="filter-select" onchange="applyFilters()">
+        <option value="all">All types</option>
+        <option value="sync">Sync</option>
+        <option value="webhook">Webhook</option>
+        <option value="agent">Agent run</option>
+      </select>
+      <div class="filter-divider"></div>
+      <select class="filter-select" onchange="applyFilters()">
+        <option value="all">All statuses</option>
+        <option value="active">Active</option>
+        <option value="running">Running</option>
+        <option value="error">Error</option>
+        <option value="paused">Paused</option>
+      </select>
+      <span class="filter-count" id="filter-count">5 jobs</span>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <table id="jobs-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Scope</th>
+            <th>Type</th>
+            <th>Schedule</th>
+            <th>Last Run</th>
+            <th>Next Run</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <!-- Row 1: active sync -->
+          <tr data-scope="company" data-type="sync" data-status="active">
+            <td>
+              <div class="cell-name-title">Sync AccuBuild Codegraph</div>
+              <div class="cell-name-sub">Refresh code graph in Sanad Brain</div>
+            </td>
+            <td><span class="badge badge-scope-co">company</span></td>
+            <td><span class="badge badge-type-sync">sync</span></td>
+            <td>
+              <div class="cell-sched-desc">Daily at 3:00 AM</div>
+              <div class="cell-sched-cron">0 3 * * *</div>
+            </td>
+            <td>
+              <div class="cell-run-ago">2h ago</div>
+              <div class="cell-run-dur">11.6s</div>
+            </td>
+            <td><span class="cell-next">in 22h</span></td>
+            <td><span class="status-pill status-active"><span class="status-dot dot-active"></span>active</span></td>
+            <td>
+              <div class="actions-cell">
+                <button class="icon-btn" title="View logs" onclick="openLogs()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                </button>
+                <div class="dd-wrap">
+                  <button class="icon-btn" onclick="toggleDD('dd1',event)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                  </button>
+                  <div class="dd-menu" id="dd1">
+                    <div class="dd-item" onclick="runNow();closeDD()">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>Run now
+                    </div>
+                    <div class="dd-item" onclick="openDialog();closeDD()">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit
+                    </div>
+                    <div class="dd-item" onclick="closeDD()">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>Pause
+                    </div>
+                    <div class="dd-sep"></div>
+                    <div class="dd-item danger" onclick="openDelete();closeDD()">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Delete
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Row 2: active webhook -->
+          <tr data-scope="agent" data-type="webhook" data-status="active">
+            <td>
+              <div class="cell-name-title">Daily CEO Report</div>
+              <div class="cell-name-sub">POST summary to Slack</div>
+              <div class="tag-retry">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.45"/></svg>
+                retries: 3 × 5 min
+              </div>
+            </td>
+            <td><span class="badge badge-scope-ag">CEO Agent</span></td>
+            <td><span class="badge badge-type-hook">webhook</span></td>
+            <td>
+              <div class="cell-sched-desc">Weekdays at 8:00 AM</div>
+              <div class="cell-sched-cron">0 8 * * 1-5</div>
+            </td>
+            <td>
+              <div class="cell-run-ago">14h ago</div>
+              <div class="cell-run-dur">0.8s</div>
+            </td>
+            <td><span class="cell-next soon">tomorrow</span></td>
+            <td><span class="status-pill status-active"><span class="status-dot dot-active"></span>active</span></td>
+            <td>
+              <div class="actions-cell">
+                <button class="icon-btn" title="View logs" onclick="openLogs()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                </button>
+                <div class="dd-wrap">
+                  <button class="icon-btn" onclick="toggleDD('dd2',event)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                  </button>
+                  <div class="dd-menu" id="dd2">
+                    <div class="dd-item" onclick="runNow();closeDD()">Run now</div>
+                    <div class="dd-item" onclick="openDialog();closeDD()">Edit</div>
+                    <div class="dd-item" onclick="closeDD()">Pause</div>
+                    <div class="dd-sep"></div>
+                    <div class="dd-item danger" onclick="openDelete();closeDD()">Delete</div>
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Row 3: running sync -->
+          <tr data-scope="company" data-type="sync" data-status="running">
+            <td>
+              <div class="cell-name-title">Sync Frappe Sales Data</div>
+              <div class="cell-name-sub">Sync Sales Orders from AccuBuild staging · skip if running</div>
+            </td>
+            <td><span class="badge badge-scope-co">company</span></td>
+            <td><span class="badge badge-type-sync">sync</span></td>
+            <td>
+              <div class="cell-sched-desc">Every hour</div>
+              <div class="cell-sched-cron">0 * * * *</div>
+            </td>
+            <td>
+              <div class="cell-run-ago" style="color:#60a5fa;">running · 3m</div>
+              <div class="cell-run-dur">started 3 min ago</div>
+            </td>
+            <td><span class="cell-next" style="color:var(--muted-fg);">—</span></td>
+            <td><span class="status-pill status-running"><span class="status-dot dot-running"></span>running</span></td>
+            <td>
+              <div class="actions-cell">
+                <button class="icon-btn" title="View logs" onclick="openLogs()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                </button>
+                <div class="dd-wrap">
+                  <button class="icon-btn" onclick="toggleDD('dd3',event)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                  </button>
+                  <div class="dd-menu" id="dd3">
+                    <div class="dd-item" onclick="closeDD()">Pause</div>
+                    <div class="dd-sep"></div>
+                    <div class="dd-item danger" onclick="openDelete();closeDD()">Delete</div>
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Row 4: error agent run -->
+          <tr data-scope="project" data-type="agent" data-status="error">
+            <td>
+              <div class="cell-name-title">Weekly Bid Reminder</div>
+              <div class="cell-name-sub">Trigger agent to check open bids</div>
+              <div class="tag-retry">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.45"/></svg>
+                retries: 2 × 15 min
+              </div>
+            </td>
+            <td><span class="badge badge-scope-pr">AccuBuild</span></td>
+            <td><span class="badge badge-type-agent">agent run</span></td>
+            <td>
+              <div class="cell-sched-desc">Mon at 9:00 AM</div>
+              <div class="cell-sched-cron">0 9 * * 1</div>
+            </td>
+            <td>
+              <div class="cell-run-ago" style="color:#f87171;">5d ago</div>
+              <div class="cell-run-err">Failed after 3 attempts · timeout</div>
+            </td>
+            <td><span class="cell-next soon">Mon 9am</span></td>
+            <td><span class="status-pill status-error"><span class="status-dot dot-error"></span>error</span></td>
+            <td>
+              <div class="actions-cell">
+                <button class="icon-btn" title="View logs" onclick="openLogs()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                </button>
+                <div class="dd-wrap">
+                  <button class="icon-btn" onclick="toggleDD('dd4',event)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                  </button>
+                  <div class="dd-menu" id="dd4">
+                    <div class="dd-item" onclick="runNow();closeDD()">Run now</div>
+                    <div class="dd-item" onclick="openDialog();closeDD()">Edit</div>
+                    <div class="dd-item" onclick="closeDD()">Pause</div>
+                    <div class="dd-sep"></div>
+                    <div class="dd-item danger" onclick="openDelete();closeDD()">Delete</div>
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Row 5: paused webhook -->
+          <tr data-scope="company" data-type="webhook" data-status="paused" class="paused">
+            <td>
+              <div class="cell-name-title">Monthly Cost Report</div>
+              <div class="cell-name-sub">Send cost summary to finance webhook</div>
+            </td>
+            <td><span class="badge badge-scope-co">company</span></td>
+            <td><span class="badge badge-type-hook">webhook</span></td>
+            <td>
+              <div class="cell-sched-desc">1st of month, 6am</div>
+              <div class="cell-sched-cron">0 6 1 * *</div>
+            </td>
+            <td>
+              <div class="cell-run-ago">28d ago</div>
+            </td>
+            <td><span class="cell-next" style="color:var(--muted-fg);">—</span></td>
+            <td><span class="status-pill status-paused"><span class="status-dot dot-paused"></span>paused</span></td>
+            <td>
+              <div class="actions-cell">
+                <button class="icon-btn" title="View logs" onclick="openLogs()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                </button>
+                <div class="dd-wrap">
+                  <button class="icon-btn" onclick="toggleDD('dd5',event)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                  </button>
+                  <div class="dd-menu" id="dd5">
+                    <div class="dd-item" onclick="closeDD()">Resume</div>
+                    <div class="dd-item" onclick="openDialog();closeDD()">Edit</div>
+                    <div class="dd-sep"></div>
+                    <div class="dd-item danger" onclick="openDelete();closeDD()">Delete</div>
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CREATE DIALOG ═══ -->
+<div class="overlay" id="dialog-overlay" onclick="if(event.target===this)closeDialog()">
+  <div class="dialog">
+    <div class="dlg-header">
+      <span class="dlg-title">New scheduled job</span>
+      <button class="btn-ghost icon-btn" onclick="closeDialog()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="dlg-body">
+      <div style="border-bottom:1px solid var(--border);padding-bottom:12px;">
+        <input class="input-title" placeholder="Job name" />
+        <input class="input-sub" placeholder="Description (optional)" />
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:500;color:var(--muted-fg);margin-bottom:8px;">Job type</div>
+        <div class="type-cards">
+          <div class="type-card" onclick="selType(this,'sync')"><div class="tc-title">Knowledge Sync</div><div class="tc-desc">Sync a Brain source</div><div class="tc-to">Default: 15 min</div></div>
+          <div class="type-card sel" onclick="selType(this,'webhook')"><div class="tc-title">Webhook</div><div class="tc-desc">POST to external URL</div><div class="tc-to">Default: 5 min</div></div>
+          <div class="type-card" onclick="selType(this,'agent')"><div class="tc-title">Agent Run</div><div class="tc-desc">Wake agent with task</div><div class="tc-to">Default: 60 min</div></div>
+        </div>
+      </div>
+      <!-- Webhook fields -->
+      <div id="cfg-webhook">
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div class="field"><label>URL</label><input class="input" placeholder="https://example.com/hook" /></div>
+          <div class="grid-2">
+            <div class="field"><label>Method</label><select class="input"><option>POST</option><option>GET</option><option>PUT</option><option>PATCH</option></select></div>
+            <div class="field"><label>Auth secret</label><select class="input"><option value="">None</option><option>SLACK_WEBHOOK_KEY</option></select></div>
+          </div>
+          <div class="field"><label>Body (JSON)</label><textarea class="input mono" placeholder="{}"></textarea></div>
+        </div>
+      </div>
+      <!-- Sync fields -->
+      <div id="cfg-sync" style="display:none;">
+        <div class="field"><label>Brain Source ID</label><input class="input mono" placeholder="source-uuid" /></div>
+      </div>
+      <!-- Agent fields -->
+      <div id="cfg-agent" style="display:none;">
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div class="field">
+            <label>Agent</label>
+            <select class="input"><option value="">Select an agent…</option><option value="ceo">CEO</option><option value="tl">TechLead</option><option value="sm">SalesManager</option></select>
+          </div>
+          <div class="field"><label>Task title</label><input class="input" placeholder="Scheduled task" /></div>
+          <div class="field"><label>Task description (optional)</label><textarea class="input" placeholder="What should the agent do?"></textarea></div>
+        </div>
+      </div>
+      <!-- Scope -->
+      <div class="grid-2">
+        <div class="field">
+          <label>Scope</label>
+          <select class="input">
+            <option>Company</option>
+            <option>Agent</option>
+            <option>Project</option>
+          </select>
+        </div>
+        <div class="field" id="scope-target-field">
+          <label>Target (optional)</label>
+          <select class="input"><option value="">— none —</option><option>CEO Agent</option><option>AccuBuild</option></select>
+        </div>
+      </div>
+      <!-- Schedule -->
+      <div class="grid-2">
+        <div class="field">
+          <label>Cron expression</label>
+          <input class="input mono" id="cron-in" value="0 9 * * 1" oninput="updateHint(this.value)" placeholder="0 9 * * 1" />
+          <div class="cron-hint" id="cron-hint">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Every Monday at 9:00 AM
+          </div>
+        </div>
+        <div class="field">
+          <label>Timezone</label>
+          <select class="input">
+            <option>UTC</option>
+            <option>Asia/Riyadh (GMT+3)</option>
+            <option>Asia/Dubai (GMT+4)</option>
+            <option>America/New_York (EST)</option>
+            <option>Europe/London</option>
+          </select>
+        </div>
+      </div>
+      <!-- Execution accordion -->
+      <div class="acc">
+        <div class="acc-hd" onclick="togAcc('acc-exec')">
+          Execution settings
+          <svg id="acc-exec-i" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+        <div class="acc-body" id="acc-exec">
+          <div><div style="font-size:12px;font-weight:500;color:var(--muted-fg);margin-bottom:6px;">Timeout</div><div class="pills"><button class="pill on" onclick="setPill(this)">Auto</button><button class="pill" onclick="setPill(this)">Custom</button></div></div>
+          <div><div style="font-size:12px;font-weight:500;color:var(--muted-fg);margin-bottom:6px;">If already running</div><div class="pills"><button class="pill on" onclick="setPill(this)">Skip</button><button class="pill" onclick="setPill(this)">Queue</button></div></div>
+          <div><div style="font-size:12px;font-weight:500;color:var(--muted-fg);margin-bottom:6px;">If run was missed</div><div class="pills"><button class="pill on" onclick="setPill(this)">Skip</button><button class="pill" onclick="setPill(this)">Run once</button></div></div>
+        </div>
+      </div>
+      <!-- Retry accordion -->
+      <div class="acc">
+        <div class="acc-hd" onclick="togAcc('acc-retry')">Retry on failure<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></div>
+        <div class="acc-body" id="acc-retry">
+          <div><div style="font-size:12px;font-weight:500;color:var(--muted-fg);margin-bottom:6px;">Max retries</div><div class="pills"><button class="pill on" onclick="setPill(this)">0</button><button class="pill" onclick="setPill(this)">1</button><button class="pill" onclick="setPill(this)">2</button><button class="pill" onclick="setPill(this)">3</button><button class="pill" onclick="setPill(this)">5</button></div></div>
+        </div>
+      </div>
+      <!-- Failure accordion -->
+      <div class="acc">
+        <div class="acc-hd" onclick="togAcc('acc-fail')">On failure notifications<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></div>
+        <div class="acc-body" id="acc-fail">
+          <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-size:12px;font-weight:500;color:var(--muted-fg);">Notify in-app</span><button class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-knob"></div></button></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-size:12px;font-weight:500;color:var(--muted-fg);">Failure webhook</span><button class="toggle" onclick="this.classList.toggle('on')"><div class="toggle-knob"></div></button></div>
+        </div>
+      </div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn btn-cancel" onclick="closeDialog()">Cancel</button>
+      <button class="btn btn-primary" onclick="closeDialog()">Create job</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DELETE DIALOG ═══ -->
+<div class="overlay" id="delete-overlay" onclick="if(event.target===this)closeDelete()">
+  <div class="alert-dlg">
+    <div class="alert-title">
+      <div class="alert-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="oklch(0.65 0.18 22)" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6m4-6v6"/><path d="M9 6V4h6v2"/></svg></div>
+      Delete "Weekly Bid Reminder"?
+    </div>
+    <div class="alert-body">This job and all its run history will be permanently deleted. This cannot be undone.</div>
+    <div class="alert-btns">
+      <button class="btn btn-cancel" onclick="closeDelete()">Cancel</button>
+      <button class="btn btn-danger" onclick="closeDelete()">Delete job</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ LOGS SHEET ═══ -->
+<div class="sheet-overlay" id="sheet-overlay" onclick="if(event.target===this)closeSheet()">
+  <div class="sheet">
+    <div class="sheet-hd">
+      <div>
+        <div style="font-size:13px;font-weight:600;">Sync AccuBuild Codegraph</div>
+        <div style="font-size:12px;color:var(--muted-fg);margin-top:2px;">Last 50 runs · kept for 90 days</div>
+      </div>
+      <button class="btn-ghost icon-btn" onclick="closeSheet()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="sheet-body">
+      <!-- success -->
+      <div class="run-card">
+        <div class="run-hd">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="badge" style="background:rgba(16,185,129,.12);color:#34d399;">success</span>
+            <span style="font-size:11px;color:var(--muted-fg);">scheduler</span>
+          </div>
+          <span style="font-size:11px;color:var(--muted-fg);">11.6s</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted-fg);margin-bottom:5px;">Mar 24, 01:00 AM · 2h ago</div>
+        <div class="run-output collapsed" onclick="this.classList.toggle('expanded');this.classList.toggle('collapsed')" title="Click to expand">
+          Synced: 142 chunks in 11.4s
+        </div>
+      </div>
+      <!-- failed -->
+      <div class="run-card">
+        <div class="run-hd">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="badge" style="background:rgba(239,68,68,.12);color:#f87171;">failed</span>
+            <span style="font-size:11px;color:var(--muted-fg);">scheduler</span>
+            <span class="badge" style="background:rgba(245,158,11,.12);color:#fbbf24;">Retry #2</span>
+          </div>
+          <span style="font-size:11px;color:var(--muted-fg);">30ms</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted-fg);margin-bottom:5px;">Mar 23, 01:00 AM</div>
+        <div class="run-err">Source not found: codegraph-main</div>
+      </div>
+      <!-- timed_out -->
+      <div class="run-card">
+        <div class="run-hd">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="badge" style="background:rgba(245,158,11,.12);color:#fbbf24;">timed_out</span>
+            <span style="font-size:11px;color:var(--muted-fg);">scheduler</span>
+          </div>
+          <span style="font-size:11px;color:var(--muted-fg);">15m 0s</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted-fg);margin-bottom:5px;">Mar 22, 01:00 AM</div>
+        <div class="run-err">Timed out after 900s</div>
+      </div>
+      <!-- cancelled -->
+      <div class="run-card">
+        <div class="run-hd">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="badge" style="background:rgba(255,255,255,.06);color:var(--muted-fg);">cancelled</span>
+            <span style="font-size:11px;color:var(--muted-fg);">manual</span>
+          </div>
+          <span style="font-size:11px;color:var(--muted-fg);">—</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted-fg);">Mar 21, 01:00 AM</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+  Job triggered — check logs in a moment
+</div>
+
+<script>
+  /* ── Dropdowns ── */
+  function toggleDD(id, e) { e.stopPropagation(); closeDD(); document.getElementById(id).classList.add('open'); }
+  function closeDD() { document.querySelectorAll('.dd-menu').forEach(m => m.classList.remove('open')); }
+  document.addEventListener('click', closeDD);
+
+  /* ── Run now ── */
+  function runNow() {
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  /* ── Dialog ── */
+  function openDialog()  { document.getElementById('dialog-overlay').classList.add('open'); }
+  function closeDialog() { document.getElementById('dialog-overlay').classList.remove('open'); }
+  function openDelete()  { document.getElementById('delete-overlay').classList.add('open'); }
+  function closeDelete() { document.getElementById('delete-overlay').classList.remove('open'); }
+
+  /* ── Sheet ── */
+  function openLogs()  { document.getElementById('sheet-overlay').classList.add('open'); }
+  function closeSheet(){ document.getElementById('sheet-overlay').classList.remove('open'); }
+
+  /* ── Type selection ── */
+  function selType(card, type) {
+    document.querySelectorAll('.type-card').forEach(c => c.classList.remove('sel'));
+    card.classList.add('sel');
+    ['sync','webhook','agent'].forEach(t => {
+      const el = document.getElementById('cfg-' + t);
+      if (el) el.style.display = t === type ? 'block' : 'none';
+    });
+  }
+
+  /* ── Accordion ── */
+  function togAcc(id) {
+    document.getElementById(id).classList.toggle('open');
+  }
+
+  /* ── Pills ── */
+  function setPill(btn) {
+    btn.closest('.pills').querySelectorAll('.pill').forEach(p => p.classList.remove('on'));
+    btn.classList.add('on');
+  }
+
+  /* ── Cron hint ── */
+  const hints = {
+    '0 3 * * *'  : 'Every day at 3:00 AM',
+    '0 8 * * 1-5': 'Every weekday at 8:00 AM',
+    '0 * * * *'  : 'Every hour',
+    '0 9 * * 1'  : 'Every Monday at 9:00 AM',
+    '0 6 1 * *'  : 'On the 1st of each month at 6:00 AM',
+    '0 0 * * *'  : 'Every day at midnight',
+    '*/15 * * * *': 'Every 15 minutes',
+    '0 9 * * 1-5': 'Every weekday at 9:00 AM',
+  };
+  function updateHint(v) {
+    const el = document.getElementById('cron-hint');
+    const d = hints[v.trim()];
+    el.innerHTML = d
+      ? `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${d}`
+      : `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span style="color:oklch(0.5 0 0)">Enter a valid cron expression</span>`;
+  }
+
+  /* ── Filters ── */
+  function applyFilters() {
+    const selects = document.querySelectorAll('.filter-select');
+    const scope  = selects[0].value;
+    const type   = selects[1].value;
+    const status = selects[2].value;
+    let count = 0;
+    document.querySelectorAll('#jobs-table tbody tr').forEach(row => {
+      const rs = row.dataset.scope;
+      const rt = row.dataset.type;
+      const rst = row.dataset.status;
+      const show = (scope === 'all' || rs === scope) && (type === 'all' || rt === type) && (status === 'all' || rst === status);
+      row.style.display = show ? '' : 'none';
+      if (show) count++;
+    });
+    document.getElementById('filter-count').textContent = count + ' job' + (count !== 1 ? 's' : '');
+  }
+</script>
+</body>
+</html>

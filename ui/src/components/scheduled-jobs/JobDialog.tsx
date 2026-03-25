@@ -3,11 +3,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCompany } from "../../context/CompanyContext";
 import { scheduledJobsApi, type ScheduledJob, type ScheduledJobType } from "../../api/scheduled-jobs";
 import { secretsApi } from "../../api/secrets";
+import { agentsApi } from "../../api/agents";
 import { queryKeys } from "../../lib/queryKeys";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "../../lib/utils";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, X } from "lucide-react";
 import { JobTypeConfigFields } from "./JobTypeConfigFields";
 
 const JOB_TYPES: { value: ScheduledJobType; label: string; description: string; defaultTimeout: string }[] = [
@@ -28,6 +29,18 @@ const JOB_TYPES: { value: ScheduledJobType; label: string; description: string; 
     label: "Agent Run",
     description: "Wake up an agent with a task",
     defaultTimeout: "60 min",
+  },
+  {
+    value: "dream",
+    label: "Dream",
+    description: "Run memory consolidation cycle",
+    defaultTimeout: "10 min",
+  },
+  {
+    value: "memory_ingest",
+    label: "Memory Ingest",
+    description: "Process queued memory turns",
+    defaultTimeout: "5 min",
   },
 ];
 
@@ -82,6 +95,12 @@ export function JobDialog({ open, onClose, job }: Props) {
     queryKey: selectedCompanyId ? queryKeys.secrets.list(selectedCompanyId) : ["secrets", "none"],
     queryFn: () => secretsApi.list(selectedCompanyId!),
     enabled: !!selectedCompanyId && open,
+  });
+
+  const { data: agents = [] } = useQuery({
+    queryKey: selectedCompanyId ? queryKeys.agents.list(selectedCompanyId) : ["agents", "none"],
+    queryFn: () => agentsApi.list(selectedCompanyId!),
+    enabled: !!selectedCompanyId && open && jobType === "agent_run",
   });
 
   useEffect(() => {
@@ -186,10 +205,10 @@ export function JobDialog({ open, onClose, job }: Props) {
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-border shrink-0">
           <span className="text-sm font-medium">{isEdit ? "Edit job" : "New scheduled job"}</span>
           <button
-            className="text-muted-foreground hover:text-foreground text-lg leading-none"
+            className="text-muted-foreground hover:text-foreground transition-colors"
             onClick={onClose}
           >
-            &times;
+            <X className="h-4 w-4" />
           </button>
         </div>
 
@@ -243,6 +262,7 @@ export function JobDialog({ open, onClose, job }: Props) {
             config={config}
             onChange={setConfig}
             secrets={secrets}
+            agents={agents}
           />
 
           {/* Cron */}

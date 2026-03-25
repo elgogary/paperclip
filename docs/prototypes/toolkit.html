@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Toolkit & Capabilities — Prototype</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: oklch(0.145 0 0); --fg: oklch(0.985 0 0); --card: oklch(0.205 0 0);
+    --border: oklch(0.26 0 0); --muted: oklch(0.269 0 0); --muted-fg: oklch(0.78 0 0);
+    --accent: oklch(0.269 0 0); --primary: oklch(0.922 0 0);
+    --green: #10b981; --red: #ef4444; --yellow: #f59e0b; --blue: #3b82f6;
+    --purple: #8b5cf6; --orange: #f97316; --cyan: #06b6d4;
+  }
+  body { background: var(--bg); color: var(--fg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; height: 100vh; overflow: hidden; display: flex; }
+  ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: oklch(0.35 0 0); border-radius: 3px; }
+
+  /* ── App sidebar ── */
+  .app-sidebar { width: 228px; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 10px; gap: 12px; flex-shrink: 0; overflow-y: auto; }
+  .co-name { font-size: 13px; font-weight: 700; padding: 4px 8px 10px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); }
+  .brand-dot { width: 14px; height: 14px; border-radius: 3px; background: #6366f1; flex-shrink: 0; }
+  .sec-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted-fg); padding: 0 8px 4px; }
+  .nav { display: flex; flex-direction: column; gap: 1px; }
+  .nav a { display: flex; align-items: center; gap: 9px; padding: 6px 8px; border-radius: 5px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.65); cursor: pointer; text-decoration: none; transition: background .1s, color .1s; }
+  .nav a:hover { background: var(--accent); color: var(--fg); }
+  .nav a.active { background: var(--accent); color: var(--fg); }
+
+  /* ── Main ── */
+  .main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .breadcrumb { height: 38px; border-bottom: 1px solid var(--border); padding: 0 16px; display: flex; align-items: center; font-size: 12px; color: var(--muted-fg); flex-shrink: 0; gap: 6px; }
+  .toolkit-layout { display: flex; flex: 1; overflow: hidden; }
+
+  /* ── Inner nav (4 sections) ── */
+  .toolkit-nav { width: 200px; border-right: 1px solid var(--border); flex-shrink: 0; display: flex; flex-direction: column; }
+  .toolkit-nav-title { padding: 14px 14px 12px; font-size: 15px; font-weight: 700; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .toolkit-nav-items { flex: 1; padding: 8px 8px; display: flex; flex-direction: column; gap: 2px; }
+  .tk-nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 7px; cursor: pointer; transition: all .12s; color: var(--muted-fg); font-weight: 500; }
+  .tk-nav-item:hover { background: var(--accent); color: var(--fg); }
+  .tk-nav-item.active { background: var(--accent); color: var(--fg); }
+  .tk-nav-icon { font-size: 16px; width: 22px; text-align: center; }
+  .tk-nav-label { flex: 1; font-size: 13px; }
+  .tk-nav-count { font-size: 10px; background: var(--muted); padding: 1px 7px; border-radius: 8px; color: var(--muted-fg); }
+  .tk-nav-item.active .tk-nav-count { color: var(--fg); }
+  .toolkit-nav-hint { padding: 12px 14px; font-size: 11px; color: var(--muted-fg); line-height: 1.5; border-top: 1px solid var(--border); }
+
+  /* ── Full panels ── */
+  .tk-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .tk-panel-header { display: flex; align-items: flex-start; justify-content: space-between; padding: 14px 20px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .tk-panel-title { font-size: 20px; font-weight: 700; line-height: 1.2; }
+  .tk-panel-sub { font-size: 12px; color: var(--muted-fg); margin-top: 3px; }
+  .tk-panel-content { flex: 1; overflow-y: auto; padding: 16px 20px; }
+
+  /* ── Buttons ── */
+  .btn { display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; font-family: inherit; }
+  .btn-primary { background: var(--primary); color: var(--bg); }
+  .btn-primary:hover { opacity: .88; }
+  .btn-cancel { background: transparent; color: var(--fg); border: 1px solid var(--border); }
+  .btn-cancel:hover { background: var(--accent); }
+  .btn-success { background: var(--green); color: #fff; border: none; }
+  .btn-success:hover { opacity: .88; }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+  .btn-icon { width: 28px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 5px; background: transparent; border: 1px solid var(--border); color: var(--muted-fg); cursor: pointer; }
+  .btn-icon:hover { background: var(--accent); color: var(--fg); }
+
+  /* ── Toggle ── */
+  .toggle { position: relative; width: 36px; height: 20px; cursor: pointer; display: inline-block; }
+  .toggle input { display: none; }
+  .toggle-track { position: absolute; inset: 0; background: oklch(0.35 0 0); border-radius: 10px; transition: background .2s; }
+  .toggle input:checked + .toggle-track { background: var(--green); }
+  .toggle-thumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: transform .2s; }
+  .toggle input:checked ~ .toggle-thumb { transform: translateX(16px); }
+
+  /* ── View toggle ── */
+  .view-toggle { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .view-toggle-btn { padding: 5px 10px; font-size: 13px; cursor: pointer; background: transparent; border: none; color: var(--muted-fg); transition: all .15s; }
+  .view-toggle-btn:not(:last-child) { border-right: 1px solid var(--border); }
+  .view-toggle-btn.active { background: rgba(255,255,255,.1); color: var(--fg); }
+
+  /* ── Stats ── */
+  .stats-row { display: flex; gap: 12px; margin-bottom: 16px; }
+  .stat-card { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+  .stat-value { font-size: 22px; font-weight: 700; }
+  .stat-label { font-size: 11px; color: var(--muted-fg); margin-top: 2px; }
+  .stat-icon-box { float: right; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+
+  /* ── Search ── */
+  .search-bar { display: flex; gap: 8px; margin-bottom: 16px; align-items: center; }
+  .search-input { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-size: 13px; color: var(--fg); outline: none; font-family: inherit; }
+  .search-input::placeholder { color: var(--muted-fg); }
+  .filter-chip { display: inline-flex; align-items: center; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--muted-fg); transition: all .15s; }
+  .filter-chip:hover { background: var(--accent); color: var(--fg); }
+  .filter-chip.active { background: rgba(255,255,255,.1); color: var(--fg); border-color: rgba(255,255,255,.2); }
+
+  /* ── Badges ── */
+  .badge { display: inline-flex; align-items: center; font-size: 11px; font-weight: 500; padding: 2px 7px; border-radius: 999px; white-space: nowrap; }
+  .badge-dev { background: rgba(99,102,241,.14); color: #a5b4fc; }
+  .badge-comm { background: rgba(236,72,153,.12); color: #f9a8d4; }
+  .badge-data { background: rgba(6,182,212,.12); color: #67e8f9; }
+  .badge-files { background: rgba(34,197,94,.12); color: #86efac; }
+  .badge-tools { background: rgba(59,130,246,.12); color: #93c5fd; }
+  .badge-outbound { background: rgba(59,130,246,.12); color: #93c5fd; }
+  .badge-coding { background: rgba(99,102,241,.14); color: #a5b4fc; }
+  .badge-custom { background: rgba(251,191,36,.12); color: #fcd34d; }
+  .badge-research { background: rgba(6,182,212,.12); color: #67e8f9; }
+  .health-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .health-healthy { background: var(--green); box-shadow: 0 0 6px rgba(16,185,129,.4); }
+  .health-unhealthy { background: var(--red); box-shadow: 0 0 6px rgba(239,68,68,.4); }
+  .health-unknown { background: oklch(0.45 0 0); }
+
+  /* ── Cards (grid) ── */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; transition: all .15s; }
+  .card:hover { border-color: oklch(0.4 0 0); }
+  .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .card-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .card-name { font-size: 14px; font-weight: 600; }
+  .card-sub { font-size: 11px; color: var(--muted-fg); font-family: monospace; }
+  .card-meta { display: flex; gap: 12px; font-size: 11px; color: var(--muted-fg); margin: 6px 0; }
+  .card-actions { display: flex; gap: 6px; padding-top: 10px; border-top: 1px solid var(--border); margin-top: 8px; }
+  .card-desc { font-size: 12px; color: var(--muted-fg); line-height: 1.5; margin-bottom: 10px; }
+
+  /* ── Table ── */
+  .list-table { width: 100%; border-collapse: collapse; }
+  .list-table th { text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted-fg); padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; background: var(--bg); position: sticky; top: 0; z-index: 2; }
+  .list-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .list-table tbody tr { cursor: pointer; transition: background .1s; }
+  .list-table tbody tr:hover { background: rgba(255,255,255,.025); }
+  .cell-name { display: flex; align-items: center; gap: 10px; }
+  .cell-icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 13px; background: rgba(255,255,255,.06); flex-shrink: 0; }
+
+  /* ── Connector card ── */
+  .connector-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; display: flex; align-items: center; gap: 14px; }
+  .connector-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+
+  /* ── Skill card ── */
+  .skill-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; cursor: pointer; transition: all .15s; }
+  .skill-card:hover { border-color: oklch(0.4 0 0); }
+  .skill-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .skill-card-icon { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 15px; background: rgba(255,255,255,.06); flex-shrink: 0; }
+  .skill-card-name { font-size: 14px; font-weight: 600; }
+  .skill-card-source { font-size: 11px; color: var(--muted-fg); }
+  .skill-card-desc { font-size: 12px; color: var(--muted-fg); line-height: 1.4; margin-bottom: 10px; }
+  .skill-card-footer { display: flex; align-items: center; justify-content: space-between; }
+  .skill-agents { display: flex; gap: -4px; }
+  .skill-agents-avatar { width: 22px; height: 22px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; border: 2px solid var(--card); margin-left: -4px; }
+
+  /* ── Agent chips ── */
+  .agent-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 4px; border-radius: 6px; border: 1px solid var(--border); font-size: 12px; margin: 3px; cursor: pointer; transition: all .15s; }
+  .agent-chip:hover { border-color: var(--green); }
+  .agent-chip.granted { border-color: var(--green); background: rgba(16,185,129,.08); }
+  .agent-chip-avatar { width: 22px; height: 22px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; }
+  .agent-chip-check { width: 14px; height: 14px; border-radius: 3px; border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 9px; margin-left: 4px; }
+  .agent-chip.granted .agent-chip-check { border-color: var(--green); color: var(--green); background: rgba(16,185,129,.15); }
+
+  /* ── Drawer ── */
+  .drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 100; }
+  .drawer-overlay.open { display: block; }
+  .drawer { position: fixed; top: 0; right: -500px; width: 500px; height: 100vh; background: var(--card); border-left: 1px solid var(--border); z-index: 101; display: flex; flex-direction: column; transition: right .25s ease; box-shadow: -8px 0 32px rgba(0,0,0,.3); }
+  .drawer.open { right: 0; }
+  .drawer-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+  .drawer-header h3 { font-size: 15px; font-weight: 700; }
+  .drawer-body { flex: 1; overflow-y: auto; padding: 20px; }
+  .modal-close { background: none; border: none; color: var(--muted-fg); font-size: 18px; cursor: pointer; }
+  .modal-close:hover { color: var(--fg); }
+
+  /* ── Form ── */
+  .form-group { margin-bottom: 16px; }
+  .form-label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 5px; }
+  .form-input { width: 100%; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; font-size: 13px; color: var(--fg); outline: none; font-family: inherit; }
+  .form-input:focus { border-color: oklch(0.55 0 0); }
+  .form-select { width: 100%; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; font-size: 13px; color: var(--fg); outline: none; font-family: inherit; }
+  .form-hint { font-size: 11px; color: var(--muted-fg); margin-top: 4px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .env-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .env-row .form-input { flex: 1; }
+  .skill-editor { width: 100%; min-height: 200px; padding: 14px; background: oklch(0.12 0 0); border: 1px solid var(--border); border-radius: 6px; font-family: 'SF Mono','Fira Code',monospace; font-size: 12px; color: var(--fg); outline: none; resize: vertical; line-height: 1.7; tab-size: 2; white-space: pre-wrap; }
+  .skill-editor:focus { border-color: oklch(0.55 0 0); }
+
+  /* ── Modal ── */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--card); border: 1px solid var(--border); border-radius: 10px; max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 16px 48px rgba(0,0,0,.4); }
+  .modal-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .modal-header h3 { font-size: 16px; font-weight: 700; }
+  .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+  .modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+
+  .proto-label { position: fixed; top: 8px; right: 8px; background: var(--red); color: #fff; padding: 3px 10px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; z-index: 200; letter-spacing: .5px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<span class="proto-label">Prototype</span>
+
+<!-- ─── App Sidebar ─── -->
+<div class="app-sidebar">
+  <div class="co-name"><div class="brand-dot"></div> Optiflow</div>
+  <div class="sec-label">Main</div>
+  <div class="nav">
+    <a>&#x1F4CA; Dashboard</a><a>&#x1F465; Agents</a><a>&#x1F4CB; Issues</a><a>&#x1F3AF; Goals</a><a>&#x1F4C1; Projects</a><a>&#x23F0; Scheduled Jobs</a>
+  </div>
+  <div class="sec-label">Platform</div>
+  <div class="nav">
+    <a class="active">&#x1F9F0; Toolkit</a><a>&#x1F9E0; Brain</a><a>&#x1F4AC; Chat</a><a>&#x2699;&#xFE0F; Settings</a>
+  </div>
+</div>
+
+<!-- ─── Main ─── -->
+<div class="main-area">
+  <div class="breadcrumb">
+    <span>Optiflow</span> <span style="opacity:.4">/</span> <span style="color:var(--fg)">Toolkit & Capabilities</span>
+  </div>
+
+  <div class="toolkit-layout">
+    <!-- ── Inner Nav (4 sections) ── -->
+    <div class="toolkit-nav">
+      <div class="toolkit-nav-title">&#x1F9F0; Toolkit</div>
+      <div class="toolkit-nav-items">
+        <div class="tk-nav-item active" onclick="switchSection(this,'skills')">
+          <span class="tk-nav-icon">&#x1F4DC;</span><span class="tk-nav-label">Skills</span><span class="tk-nav-count">7</span>
+        </div>
+        <div class="tk-nav-item" onclick="switchSection(this,'mcp')">
+          <span class="tk-nav-icon">&#x1F50C;</span><span class="tk-nav-label">MCP Servers</span><span class="tk-nav-count">4</span>
+        </div>
+        <div class="tk-nav-item" onclick="switchSection(this,'connectors')">
+          <span class="tk-nav-icon">&#x1F517;</span><span class="tk-nav-label">Connectors</span><span class="tk-nav-count">4</span>
+        </div>
+        <div class="tk-nav-item" onclick="switchSection(this,'plugins')">
+          <span class="tk-nav-icon">&#x1F9E9;</span><span class="tk-nav-label">Plugins</span><span class="tk-nav-count">3</span>
+        </div>
+      </div>
+      <div class="toolkit-nav-hint">Extend your agents with skills, connect external tools, and manage integrations.</div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- SKILLS SCREEN                                        -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <div class="tk-panel" id="panel-skills">
+      <div class="tk-panel-header">
+        <div><div class="tk-panel-title">Skills</div><div class="tk-panel-sub">Give your agents role-level expertise with reusable instruction templates</div></div>
+        <div style="display:flex;gap:8px;"><button class="btn btn-cancel" onclick="openModal('skill-library')">&#x1F4DA; Browse Library</button><button class="btn btn-primary" onclick="openDrawer('new-skill')">+ New Skill</button></div>
+      </div>
+      <div class="tk-panel-content">
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-icon-box" style="background:rgba(99,102,241,.1);color:#a5b4fc;">&#x1F4DC;</div><div class="stat-value">3</div><div class="stat-label">Custom Skills</div></div>
+          <div class="stat-card"><div class="stat-icon-box" style="background:rgba(168,85,247,.1);color:#d8b4fe;">&#x1F4DA;</div><div class="stat-value">4</div><div class="stat-label">Built-in</div></div>
+          <div class="stat-card"><div class="stat-icon-box" style="background:rgba(16,185,129,.1);color:var(--green);">&#x1F916;</div><div class="stat-value">6</div><div class="stat-label">Agents Using Skills</div></div>
+        </div>
+        <div class="search-bar">
+          <input class="search-input" placeholder="Search skills..." />
+          <button class="filter-chip active">All</button><button class="filter-chip">Custom</button><button class="filter-chip">Built-in</button>
+          <div style="margin-left:auto;"><div class="view-toggle"><button class="view-toggle-btn active" onclick="switchView('skills-card','skills-list',this)">&#x25A6;</button><button class="view-toggle-btn" onclick="switchView('skills-list','skills-card',this)">&#x2630;</button></div></div>
+        </div>
+
+        <!-- Card view -->
+        <div id="skills-card" class="card-grid">
+          <div class="skill-card" onclick="openDrawer('skill-detail')">
+            <div class="skill-card-header"><div class="skill-card-icon">&#x1F4E6;</div><div style="flex:1"><div class="skill-card-name">add-api-method</div><div class="skill-card-source">Custom &middot; User</div></div><label class="toggle" onclick="event.stopPropagation()"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>
+            <div class="skill-card-desc">Add whitelisted API methods for any ERPNext/Frappe project with validation, transactions.</div>
+            <div class="skill-card-footer"><span class="badge badge-coding">Coding</span><div class="skill-agents"><div class="skill-agents-avatar" style="background:rgba(168,85,247,.15);color:#c084fc;">TL</div><div class="skill-agents-avatar" style="background:rgba(59,130,246,.15);color:#93c5fd;">BE</div><div class="skill-agents-avatar" style="background:rgba(236,72,153,.15);color:#f9a8d4;">FE</div></div></div>
+          </div>
+          <div class="skill-card" onclick="openDrawer('skill-detail')">
+            <div class="skill-card-header"><div class="skill-card-icon">&#x1F9EA;</div><div style="flex:1"><div class="skill-card-name">til</div><div class="skill-card-source">Custom &middot; User</div></div><label class="toggle" onclick="event.stopPropagation()"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>
+            <div class="skill-card-desc">Test-driven development with spec-first approach and mandatory test levels.</div>
+            <div class="skill-card-footer"><span class="badge badge-coding">Coding</span><div class="skill-agents"><div class="skill-agents-avatar" style="background:rgba(59,130,246,.15);color:#93c5fd;">BE</div><div class="skill-agents-avatar" style="background:rgba(236,72,153,.15);color:#f9a8d4;">FE</div></div></div>
+          </div>
+          <div class="skill-card" onclick="openDrawer('skill-detail')">
+            <div class="skill-card-header"><div class="skill-card-icon">&#x1F41B;</div><div style="flex:1"><div class="skill-card-name">debug-agent</div><div class="skill-card-source">Custom &middot; User</div></div><label class="toggle" onclick="event.stopPropagation()"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>
+            <div class="skill-card-desc">Systematic debugging with persistent state across context resets.</div>
+            <div class="skill-card-footer"><span class="badge badge-coding">Coding</span><div class="skill-agents"><div class="skill-agents-avatar" style="background:rgba(168,85,247,.15);color:#c084fc;">TL</div></div></div>
+          </div>
+          <div class="skill-card" style="opacity:.7;" onclick="openDrawer('skill-detail')">
+            <div class="skill-card-header"><div class="skill-card-icon">&#x1F4DD;</div><div style="flex:1"><div class="skill-card-name">code-review</div><div class="skill-card-source">Built-in</div></div><label class="toggle" onclick="event.stopPropagation()"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>
+            <div class="skill-card-desc">Targeted code review with decision tables and numbered issues.</div>
+            <div class="skill-card-footer"><span class="badge badge-coding">Coding</span><div class="skill-agents"><div class="skill-agents-avatar" style="background:rgba(168,85,247,.15);color:#c084fc;">TL</div><div class="skill-agents-avatar" style="background:rgba(59,130,246,.15);color:#93c5fd;">BE</div><div class="skill-agents-avatar" style="background:rgba(236,72,153,.15);color:#f9a8d4;">FE</div></div></div>
+          </div>
+          <div class="skill-card" style="opacity:.7;" onclick="openDrawer('skill-detail')">
+            <div class="skill-card-header"><div class="skill-card-icon">&#x1F50D;</div><div style="flex:1"><div class="skill-card-name">research</div><div class="skill-card-source">Built-in</div></div><label class="toggle" onclick="event.stopPropagation()"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>
+            <div class="skill-card-desc">Structured approach to conducting comprehensive web research.</div>
+            <div class="skill-card-footer"><span class="badge badge-research">Research</span><div class="skill-agents"><div class="skill-agents-avatar" style="background:rgba(251,191,36,.15);color:#fcd34d;">CE</div><div class="skill-agents-avatar" style="background:rgba(249,115,22,.15);color:#fdba74;">SM</div></div></div>
+          </div>
+          <div class="skill-card" style="opacity:.7;" onclick="openDrawer('skill-detail')">
+            <div class="skill-card-header"><div class="skill-card-icon">&#x1F4CA;</div><div style="flex:1"><div class="skill-card-name">data-analysis</div><div class="skill-card-source">Built-in</div></div><label class="toggle" onclick="event.stopPropagation()"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>
+            <div class="skill-card-desc">Analyze datasets, generate insights, and create visualizations.</div>
+            <div class="skill-card-footer"><span class="badge badge-data">Data</span><div class="skill-agents"><div class="skill-agents-avatar" style="background:rgba(251,191,36,.15);color:#fcd34d;">CE</div></div></div>
+          </div>
+        </div>
+
+        <!-- List view -->
+        <div id="skills-list" class="hidden">
+          <table class="list-table">
+            <thead><tr><th>Skill</th><th>Category</th><th>Source</th><th>Agents</th><th>Enabled</th></tr></thead>
+            <tbody>
+              <tr onclick="openDrawer('skill-detail')"><td><div class="cell-name"><div class="cell-icon">&#x1F4E6;</div><div><div style="font-weight:500">add-api-method</div><div style="font-size:11px;color:var(--muted-fg)">Add whitelisted API methods</div></div></div></td><td><span class="badge badge-coding">Coding</span></td><td>Custom</td><td>3</td><td><label class="toggle" onclick="event.stopPropagation()"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></td></tr>
+              <tr onclick="openDrawer('skill-detail')"><td><div class="cell-name"><div class="cell-icon">&#x1F9EA;</div><div><div style="font-weight:500">til</div><div style="font-size:11px;color:var(--muted-fg)">Test-driven development</div></div></div></td><td><span class="badge badge-coding">Coding</span></td><td>Custom</td><td>2</td><td><label class="toggle" onclick="event.stopPropagation()"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></td></tr>
+              <tr onclick="openDrawer('skill-detail')"><td><div class="cell-name"><div class="cell-icon">&#x1F41B;</div><div><div style="font-weight:500">debug-agent</div><div style="font-size:11px;color:var(--muted-fg)">Systematic debugging</div></div></div></td><td><span class="badge badge-coding">Coding</span></td><td>Custom</td><td>1</td><td><label class="toggle" onclick="event.stopPropagation()"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></td></tr>
+              <tr onclick="openDrawer('skill-detail')" style="opacity:.7"><td><div class="cell-name"><div class="cell-icon">&#x1F4DD;</div><div><div style="font-weight:500">code-review</div><div style="font-size:11px;color:var(--muted-fg)">Targeted code review</div></div></div></td><td><span class="badge badge-coding">Coding</span></td><td>Built-in</td><td>3</td><td><label class="toggle" onclick="event.stopPropagation()"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></td></tr>
+              <tr onclick="openDrawer('skill-detail')" style="opacity:.7"><td><div class="cell-name"><div class="cell-icon">&#x1F50D;</div><div><div style="font-weight:500">research</div><div style="font-size:11px;color:var(--muted-fg)">Web research</div></div></div></td><td><span class="badge badge-research">Research</span></td><td>Built-in</td><td>2</td><td><label class="toggle" onclick="event.stopPropagation()"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- MCP SERVERS SCREEN                                   -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <div class="tk-panel hidden" id="panel-mcp">
+      <div class="tk-panel-header">
+        <div><div class="tk-panel-title">MCP Servers</div><div class="tk-panel-sub">Connect external tool servers for your agents via Model Context Protocol</div></div>
+        <div style="display:flex;gap:8px;"><button class="btn btn-cancel">&#x1F6D2; Marketplace</button><button class="btn btn-primary">+ Add Server</button></div>
+      </div>
+      <div class="tk-panel-content">
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-icon-box" style="background:rgba(16,185,129,.1);color:var(--green);">&#x2713;</div><div class="stat-value">3</div><div class="stat-label">Healthy</div></div>
+          <div class="stat-card"><div class="stat-icon-box" style="background:rgba(239,68,68,.1);color:var(--red);">&#x26A0;</div><div class="stat-value">1</div><div class="stat-label">Unhealthy</div></div>
+          <div class="stat-card"><div class="stat-icon-box" style="background:rgba(59,130,246,.1);color:var(--blue);">&#x1F527;</div><div class="stat-value">27</div><div class="stat-label">Tools</div></div>
+          <div class="stat-card"><div class="stat-icon-box" style="background:rgba(168,85,247,.1);color:var(--purple);">&#x1F916;</div><div class="stat-value">6</div><div class="stat-label">Agents</div></div>
+        </div>
+        <div class="search-bar">
+          <input class="search-input" placeholder="Search servers..." />
+          <button class="filter-chip active">All</button><button class="filter-chip">Outbound</button><button class="filter-chip">Inbound</button>
+          <div style="margin-left:auto;"><div class="view-toggle"><button class="view-toggle-btn active" onclick="switchView('mcp-card','mcp-list',this)">&#x25A6;</button><button class="view-toggle-btn" onclick="switchView('mcp-list','mcp-card',this)">&#x2630;</button></div></div>
+        </div>
+
+        <div id="mcp-card" class="card-grid">
+          <div class="card"><div class="card-header"><div class="card-icon" style="background:rgba(255,255,255,.08);">&#x1F4BB;</div><div style="flex:1"><div style="display:flex;align-items:center;gap:6px"><div class="card-name">GitHub</div><span class="health-dot health-healthy"></span></div><div class="card-sub">@modelcontextprotocol/server-github</div></div><label class="toggle"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div><div class="card-meta"><span class="badge badge-outbound">Outbound</span><span>&#x1F527; 12 tools</span><span>&#x1F916; 4 agents</span></div><div class="card-actions"><button class="btn btn-cancel btn-sm" onclick="openDrawer('mcp-detail')">Configure</button><button class="btn btn-cancel btn-sm">Test</button><button class="btn btn-cancel btn-sm" onclick="openDrawer('mcp-logs')">Logs</button><div style="flex:1"></div><button class="btn-icon" style="color:var(--red);border-color:rgba(239,68,68,.3);">&#x1F5D1;</button></div></div>
+          <div class="card"><div class="card-header"><div class="card-icon" style="background:rgba(236,72,153,.1);">&#x1F4AC;</div><div style="flex:1"><div style="display:flex;align-items:center;gap:6px"><div class="card-name">Slack</div><span class="health-dot health-healthy"></span></div><div class="card-sub">@anthropic/slack-mcp</div></div><label class="toggle"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div><div class="card-meta"><span class="badge badge-outbound">Outbound</span><span>&#x1F527; 8 tools</span><span>&#x1F916; 3 agents</span></div><div class="card-actions"><button class="btn btn-cancel btn-sm">Configure</button><button class="btn btn-cancel btn-sm">Test</button><button class="btn btn-cancel btn-sm">Logs</button><div style="flex:1"></div><button class="btn-icon" style="color:var(--red);border-color:rgba(239,68,68,.3);">&#x1F5D1;</button></div></div>
+          <div class="card"><div class="card-header"><div class="card-icon" style="background:rgba(6,182,212,.1);">&#x1F4BE;</div><div style="flex:1"><div style="display:flex;align-items:center;gap:6px"><div class="card-name">PostgreSQL</div><span class="health-dot health-healthy"></span></div><div class="card-sub">@modelcontextprotocol/server-postgres</div></div><label class="toggle"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div><div class="card-meta"><span class="badge badge-outbound">Outbound</span><span>&#x1F527; 5 tools</span><span>&#x1F916; 2 agents</span></div><div class="card-actions"><button class="btn btn-cancel btn-sm">Configure</button><button class="btn btn-cancel btn-sm">Test</button><button class="btn btn-cancel btn-sm">Logs</button><div style="flex:1"></div><button class="btn-icon" style="color:var(--red);border-color:rgba(239,68,68,.3);">&#x1F5D1;</button></div></div>
+          <div class="card" style="border-color:rgba(239,68,68,.3);"><div class="card-header"><div class="card-icon" style="background:rgba(249,115,22,.1);">&#x1F50D;</div><div style="flex:1"><div style="display:flex;align-items:center;gap:6px"><div class="card-name">Brave Search</div><span class="health-dot health-unhealthy"></span></div><div class="card-sub">@modelcontextprotocol/server-brave-search</div></div><label class="toggle"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div><div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:4px;padding:6px 10px;margin:6px 0;font-size:11px;color:#f87171;">Invalid API key. Last checked 3m ago.</div><div class="card-meta"><span class="badge badge-outbound">Outbound</span><span>&#x1F527; 2 tools</span></div><div class="card-actions"><button class="btn btn-cancel btn-sm">Configure</button><button class="btn btn-cancel btn-sm">Test</button><button class="btn btn-cancel btn-sm">Logs</button><div style="flex:1"></div><button class="btn-icon" style="color:var(--red);border-color:rgba(239,68,68,.3);">&#x1F5D1;</button></div></div>
+        </div>
+        <div id="mcp-list" class="hidden">
+          <table class="list-table"><thead><tr><th>Server</th><th>Health</th><th>Direction</th><th>Tools</th><th>Agents</th><th>Enabled</th><th>Actions</th></tr></thead><tbody>
+            <tr><td><div class="cell-name"><div class="cell-icon">&#x1F4BB;</div><div><div style="font-weight:500">GitHub</div><div style="font-size:11px;color:var(--muted-fg);font-family:monospace">server-github</div></div></div></td><td><span class="health-dot health-healthy"></span></td><td><span class="badge badge-outbound">Out</span></td><td>12</td><td>4</td><td><label class="toggle"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></td><td><div style="display:flex;gap:4px"><button class="btn btn-cancel btn-sm">Test</button><button class="btn btn-cancel btn-sm" onclick="openDrawer('mcp-logs')">Logs</button></div></td></tr>
+            <tr><td><div class="cell-name"><div class="cell-icon">&#x1F4AC;</div><div><div style="font-weight:500">Slack</div><div style="font-size:11px;color:var(--muted-fg);font-family:monospace">slack-mcp</div></div></div></td><td><span class="health-dot health-healthy"></span></td><td><span class="badge badge-outbound">Out</span></td><td>8</td><td>3</td><td><label class="toggle"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></td><td><div style="display:flex;gap:4px"><button class="btn btn-cancel btn-sm">Test</button><button class="btn btn-cancel btn-sm">Logs</button></div></td></tr>
+            <tr><td><div class="cell-name"><div class="cell-icon">&#x1F4BE;</div><div><div style="font-weight:500">PostgreSQL</div><div style="font-size:11px;color:var(--muted-fg);font-family:monospace">server-postgres</div></div></div></td><td><span class="health-dot health-healthy"></span></td><td><span class="badge badge-outbound">Out</span></td><td>5</td><td>2</td><td><label class="toggle"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></td><td><div style="display:flex;gap:4px"><button class="btn btn-cancel btn-sm">Test</button><button class="btn btn-cancel btn-sm">Logs</button></div></td></tr>
+            <tr style="background:rgba(239,68,68,.03)"><td><div class="cell-name"><div class="cell-icon">&#x1F50D;</div><div><div style="font-weight:500">Brave Search</div><div style="font-size:11px;color:var(--muted-fg);font-family:monospace">server-brave-search</div></div></div></td><td><span class="health-dot health-unhealthy"></span></td><td><span class="badge badge-outbound">Out</span></td><td>2</td><td>1</td><td><label class="toggle"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></td><td><div style="display:flex;gap:4px"><button class="btn btn-cancel btn-sm">Test</button><button class="btn btn-cancel btn-sm">Logs</button></div></td></tr>
+          </tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- CONNECTORS SCREEN                                    -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <div class="tk-panel hidden" id="panel-connectors">
+      <div class="tk-panel-header">
+        <div><div class="tk-panel-title">Connectors</div><div class="tk-panel-sub">OAuth-based integrations — click Connect to authorize, no API keys needed</div></div>
+        <div><button class="btn btn-primary">+ Browse Connectors</button></div>
+      </div>
+      <div class="tk-panel-content">
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-icon-box" style="background:rgba(16,185,129,.1);color:var(--green);">&#x2713;</div><div class="stat-value">2</div><div class="stat-label">Connected</div></div>
+          <div class="stat-card"><div class="stat-icon-box" style="background:rgba(245,158,11,.1);color:var(--yellow);">&#x26A0;</div><div class="stat-value">2</div><div class="stat-label">Needs Auth</div></div>
+        </div>
+        <div class="search-bar"><input class="search-input" placeholder="Search connectors..." /><button class="filter-chip active">All</button><button class="filter-chip">Connected</button><button class="filter-chip">Pending</button></div>
+        <div class="card-grid">
+          <div class="connector-card"><div class="connector-icon" style="background:rgba(239,68,68,.1);">&#x1F4E7;</div><div style="flex:1"><div style="font-size:14px;font-weight:600;">Gmail</div><div style="font-size:11px;color:var(--muted-fg);">Read, send, and manage emails</div><div style="font-size:11px;color:var(--yellow);margin-top:4px;">&#x26A0; Needs Auth</div></div><button class="btn btn-primary btn-sm">Connect</button></div>
+          <div class="connector-card"><div class="connector-icon" style="background:rgba(59,130,246,.1);">&#x1F4C5;</div><div style="flex:1"><div style="font-size:14px;font-weight:600;">Google Calendar</div><div style="font-size:11px;color:var(--muted-fg);">View and create calendar events</div><div style="font-size:11px;color:var(--yellow);margin-top:4px;">&#x26A0; Needs Auth</div></div><button class="btn btn-primary btn-sm">Connect</button></div>
+          <div class="connector-card"><div class="connector-icon" style="background:rgba(34,197,94,.1);">&#x1F4C4;</div><div style="flex:1"><div style="font-size:14px;font-weight:600;">Google Sheets</div><div style="font-size:11px;color:var(--muted-fg);">Read and write spreadsheet data</div><div style="font-size:11px;color:var(--green);margin-top:4px;">&#x2713; Connected</div></div><button class="btn btn-cancel btn-sm">Manage</button></div>
+          <div class="connector-card"><div class="connector-icon" style="background:rgba(168,85,247,.1);">&#x1F4AC;</div><div style="flex:1"><div style="font-size:14px;font-weight:600;">Slack OAuth</div><div style="font-size:11px;color:var(--muted-fg);">Full workspace access via OAuth</div><div style="font-size:11px;color:var(--green);margin-top:4px;">&#x2713; Connected</div></div><button class="btn btn-cancel btn-sm">Manage</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- PLUGINS SCREEN                                       -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <div class="tk-panel hidden" id="panel-plugins">
+      <div class="tk-panel-header">
+        <div><div class="tk-panel-title">Plugins</div><div class="tk-panel-sub">Dynamic MCP plugins auto-discovered at runtime — extend agent capabilities</div></div>
+        <div><button class="btn btn-primary">&#x1F4DA; Browse Plugins</button></div>
+      </div>
+      <div class="tk-panel-content">
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-icon-box" style="background:rgba(16,185,129,.1);color:var(--green);">&#x2713;</div><div class="stat-value">3</div><div class="stat-label">Active Plugins</div></div>
+          <div class="stat-card"><div class="stat-icon-box" style="background:rgba(59,130,246,.1);color:var(--blue);">&#x1F527;</div><div class="stat-value">19</div><div class="stat-label">Tools Provided</div></div>
+        </div>
+        <div class="search-bar"><input class="search-input" placeholder="Search plugins..." /></div>
+        <div class="card-grid">
+          <div class="card"><div class="card-header"><div class="card-icon" style="background:rgba(99,102,241,.1);">&#x1F4DA;</div><div style="flex:1"><div style="display:flex;align-items:center;gap:6px"><div class="card-name">context7</div><span class="health-dot health-healthy"></span></div><div class="card-sub">plugin:context7:context7</div></div><label class="toggle"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div><div class="card-desc">Up-to-date library documentation and code examples on demand.</div><div class="card-meta"><span>&#x1F527; 2 tools</span><span>&#x1F916; 3 agents</span></div><div class="card-actions"><button class="btn btn-cancel btn-sm" onclick="openDrawer('plugin-detail')">Configure</button><button class="btn btn-cancel btn-sm">Test</button><div style="flex:1"></div><button class="btn-icon" style="color:var(--red);border-color:rgba(239,68,68,.3);">&#x1F5D1;</button></div></div>
+          <div class="card"><div class="card-header"><div class="card-icon" style="background:rgba(168,85,247,.1);">&#x1F3AF;</div><div style="flex:1"><div style="display:flex;align-items:center;gap:6px"><div class="card-name">serena</div><span class="health-dot health-healthy"></span></div><div class="card-sub">plugin:serena:serena</div></div><label class="toggle"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div><div class="card-desc">Semantic code navigation, symbol search, and intelligent editing tools.</div><div class="card-meta"><span>&#x1F527; 15 tools</span><span>&#x1F916; 2 agents</span></div><div class="card-actions"><button class="btn btn-cancel btn-sm">Configure</button><button class="btn btn-cancel btn-sm">Test</button><div style="flex:1"></div><button class="btn-icon" style="color:var(--red);border-color:rgba(239,68,68,.3);">&#x1F5D1;</button></div></div>
+          <div class="card"><div class="card-header"><div class="card-icon" style="background:rgba(6,182,212,.1);">&#x1F9E0;</div><div style="flex:1"><div style="display:flex;align-items:center;gap:6px"><div class="card-name">sanad-brain</div><span class="health-dot health-healthy"></span></div><div class="card-sub">plugin:sanad-brain</div></div><label class="toggle"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div><div class="card-desc">Persistent memory — recall, remember, and forget across sessions.</div><div class="card-meta"><span>&#x1F527; 8 tools</span><span>&#x1F916; 6 agents</span></div><div class="card-actions"><button class="btn btn-cancel btn-sm">Configure</button><button class="btn btn-cancel btn-sm">Test</button><div style="flex:1"></div><button class="btn-icon" style="color:var(--red);border-color:rgba(239,68,68,.3);">&#x1F5D1;</button></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ── DRAWER: Skill Detail ── -->
+<div class="drawer-overlay" id="drawer-skill-detail-overlay" onclick="closeDrawer('skill-detail')"></div>
+<div class="drawer" id="drawer-skill-detail">
+  <div class="drawer-header"><h3>&#x1F4E6; add-api-method</h3><button class="modal-close" onclick="closeDrawer('skill-detail')">&times;</button></div>
+  <div class="drawer-body">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-size:11px;color:var(--muted-fg);">Custom &middot; Updated Mar 20, 2026 &middot; Invoked by User or Agent</div>
+      <label class="toggle"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+    </div>
+    <div class="form-group"><label class="form-label">Description</label><input class="form-input" value="Add whitelisted API methods for ERPNext/Frappe with validation, transactions." /></div>
+    <div class="form-group"><label class="form-label">&#x26A1; Trigger</label><input class="form-input" value="Use when code needs a new @frappe.whitelist() endpoint." /></div>
+    <div class="form-group">
+      <label class="form-label">&#x1F916; Agent Access</label>
+      <div>
+        <span class="agent-chip granted" onclick="this.classList.toggle('granted')"><span class="agent-chip-avatar" style="background:rgba(168,85,247,.15);color:#c084fc;">TL</span>TechLead<span class="agent-chip-check">&#x2713;</span></span>
+        <span class="agent-chip granted" onclick="this.classList.toggle('granted')"><span class="agent-chip-avatar" style="background:rgba(59,130,246,.15);color:#93c5fd;">BE</span>BackendEng<span class="agent-chip-check">&#x2713;</span></span>
+        <span class="agent-chip granted" onclick="this.classList.toggle('granted')"><span class="agent-chip-avatar" style="background:rgba(236,72,153,.15);color:#f9a8d4;">FE</span>FrontendEng<span class="agent-chip-check">&#x2713;</span></span>
+        <span class="agent-chip" onclick="this.classList.toggle('granted')"><span class="agent-chip-avatar" style="background:rgba(34,197,94,.15);color:#86efac;">DO</span>DevOps<span class="agent-chip-check"></span></span>
+        <span class="agent-chip" onclick="this.classList.toggle('granted')"><span class="agent-chip-avatar" style="background:rgba(251,191,36,.15);color:#fcd34d;">CE</span>CEO<span class="agent-chip-check"></span></span>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">&#x1F4DD; Instructions</label>
+      <textarea class="skill-editor">---
+name: add-api-method
+description: Add whitelisted API methods
+trigger: Use when code needs @frappe.whitelist()
+---
+
+## Template
+```python
+@frappe.whitelist()
+def method_name(param1, param2=None):
+    frappe.has_permission("DocType", "read", throw=True)
+    return result
+```</textarea>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;"><button class="btn btn-cancel">Discard</button><button class="btn btn-primary">Save Skill</button></div>
+  </div>
+</div>
+
+<!-- ── DRAWER: MCP Detail ── -->
+<div class="drawer-overlay" id="drawer-mcp-detail-overlay" onclick="closeDrawer('mcp-detail')"></div>
+<div class="drawer" id="drawer-mcp-detail">
+  <div class="drawer-header"><h3>&#x1F4BB; GitHub — Configure</h3><button class="modal-close" onclick="closeDrawer('mcp-detail')">&times;</button></div>
+  <div class="drawer-body">
+    <div class="form-row"><div class="form-group"><label class="form-label">Transport</label><select class="form-select"><option selected>stdio</option><option>sse</option><option>streamable-http</option></select></div><div class="form-group"><label class="form-label">Direction</label><select class="form-select"><option selected>Outbound</option><option>Inbound</option><option>Both</option></select></div></div>
+    <div class="form-group"><label class="form-label">Environment Variables</label><div class="env-row"><input class="form-input" value="GITHUB_TOKEN" readonly style="max-width:160px;color:var(--muted-fg);" /><input class="form-input" type="password" value="ghp_xxxxxxxxxxxxxxxxxxxx" /></div></div>
+    <div class="form-group"><label class="form-label">&#x1F916; Agent Access</label><div>
+      <span class="agent-chip granted" onclick="this.classList.toggle('granted')"><span class="agent-chip-avatar" style="background:rgba(168,85,247,.15);color:#c084fc;">TL</span>TechLead<span class="agent-chip-check">&#x2713;</span></span>
+      <span class="agent-chip granted" onclick="this.classList.toggle('granted')"><span class="agent-chip-avatar" style="background:rgba(59,130,246,.15);color:#93c5fd;">BE</span>BackendEng<span class="agent-chip-check">&#x2713;</span></span>
+      <span class="agent-chip granted" onclick="this.classList.toggle('granted')"><span class="agent-chip-avatar" style="background:rgba(236,72,153,.15);color:#f9a8d4;">FE</span>FrontendEng<span class="agent-chip-check">&#x2713;</span></span>
+      <span class="agent-chip granted" onclick="this.classList.toggle('granted')"><span class="agent-chip-avatar" style="background:rgba(34,197,94,.15);color:#86efac;">DO</span>DevOps<span class="agent-chip-check">&#x2713;</span></span>
+      <span class="agent-chip" onclick="this.classList.toggle('granted')"><span class="agent-chip-avatar" style="background:rgba(251,191,36,.15);color:#fcd34d;">CE</span>CEO<span class="agent-chip-check"></span></span>
+    </div></div>
+    <div class="form-group"><label class="form-label">&#x1F527; Tools (12)</label><div style="display:flex;flex-wrap:wrap;gap:4px;"><span class="badge badge-tools">create_or_update_file</span><span class="badge badge-tools">search_repositories</span><span class="badge badge-tools">create_issue</span><span class="badge badge-tools">create_pull_request</span><span class="badge badge-tools">push_files</span><span class="badge badge-tools">get_file_contents</span><span style="font-size:11px;color:var(--muted-fg);padding:2px 4px;">+6 more</span></div></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;"><button class="btn btn-cancel">Discard</button><button class="btn btn-primary">Save</button></div>
+  </div>
+</div>
+
+<!-- ── DRAWER: MCP Logs ── -->
+<div class="drawer-overlay" id="drawer-mcp-logs-overlay" onclick="closeDrawer('mcp-logs')"></div>
+<div class="drawer" id="drawer-mcp-logs">
+  <div class="drawer-header"><h3>&#x1F4CB; GitHub — Logs</h3><button class="modal-close" onclick="closeDrawer('mcp-logs')">&times;</button></div>
+  <div class="drawer-body" style="padding:0;">
+    <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;gap:6px;"><button class="filter-chip active" style="font-size:11px;padding:3px 10px;">All</button><button class="filter-chip" style="font-size:11px;padding:3px 10px;">Success</button><button class="filter-chip" style="font-size:11px;padding:3px 10px;">Errors</button><span style="margin-left:auto;font-size:11px;color:var(--muted-fg);">38 calls &middot; 24h</span></div>
+    <div style="padding:10px 16px;border-bottom:1px solid var(--border);"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span class="health-dot health-healthy" style="width:6px;height:6px;"></span><span style="font-weight:600;">create_pull_request</span><span style="font-size:11px;color:var(--muted-fg);">by TechLead</span><span style="font-size:11px;color:var(--muted-fg);margin-left:auto;">2m ago</span></div><div style="font-size:11px;color:var(--muted-fg);">&#x2713; Success &middot; 340ms</div></div>
+    <div style="padding:10px 16px;border-bottom:1px solid var(--border);"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span class="health-dot health-healthy" style="width:6px;height:6px;"></span><span style="font-weight:600;">search_repositories</span><span style="font-size:11px;color:var(--muted-fg);">by BackendEng</span><span style="font-size:11px;color:var(--muted-fg);margin-left:auto;">8m ago</span></div><div style="font-size:11px;color:var(--muted-fg);">&#x2713; Success &middot; 210ms</div></div>
+    <div style="padding:10px 16px;border-bottom:1px solid var(--border);"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span class="health-dot health-unhealthy" style="width:6px;height:6px;"></span><span style="font-weight:600;">create_issue</span><span style="font-size:11px;color:var(--muted-fg);">by TechLead</span><span style="font-size:11px;color:var(--muted-fg);margin-left:auto;">15m ago</span></div><div style="font-size:11px;color:var(--red);">&#x2717; Error &middot; 1,240ms</div><div style="margin-top:4px;padding:4px 8px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.15);border-radius:4px;font-size:11px;color:#f87171;font-family:monospace;">422: Title is required</div></div>
+    <div style="padding:10px 16px;border-bottom:1px solid var(--border);"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span class="health-dot health-healthy" style="width:6px;height:6px;"></span><span style="font-weight:600;">get_file_contents</span><span style="font-size:11px;color:var(--muted-fg);">by FrontendEng</span><span style="font-size:11px;color:var(--muted-fg);margin-left:auto;">22m ago</span></div><div style="font-size:11px;color:var(--muted-fg);">&#x2713; Success &middot; 180ms</div></div>
+    <div style="padding:10px 16px;border-bottom:1px solid var(--border);"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span class="health-dot health-healthy" style="width:6px;height:6px;"></span><span style="font-weight:600;">list_commits</span><span style="font-size:11px;color:var(--muted-fg);">by DevOps</span><span style="font-size:11px;color:var(--muted-fg);margin-left:auto;">34m ago</span></div><div style="font-size:11px;color:var(--muted-fg);">&#x2713; Success &middot; 290ms</div></div>
+    <div style="text-align:center;padding:16px;"><button class="btn btn-cancel btn-sm">Load more...</button></div>
+  </div>
+</div>
+
+<!-- ── DRAWER: Plugin Detail ── -->
+<div class="drawer-overlay" id="drawer-plugin-detail-overlay" onclick="closeDrawer('plugin-detail')"></div>
+<div class="drawer" id="drawer-plugin-detail">
+  <div class="drawer-header"><h3>&#x1F4DA; context7 — Configure</h3><button class="modal-close" onclick="closeDrawer('plugin-detail')">&times;</button></div>
+  <div class="drawer-body">
+    <div style="font-size:12px;color:var(--muted-fg);margin-bottom:16px;line-height:1.6;">Retrieve up-to-date documentation and code examples for any library. Agents query context7 to get accurate API docs without relying on training data.</div>
+    <div class="form-group"><label class="form-label">&#x1F527; Tools (2)</label><div style="display:flex;flex-direction:column;gap:6px;">
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 14px;"><div style="font-weight:600;font-size:13px;">resolve-library-id</div><div style="font-size:11px;color:var(--muted-fg);margin-top:2px;">Resolve a library name to a context7 library ID</div></div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 14px;"><div style="font-weight:600;font-size:13px;">query-docs</div><div style="font-size:11px;color:var(--muted-fg);margin-top:2px;">Query documentation for a specific library</div></div>
+    </div></div>
+    <div class="form-group"><label class="form-label">&#x1F916; Agent Access</label><div>
+      <span class="agent-chip granted" onclick="this.classList.toggle('granted')"><span class="agent-chip-avatar" style="background:rgba(168,85,247,.15);color:#c084fc;">TL</span>TechLead<span class="agent-chip-check">&#x2713;</span></span>
+      <span class="agent-chip granted" onclick="this.classList.toggle('granted')"><span class="agent-chip-avatar" style="background:rgba(59,130,246,.15);color:#93c5fd;">BE</span>BackendEng<span class="agent-chip-check">&#x2713;</span></span>
+      <span class="agent-chip granted" onclick="this.classList.toggle('granted')"><span class="agent-chip-avatar" style="background:rgba(236,72,153,.15);color:#f9a8d4;">FE</span>FrontendEng<span class="agent-chip-check">&#x2713;</span></span>
+      <span class="agent-chip" onclick="this.classList.toggle('granted')"><span class="agent-chip-avatar" style="background:rgba(251,191,36,.15);color:#fcd34d;">CE</span>CEO<span class="agent-chip-check"></span></span>
+    </div></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;"><button class="btn btn-cancel">Discard</button><button class="btn btn-primary">Save</button></div>
+  </div>
+</div>
+
+<!-- ── DRAWER: New Skill ── -->
+<div class="drawer-overlay" id="drawer-new-skill-overlay" onclick="closeDrawer('new-skill')"></div>
+<div class="drawer" id="drawer-new-skill">
+  <div class="drawer-header"><h3>&#x2795; New Skill</h3><button class="modal-close" onclick="closeDrawer('new-skill')">&times;</button></div>
+  <div class="drawer-body">
+    <div class="form-group"><label class="form-label">Skill Name</label><input class="form-input" placeholder="my-custom-skill" /><div class="form-hint">lowercase, hyphens only</div></div>
+    <div class="form-group"><label class="form-label">Description</label><input class="form-input" placeholder="What does this skill do?" /></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Category</label><select class="form-select"><option>Coding</option><option>Research</option><option>Communication</option><option>Data</option><option selected>Custom</option></select></div><div class="form-group"><label class="form-label">Invoked by</label><select class="form-select"><option selected>User or Agent</option><option>User only</option><option>Agent only</option></select></div></div>
+    <div class="form-group"><label class="form-label">Trigger</label><input class="form-input" placeholder="Use when..." /><div class="form-hint">When should agents auto-invoke this skill?</div></div>
+    <div class="form-group"><label class="form-label">Instructions</label><textarea class="skill-editor" style="min-height:160px;" placeholder="Write your skill instructions in markdown..."></textarea></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;"><button class="btn btn-cancel" onclick="closeDrawer('new-skill')">Cancel</button><button class="btn btn-primary">Create Skill</button></div>
+  </div>
+</div>
+
+<!-- ── MODAL: Skill Library ── -->
+<div class="modal-overlay" id="modal-skill-library">
+  <div class="modal" style="width:680px;">
+    <div class="modal-header"><h3>&#x1F4DA; Skill Library</h3><button class="modal-close" onclick="closeModal('skill-library')">&times;</button></div>
+    <div class="modal-body">
+      <div style="display:flex;gap:8px;margin-bottom:14px;"><input class="search-input" placeholder="Search..." style="flex:1;" /><button class="filter-chip active">All</button><button class="filter-chip">Coding</button><button class="filter-chip">Research</button></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:12px;cursor:pointer;"><div style="font-weight:600;display:flex;align-items:center;gap:6px;">&#x1F4BB; skill-creator</div><div style="font-size:11px;color:var(--muted-fg);margin-top:4px;">Create new skills with proper structure.</div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;"><span class="badge badge-coding">Coding</span><button class="btn btn-success btn-sm">Add</button></div></div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:12px;cursor:pointer;"><div style="font-weight:600;display:flex;align-items:center;gap:6px;">&#x1F50C; mcp-builder</div><div style="font-size:11px;color:var(--muted-fg);margin-top:4px;">Build MCP servers with tool definitions.</div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;"><span class="badge badge-coding">Coding</span><button class="btn btn-success btn-sm">Add</button></div></div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:12px;cursor:pointer;"><div style="font-weight:600;display:flex;align-items:center;gap:6px;">&#x1F3A8; brand-guidelines</div><div style="font-size:11px;color:var(--muted-fg);margin-top:4px;">Apply brand voice and typography.</div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;"><span class="badge badge-custom">Custom</span><button class="btn btn-success btn-sm">Add</button></div></div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:12px;cursor:pointer;"><div style="font-weight:600;display:flex;align-items:center;gap:6px;">&#x1F310; web-scraper</div><div style="font-size:11px;color:var(--muted-fg);margin-top:4px;">Extract structured data from websites.</div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;"><span class="badge badge-research">Research</span><button class="btn btn-success btn-sm">Add</button></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+function switchSection(el, id) {
+  document.querySelectorAll('.tk-nav-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.tk-panel').forEach(p => p.classList.add('hidden'));
+  document.getElementById('panel-' + id).classList.remove('hidden');
+}
+function switchView(showId, hideId, btn) {
+  document.getElementById(showId).classList.remove('hidden');
+  document.getElementById(hideId).classList.add('hidden');
+  btn.closest('.view-toggle').querySelectorAll('.view-toggle-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function openDrawer(id) {
+  document.getElementById('drawer-' + id + '-overlay').classList.add('open');
+  document.getElementById('drawer-' + id).classList.add('open');
+}
+function closeDrawer(id) {
+  document.getElementById('drawer-' + id + '-overlay').classList.remove('open');
+  document.getElementById('drawer-' + id).classList.remove('open');
+}
+function openModal(id) { document.getElementById('modal-' + id).classList.add('open'); }
+function closeModal(id) { document.getElementById('modal-' + id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(o => { o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); }); });
+</script>
+
+</body>
+</html>
