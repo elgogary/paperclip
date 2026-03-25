@@ -50,7 +50,7 @@ export function SkillsSection() {
   const [newTrigger, setNewTrigger] = useState("");
   const [newInstructions, setNewInstructions] = useState("");
 
-  const { data: skillsData } = useQuery({
+  const { data: skillsData, isLoading, isError } = useQuery({
     queryKey: queryKeys.skills.list(selectedCompanyId!),
     queryFn: () => skillsApi.list(selectedCompanyId!),
     enabled: !!selectedCompanyId,
@@ -97,7 +97,7 @@ export function SkillsSection() {
 
   const customCount = skills.filter((s) => s.source === "user").length;
   const builtinCount = skills.filter((s) => s.source === "builtin").length;
-  const agentsUsingCount = agents.length;
+  const agentsUsingCount = agents.length; // TODO: fetch actual per-skill access data for accurate count
 
   function openDetail(skill: Skill) {
     setSelectedSkill(skill);
@@ -167,7 +167,7 @@ export function SkillsSection() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xl font-bold">{agentsUsingCount}</p>
-                <p className="text-[11px] text-muted-foreground">Agents Using Skills</p>
+                <p className="text-[11px] text-muted-foreground">Total Agents</p>
               </div>
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
                 <Code2 className="h-4 w-4" />
@@ -227,8 +227,21 @@ export function SkillsSection() {
           </div>
         </div>
 
+        {/* Loading / Error */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-20 text-muted-foreground">
+            <div className="animate-spin h-5 w-5 border-2 border-foreground/20 border-t-foreground rounded-full mr-3" />
+            Loading skills...
+          </div>
+        )}
+        {isError && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+            Failed to load skills. Check your connection and try again.
+          </div>
+        )}
+
         {/* Card View */}
-        {viewMode === "cards" ? (
+        {!isLoading && !isError && viewMode === "cards" ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
             {filtered.map((skill) => (
               <div

@@ -74,8 +74,11 @@ export function McpLogsDrawer({ open, onClose, serverName }: McpLogsDrawerProps)
           </span>
         </div>
 
-        {/* Log entries */}
+        {/* Log entries — placeholder data until log API is implemented */}
         <div className="flex-1 overflow-y-auto">
+          <div className="mx-4 mt-3 mb-2 rounded bg-amber-500/8 border border-amber-500/20 px-3 py-2 text-[11px] text-amber-400">
+            Showing sample data. Real-time logs will be available once the logging API is connected.
+          </div>
           {visible.map((log) => (
             <div key={log.id} className="px-4 py-2.5 border-b border-border">
               <div className="flex items-center gap-2 mb-1">

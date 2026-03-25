@@ -48,7 +48,7 @@ export function ConnectorsSection() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
 
-  const { data: connectorsData } = useQuery({
+  const { data: connectorsData, isLoading, isError } = useQuery({
     queryKey: queryKeys.connectors.list(selectedCompanyId!),
     queryFn: () => connectorsApi.list(selectedCompanyId!),
     enabled: !!selectedCompanyId,
@@ -166,8 +166,19 @@ export function ConnectorsSection() {
           ))}
         </div>
 
-        {/* Connector cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {isLoading && (
+          <div className="flex items-center justify-center py-20 text-muted-foreground">
+            <div className="animate-spin h-5 w-5 border-2 border-foreground/20 border-t-foreground rounded-full mr-3" />
+            Loading connectors...
+          </div>
+        )}
+        {isError && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+            Failed to load connectors. Check your connection and try again.
+          </div>
+        )}
+
+        {!isLoading && !isError && <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {filtered.map((connector) => {
             const iconInfo = CONNECTOR_ICONS[connector.slug] ?? { icon: "\u{1F517}", bg: "rgba(99,102,241,.1)" };
             const statusInfo = getStatusInfo(connector.status);
@@ -202,9 +213,9 @@ export function ConnectorsSection() {
               </div>
             );
           })}
-        </div>
+        </div>}
 
-        {filtered.length === 0 && (
+        {!isLoading && !isError && filtered.length === 0 && (
           <p className="text-sm text-muted-foreground text-center py-12">No connectors match the current filter.</p>
         )}
       </div>

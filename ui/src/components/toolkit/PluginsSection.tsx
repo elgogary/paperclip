@@ -24,7 +24,7 @@ export function PluginsSection() {
   const [selectedPlugin, setSelectedPlugin] = useState<Plugin | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
-  const { data: pluginsData } = useQuery({
+  const { data: pluginsData, isLoading, isError } = useQuery({
     queryKey: queryKeys.plugins.list(selectedCompanyId!),
     queryFn: () => pluginsApi.list(selectedCompanyId!),
     enabled: !!selectedCompanyId,
@@ -131,8 +131,19 @@ export function PluginsSection() {
           </div>
         </div>
 
-        {/* Plugin cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+        {isLoading && (
+          <div className="flex items-center justify-center py-20 text-muted-foreground">
+            <div className="animate-spin h-5 w-5 border-2 border-foreground/20 border-t-foreground rounded-full mr-3" />
+            Loading plugins...
+          </div>
+        )}
+        {isError && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+            Failed to load plugins. Check your connection and try again.
+          </div>
+        )}
+
+        {!isLoading && !isError && <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
           {filtered.map((plugin) => {
             const iconInfo = getIcon(plugin);
 
@@ -204,9 +215,9 @@ export function PluginsSection() {
               </div>
             );
           })}
-        </div>
+        </div>}
 
-        {filtered.length === 0 && (
+        {!isLoading && !isError && filtered.length === 0 && (
           <p className="text-sm text-muted-foreground text-center py-12">No plugins match the current filter.</p>
         )}
       </div>

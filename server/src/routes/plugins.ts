@@ -17,6 +17,13 @@ async function getPluginOrNotFound(
   return plugin;
 }
 
+function redactEnv(p: Plugin): Plugin {
+  return {
+    ...p,
+    env: p.env ? Object.fromEntries(Object.keys(p.env).map((k) => [k, "***"])) : p.env,
+  };
+}
+
 export function pluginRoutes(db: Db) {
   const router = Router();
   const svc = pluginsService(db);
@@ -27,11 +34,7 @@ export function pluginRoutes(db: Db) {
     assertCompanyAccess(req, companyId);
 
     const plugins = await svc.list(companyId);
-    const redacted = plugins.map((p) => ({
-      ...p,
-      env: p.env ? Object.fromEntries(Object.keys(p.env).map((k) => [k, "***"])) : p.env,
-    }));
-    res.json({ plugins: redacted });
+    res.json({ plugins: plugins.map(redactEnv) });
   });
 
   router.post("/companies/:companyId/plugins", async (req, res) => {
@@ -40,7 +43,8 @@ export function pluginRoutes(db: Db) {
     assertCompanyAccess(req, companyId);
 
     try {
-      const plugin = await svc.create({ companyId, ...req.body });
+      const { name, description, icon, transport, command, args, env, url, enabled } = req.body;
+      const plugin = await svc.create({ companyId, name, description, icon, transport, command, args, env, url, enabled });
       res.status(201).json({ plugin });
     } catch (err) {
       res.status(400).json({ error: err instanceof Error ? err.message : "Bad request" });
@@ -54,7 +58,7 @@ export function pluginRoutes(db: Db) {
 
     const plugin = await getPluginOrNotFound(svc, pluginId, companyId, res);
     if (!plugin) return;
-    res.json({ plugin });
+    res.json({ plugin: redactEnv(plugin) });
   });
 
   router.patch("/companies/:companyId/plugins/:pluginId", async (req, res) => {
@@ -65,7 +69,13 @@ export function pluginRoutes(db: Db) {
     const existing = await getPluginOrNotFound(svc, pluginId, companyId, res);
     if (!existing) return;
     try {
-      const plugin = await svc.update(pluginId, req.body);
+      const { name, description, icon, transport, command, args, env, url, enabled } = req.body;
+      // Filter out redacted env values (***) — only update keys with real values
+      const safeEnv = env && typeof env === "object"
+        ? Object.fromEntries(Object.entries(env as Record<string, string>).filter(([, v]) => v !== "***"))
+        : undefined;
+      const mergedEnv = safeEnv ? { ...(existing.env ?? {}), ...safeEnv } : undefined;
+      const plugin = await svc.update(pluginId, { name, description, icon, transport, command, args, env: mergedEnv, url, enabled });
       res.json({ plugin });
     } catch (err) {
       res.status(400).json({ error: err instanceof Error ? err.message : "Bad request" });
@@ -111,7 +121,12 @@ export function pluginRoutes(db: Db) {
 
     const existing = await getPluginOrNotFound(svc, pluginId, companyId, res);
     if (!existing) return;
-    await svc.bulkUpdateAccess(pluginId, req.body.grants);
+    const { grants } = req.body as { grants?: unknown };
+    if (!Array.isArray(grants)) {
+      res.status(400).json({ error: "grants must be an array" });
+      return;
+    }
+    await svc.bulkUpdateAccess(pluginId, grants);
     res.json({ ok: true });
   });
 

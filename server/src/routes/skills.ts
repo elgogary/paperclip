@@ -36,7 +36,8 @@ export function skillRoutes(db: Db) {
     assertCompanyAccess(req, companyId);
 
     try {
-      const skill = await svc.create({ companyId, ...req.body });
+      const { name, description, icon, category, source, instructions, triggerHint, invokedBy, enabled, createdBy } = req.body;
+      const skill = await svc.create({ companyId, name, description, icon, category, source, instructions, triggerHint, invokedBy, enabled, createdBy });
       res.status(201).json({ skill });
     } catch (err) {
       res.status(400).json({ error: err instanceof Error ? err.message : "Bad request" });
@@ -61,7 +62,8 @@ export function skillRoutes(db: Db) {
     const existing = await getSkillOrNotFound(svc, skillId, companyId, res);
     if (!existing) return;
     try {
-      const skill = await svc.update(skillId, req.body);
+      const { name, description, icon, category, source, instructions, triggerHint, invokedBy, enabled } = req.body;
+      const skill = await svc.update(skillId, { name, description, icon, category, source, instructions, triggerHint, invokedBy, enabled });
       res.json({ skill });
     } catch (err) {
       res.status(400).json({ error: err instanceof Error ? err.message : "Bad request" });
@@ -97,7 +99,12 @@ export function skillRoutes(db: Db) {
 
     const existing = await getSkillOrNotFound(svc, skillId, companyId, res);
     if (!existing) return;
-    await svc.bulkUpdateAccess(skillId, req.body.grants);
+    const { grants } = req.body as { grants?: unknown };
+    if (!Array.isArray(grants)) {
+      res.status(400).json({ error: "grants must be an array" });
+      return;
+    }
+    await svc.bulkUpdateAccess(skillId, grants);
     res.json({ ok: true });
   });
 

@@ -17,6 +17,11 @@ async function getConnectorOrNotFound(
   return connector;
 }
 
+function redactConnector(c: Connector) {
+  const { oauthTokenEncrypted, oauthRefreshTokenEncrypted, ...safe } = c;
+  return safe;
+}
+
 export function connectorRoutes(db: Db) {
   const router = Router();
   const svc = connectorsService(db);
@@ -27,7 +32,7 @@ export function connectorRoutes(db: Db) {
     assertCompanyAccess(req, companyId);
 
     const connectors = await svc.list(companyId);
-    res.json({ connectors });
+    res.json({ connectors: connectors.map(redactConnector) });
   });
 
   router.post("/companies/:companyId/connectors", async (req, res) => {
@@ -36,8 +41,9 @@ export function connectorRoutes(db: Db) {
     assertCompanyAccess(req, companyId);
 
     try {
-      const connector = await svc.create({ companyId, ...req.body });
-      res.status(201).json({ connector });
+      const { name, provider, status, scopes, metadata, connectedBy, connectedAt, enabled } = req.body;
+      const connector = await svc.create({ companyId, name, provider, status, scopes, metadata, connectedBy, connectedAt, enabled });
+      res.status(201).json({ connector: redactConnector(connector) });
     } catch (err) {
       res.status(400).json({ error: err instanceof Error ? err.message : "Bad request" });
     }

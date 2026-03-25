@@ -38,7 +38,7 @@ export function SkillLibraryModal({ open, onClose, onAdd }: SkillLibraryModalPro
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return TEMPLATES.filter((t) => {
-      if (q && !t.name.includes(q) && !t.description.toLowerCase().includes(q)) return false;
+      if (q && !t.name.toLowerCase().includes(q) && !t.description.toLowerCase().includes(q)) return false;
       if (activeCategory !== "All" && t.category !== activeCategory) return false;
       return true;
     });

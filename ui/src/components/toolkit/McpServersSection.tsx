@@ -44,7 +44,7 @@ export function McpServersSection() {
   const [logsOpen, setLogsOpen] = useState(false);
   const [marketplaceOpen, setMarketplaceOpen] = useState(false);
 
-  const { data: serversData } = useQuery({
+  const { data: serversData, isLoading, isError } = useQuery({
     queryKey: queryKeys.mcpServers.list(selectedCompanyId!),
     queryFn: () => mcpServersApi.list(selectedCompanyId!),
     enabled: !!selectedCompanyId,
@@ -233,8 +233,19 @@ export function McpServersSection() {
           </div>
         </div>
 
-        {/* Card View */}
-        {viewMode === "cards" ? (
+        {isLoading && (
+          <div className="flex items-center justify-center py-20 text-muted-foreground">
+            <div className="animate-spin h-5 w-5 border-2 border-foreground/20 border-t-foreground rounded-full mr-3" />
+            Loading servers...
+          </div>
+        )}
+        {isError && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+            Failed to load MCP servers. Check your connection and try again.
+          </div>
+        )}
+
+        {!isLoading && !isError && viewMode === "cards" ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
             {filtered.map((server) => (
               <div

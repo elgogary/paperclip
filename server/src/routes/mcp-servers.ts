@@ -17,6 +17,13 @@ async function getServerOrNotFound(
   return server;
 }
 
+function redactEnv(s: McpServerConfig): McpServerConfig {
+  return {
+    ...s,
+    env: s.env ? Object.fromEntries(Object.keys(s.env).map((k) => [k, "***"])) : s.env,
+  };
+}
+
 export function mcpServerRoutes(db: Db) {
   const router = Router();
   const svc = mcpServersService(db);
@@ -27,11 +34,7 @@ export function mcpServerRoutes(db: Db) {
     assertCompanyAccess(req, companyId);
 
     const servers = await svc.list(companyId);
-    const redacted = servers.map((s) => ({
-      ...s,
-      env: s.env ? Object.fromEntries(Object.keys(s.env).map((k) => [k, "***"])) : s.env,
-    }));
-    res.json({ servers: redacted });
+    res.json({ servers: servers.map(redactEnv) });
   });
 
   router.post("/companies/:companyId/mcp-servers", async (req, res) => {
@@ -40,7 +43,8 @@ export function mcpServerRoutes(db: Db) {
     assertCompanyAccess(req, companyId);
 
     try {
-      const server = await svc.create({ companyId, ...req.body });
+      const { name, direction, transport, command, args, env, url, enabled, catalogId, configJson } = req.body;
+      const server = await svc.create({ companyId, name, direction, transport, command, args, env, url, enabled, catalogId, configJson });
       res.status(201).json({ server });
     } catch (err) {
       res.status(400).json({ error: err instanceof Error ? err.message : "Bad request" });
@@ -54,7 +58,7 @@ export function mcpServerRoutes(db: Db) {
 
     const server = await getServerOrNotFound(svc, serverId, companyId, res);
     if (!server) return;
-    res.json({ server });
+    res.json({ server: redactEnv(server) });
   });
 
   router.patch("/companies/:companyId/mcp-servers/:serverId", async (req, res) => {
@@ -65,7 +69,14 @@ export function mcpServerRoutes(db: Db) {
     const existing = await getServerOrNotFound(svc, serverId, companyId, res);
     if (!existing) return;
     try {
-      const server = await svc.update(serverId, req.body);
+      const { name, direction, transport, command, args, env, url, enabled, configJson } = req.body;
+      // Filter out redacted env values (***) — only update keys with real values
+      const safeEnv = env && typeof env === "object"
+        ? Object.fromEntries(Object.entries(env as Record<string, string>).filter(([, v]) => v !== "***"))
+        : undefined;
+      // Merge: keep existing env values, override only non-redacted ones
+      const mergedEnv = safeEnv ? { ...(existing.env ?? {}), ...safeEnv } : undefined;
+      const server = await svc.update(serverId, { name, direction, transport, command, args, env: mergedEnv, url, enabled, configJson });
       res.json({ server });
     } catch (err) {
       res.status(400).json({ error: err instanceof Error ? err.message : "Bad request" });
@@ -123,7 +134,12 @@ export function mcpServerRoutes(db: Db) {
 
     const existing = await getServerOrNotFound(svc, serverId, companyId, res);
     if (!existing) return;
-    await svc.bulkUpdateAccess(serverId, req.body.grants);
+    const { grants } = req.body as { grants?: unknown };
+    if (!Array.isArray(grants)) {
+      res.status(400).json({ error: "grants must be an array" });
+      return;
+    }
+    await svc.bulkUpdateAccess(serverId, grants);
     res.json({ ok: true });
   });
 
