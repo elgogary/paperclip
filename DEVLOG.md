@@ -1,66 +1,109 @@
 # Paperclip Dev Log
 
 ## Working State
-**Session:** Multimodal Attachments | **Date:** 2026-03-25
+**Session:** Upstream Bug Fix Cherry-picks | **Date:** 2026-03-25
 
-### Completed This Session
-- [x] Task 1: DB schema — attachments table (migration 0044), self-ref FK, ON DELETE, updatedAt
-- [x] Task 2: Attachment types — 31 MIME types, MAX_VIDEO_BYTES 2GB, safe env parsing
-- [x] Task 3: Chunked upload API — init/chunk/complete/get/delete, chunk assembly, atomic TOCTOU guard
-- [x] Task 4: [[attach:]] comment parser — isSafePath contract, symlink escape, null byte guard
-- [x] Task 5: media-worker Docker — ffmpeg thumbnails, LibreOffice HTML, disk streaming, SSRF guard
-- [x] Task 6: AttachmentCard UI — inline images, video player, Office viewer, upload zone, MarkdownBody hook
-- [x] Task 7: Agent vision — vision blocks wired to openclaw-gateway adapter, magic byte validation, prompt injection guard
-- [x] Task 9: Deploy runbook created, branch pushed to origin
-- [x] Task 10: Wiki + API docs — docs/api/attachments.md, docs/guides/agent-developer/attachments.md, wiki README updated
+### Active Task
+Selectively cherry-picking upstream commits onto `feature/multimodal-attachments` + `main-sanad-eoi-app`
 
-### Branch
-`feature/multimodal-attachments` — 28 commits, pushed to GitHub
+- [x] Phase 1: Branch cleanup — deleted feature/chat-ui, feature/scheduled-jobs (superseded)
+- [x] Phase 2: Merge feature/multimodal-attachments → master, push
+- [x] Phase 3: Create main-sanad-eoi-app branch (our permanent fork branch)
+- [x] Phase 4: Reset master to clean upstream/master mirror
+- [x] Phase 5: Cherry-pick all 35 upstream bug fixes ✅
+- [x] Phase 6: Sync main-sanad-eoi-app with feature/multimodal-attachments
+- [ ] Phase 7: Cherry-pick selected Feature commits (next)
+- [ ] Phase 8: Rebuild Docker + deploy to Hetzner
 
-### Key Files
-**`server/src/routes/attachments.ts`** (MODIFIED, ~420 lines)
-Chunked upload API with 6 endpoints. Chunk assembly via storage compose. Atomic status transitions. SSRF filename sanitization.
+### Branch Strategy
+```
+master               → clean upstream mirror (reset to upstream/master db3883d2)
+feature/multimodal-attachments → our working dev branch (all work + 35 bug fixes)
+main-sanad-eoi-app   → our production fork branch (mirrors feature/multimodal-attachments)
+```
+**Rule:** Always cherry-pick onto `feature/multimodal-attachments` first, then fast-forward `main-sanad-eoi-app`.
 
-**`server/src/services/attachment-context.ts`** (NEW, ~300 lines)
-Builds attachment context for agent runs. Vision blocks (base64), doc text extracts, file notes. Parallel downloads, 10MB budget, magic byte validation, prompt injection guard.
+### Key Files (Sanad Brain Integration — DO NOT BREAK)
+- `server/src/routes/sanad-brain.ts` — Brain proxy, SANAD_BRAIN_URL + SANAD_BRAIN_API_KEY
+- `server/src/services/scheduler-loop.ts` — 60s loop, calls executeKnowledgeSync/executeDream/executeMemoryIngest
+- `server/src/services/scheduled-job-executors.ts` — Brain API calls: /knowledge/sync, /dream/trigger, /memory/queue/status
+- `server/src/routes/scheduled-jobs.ts` — Brain job triggers via REST
+- `server/src/app.ts` — mounts sanadBrainRoutes at line 149
 
-**`ui/src/components/attachments/AttachmentCard.tsx`** (NEW, ~249 lines)
-Smart card rendering by mimeType. Handles images, video, PDF, Office, code, generic. Status-aware (processing/error/ready). a11y compliant.
+### Cherry-Pick Conflict Patterns (lessons from 35 bug fixes)
+1. **pnpm-lock.yaml** → ALWAYS keep ours: `git checkout --ours pnpm-lock.yaml`
+2. **modify/delete test files** → upstream adds tests to files we deleted: `git checkout --theirs <file>`
+3. **issues.ts** → accept `--theirs` for mention/entity fixes; verify no Brain code lost after
+4. **codex test.ts** → 4 sequential patches on same file, accept `--theirs` each time
+5. **MarkdownEditor.tsx / MarkdownBody.tsx** → accept `--theirs` (upstream UI improvements)
+6. **Empty commit** → `git cherry-pick --skip` (already applied via earlier commit)
+7. **Dockerfile conflict** → keep BOTH lines: our custom line + upstream's new line
 
-**`docker/media-worker/`** (NEW)
-Express service. ffmpeg for video thumbnails, LibreOffice for Office->HTML. Disk streaming, SSRF guard, workDir cleanup.
+### What Cherry-Picks Are Safe (won't touch Brain)
+- issues.ts mention/entity decoding — no Brain code in issues.ts ✅
+- agents.ts instructions/adapter fix — no Brain code in agents.ts ✅
+- UI files (MarkdownEditor, mention-chips) — frontend only ✅
+- Codex adapter — isolated adapter, no Brain dependency ✅
 
-**`packages/db/src/migrations/0044_attachments.sql`** (NEW)
-Attachments table. Drizzle format with --> statement-breakpoint and "public". prefix.
-
-### Next Steps
-1. SSH to 65.109.65.159, confirm MinIO container name
-2. Apply migration 0044
-3. Create paperclip-files MinIO bucket
-4. `docker compose build media-worker && docker compose up -d`
-5. Verify /health endpoints
-6. Smoke test file upload
+### Remaining Feature Commits to Review (Phase 7)
+```
+36. 44fbf831  Preserve task assignment grants for joined agents
+37. eb73fc74  Seed onboarding project and issue goal context
+38. c4838cca  Render join requests inline in inbox
+39. 5561a9c1  Improve CLI API connection errors
+40. 2daae758  Include all agents on heartbeats page regardless of interval
+41. 0bb1ee3c  Recover agent instructions from disk
+42. 3b2cb3a6  Show all companies' agents on instance heartbeats page
+43. eac3f3fa  Honor explicit failed-run session resume
+44. 02c779b4  Use issue participation for agent history
+45. e61f00d4  Add missing data-slot="toggle" to Routines toggle buttons
+46. 61f53b64  feat: add ReportsToPicker for agent management
+47. 5a735568  Use positional source arg for company import
+48. 5dfdbe91  Add merge-history project import option
+49. e6df9fa0  Support GitHub shorthand refs for company import
+50. 37c2c4ac  Add browser-based board CLI auth flow
+```
 
 ### Watch Out
-- MinIO container name must match ALLOWED_STORAGE_HOST env var — confirm with `docker ps | grep minio`
-- media-worker build takes 5-10 min (ffmpeg + LibreOffice layers)
-- Server has `depends_on: media-worker: condition: service_healthy` — server won't start until media-worker passes health check
+- NEVER let cherry-picks touch: sanad-brain.ts, scheduler-loop.ts, scheduled-job-executors.ts
+- After each cherry-pick session → fast-forward main-sanad-eoi-app to match
+- Before deploying → rebuild on Hetzner: `docker build -t paperclip-server . && docker compose up -d server`
+- Deployment branch: `main-sanad-eoi-app`
 
----
 ---
 
 ## Session Archive
 
-### Session 1 — 2026-03-25: Multimodal Attachments Feature
-**What we did:** Built complete file attachment system — DB schema, chunked upload API, media processing worker, UI components, agent vision integration. 9 tasks across backend, frontend, infra.
-**Files:** attachments.ts, attachment-context.ts, attachment-resolver.ts, AttachmentCard.tsx, media-worker/, 0044_attachments.sql
-**Decisions:** Chunked uploads for large files (2GB video cap). Separate media-worker container for ffmpeg/LibreOffice. Vision blocks for agent context with 10MB budget.
+### Session: Multimodal Attachments — 2026-03-25
+**What we did:** Full multimodal attachment pipeline — DB schema, chunked upload API, media-worker (ffmpeg+LibreOffice), AttachmentCard UI, agent vision blocks, docs. Merged feature/chat-ui + feature/scheduled-jobs into feature/multimodal-attachments.
+**Files:** server/src/routes/attachments.ts, server/src/services/attachment-context.ts, ui/src/components/attachments/*, docker/media-worker/*, packages/db/migrations/0044
+**Decisions:** MinIO storage, media-worker as separate Docker service with health check
+
+### Session: Branch Cleanup + Upstream Bug Fixes — 2026-03-25
+**What we did:** Cleaned merge artifacts, deleted old branches, created main-sanad-eoi-app, reset master to upstream mirror, cherry-picked all 35 upstream bug fixes without breaking Brain integration.
+**Files:** Dockerfile, server/src/services/issues.ts, server/src/routes/agents.ts, ui/src/components/MarkdownEditor.tsx, ui/src/lib/mention-chips.ts, patches/embedded-postgres patch
+**Decisions:** pnpm-lock.yaml always ours; accept upstream UI/test files; Brain files never touched
+
+---
 
 ## Milestones
-- [x] Multimodal attachments feature — schema, API, UI, agent vision, deploy runbook
-- [ ] Production deployment — migration, MinIO bucket, smoke test
+- [x] Multimodal attachments (upload, process, agent vision)
+- [x] Scheduled jobs + Toolkit + Skills evolution
+- [x] Sanad Brain integration (memory, knowledge sync, dream engine)
+- [x] Branch strategy established (master=upstream, main-sanad-eoi-app=production)
+- [ ] Upstream feature cherry-picks (in progress)
+- [ ] Docker rebuild + Hetzner deploy with all fixes
 
 ## Mistakes & Lessons
 
-## Technical Debt & Future Ideas
-- media-worker: audio transcription (Whisper), video trimming, batch image optimization
+### 2026-03-25 — pnpm-lock.yaml always conflicts
+**Root cause:** Our lockfile diverged from upstream (merged 3 branches + added packages).
+**Fix:** Always `git checkout --ours pnpm-lock.yaml` in every cherry-pick.
+
+### 2026-03-25 — Two docs systems exist
+**Root cause:** /docs/*.md = Mintlify external. ui/src/pages/docs-content.ts = in-app compiled bundle.
+**Fix:** In-app /docs updates must go into docs-content.ts, not .md files.
+
+### 2026-03-25 — Plugin error banner on every page
+**Root cause:** Upstream plugin runtime deleted but UI still calls GET /plugins/ui-contributions.
+**Fix:** Stub route in server/src/routes/plugins.ts returning [].
