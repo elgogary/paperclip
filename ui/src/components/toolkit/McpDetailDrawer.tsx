@@ -1,0 +1,188 @@
+import { useState, useEffect } from "react";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useCompany } from "../../context/CompanyContext";
+import { mcpServersApi, type McpServerConfig } from "../../api/mcp-servers";
+import { queryKeys } from "../../lib/queryKeys";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { AgentAccessChips } from "./AgentAccessChips";
+import { Plus, X } from "lucide-react";
+import { cn } from "../../lib/utils";
+
+interface McpDetailDrawerProps {
+  open: boolean;
+  onClose: () => void;
+  server: McpServerConfig | null;
+}
+
+export function McpDetailDrawer({ open, onClose, server }: McpDetailDrawerProps) {
+  const { selectedCompanyId } = useCompany();
+  const queryClient = useQueryClient();
+
+  const [transport, setTransport] = useState("stdio");
+  const [direction, setDirection] = useState("outbound");
+  const [envRows, setEnvRows] = useState<{ key: string; value: string }[]>([]);
+  const [grants, setGrants] = useState<{ agentId: string; granted: boolean }[]>([]);
+
+  const { data: accessData } = useQuery({
+    queryKey: queryKeys.mcpServers.access(selectedCompanyId!, server?.id ?? ""),
+    queryFn: () => mcpServersApi.getAccess(selectedCompanyId!, server!.id),
+    enabled: !!selectedCompanyId && !!server,
+  });
+
+  useEffect(() => {
+    if (server) {
+      setTransport(server.transport ?? "stdio");
+      setDirection(server.direction ?? "outbound");
+      const env = server.env ?? {};
+      setEnvRows(Object.entries(env).map(([key, value]) => ({ key, value })));
+    }
+  }, [server]);
+
+  useEffect(() => {
+    if (accessData?.access) {
+      setGrants(accessData.access.map((a) => ({ agentId: a.agentId, granted: a.granted })));
+    }
+  }, [accessData]);
+
+  const updateServer = useMutation({
+    mutationFn: () => {
+      const env: Record<string, string> = {};
+      envRows.forEach((r) => { if (r.key) env[r.key] = r.value; });
+      return mcpServersApi.update(selectedCompanyId!, server!.id, { transport, direction, env });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.mcpServers.list(selectedCompanyId!) });
+      onClose();
+    },
+  });
+
+  const updateAccess = useMutation({
+    mutationFn: (newGrants: { agentId: string; granted: boolean }[]) =>
+      mcpServersApi.updateAccess(selectedCompanyId!, server!.id, newGrants),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.mcpServers.access(selectedCompanyId!, server!.id) });
+    },
+  });
+
+  function handleSave() {
+    updateServer.mutate();
+    updateAccess.mutate(grants);
+  }
+
+  function addEnvRow() {
+    setEnvRows([...envRows, { key: "", value: "" }]);
+  }
+
+  function removeEnvRow(i: number) {
+    setEnvRows(envRows.filter((_, idx) => idx !== i));
+  }
+
+  if (!server) return null;
+
+  // Derive tools from configJson if available
+  const tools: string[] = (server.configJson as any)?.tools ?? [];
+
+  return (
+    <Sheet open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <SheetContent side="right" className="sm:max-w-[500px] flex flex-col p-0">
+        <SheetHeader className="px-5 py-4 border-b border-border shrink-0">
+          <SheetTitle className="text-[15px]">{server.name} — Configure</SheetTitle>
+        </SheetHeader>
+
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold">Transport</label>
+              <select
+                value={transport}
+                onChange={(e) => setTransport(e.target.value)}
+                className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm outline-none"
+              >
+                <option value="stdio">stdio</option>
+                <option value="sse">sse</option>
+                <option value="streamable-http">streamable-http</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold">Direction</label>
+              <select
+                value={direction}
+                onChange={(e) => setDirection(e.target.value)}
+                className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm outline-none"
+              >
+                <option value="outbound">Outbound</option>
+                <option value="inbound">Inbound</option>
+                <option value="both">Both</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold">Environment Variables</label>
+            {envRows.map((row, i) => (
+              <div key={i} className="flex gap-2 items-center">
+                <Input
+                  value={row.key}
+                  onChange={(e) => {
+                    const next = [...envRows];
+                    next[i] = { ...next[i]!, key: e.target.value };
+                    setEnvRows(next);
+                  }}
+                  className="max-w-[160px] text-muted-foreground"
+                  placeholder="KEY"
+                />
+                <Input
+                  type="password"
+                  value={row.value}
+                  onChange={(e) => {
+                    const next = [...envRows];
+                    next[i] = { ...next[i]!, value: e.target.value };
+                    setEnvRows(next);
+                  }}
+                  className="flex-1"
+                  placeholder="value"
+                />
+                <button onClick={() => removeEnvRow(i)} className="text-muted-foreground hover:text-foreground">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+            <Button variant="outline" size="sm" onClick={addEnvRow} className="mt-1">
+              <Plus className="h-3 w-3 mr-1" /> Add Variable
+            </Button>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold">Agent Access</label>
+            <AgentAccessChips grants={grants} onUpdate={setGrants} />
+          </div>
+
+          {tools.length > 0 && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold">Tools ({tools.length})</label>
+              <div className="flex flex-wrap gap-1">
+                {tools.slice(0, 8).map((t) => (
+                  <span key={t} className="inline-flex items-center rounded-full bg-blue-500/12 text-blue-300 px-2 py-0.5 text-[10px] font-medium">
+                    {t}
+                  </span>
+                ))}
+                {tools.length > 8 && (
+                  <span className="text-[11px] text-muted-foreground px-1 py-0.5">+{tools.length - 8} more</span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-2 justify-end px-5 py-3 border-t border-border shrink-0">
+          <Button variant="outline" size="sm" onClick={onClose}>Discard</Button>
+          <Button size="sm" onClick={handleSave} disabled={updateServer.isPending}>
+            {updateServer.isPending ? "Saving..." : "Save"}
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}

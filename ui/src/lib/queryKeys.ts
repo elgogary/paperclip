@@ -87,4 +87,23 @@ export const queryKeys = {
     detail: (companyId: string, jobId: string) => ["scheduled-jobs", companyId, jobId] as const,
     runs: (companyId: string, jobId: string) => ["scheduled-job-runs", companyId, jobId] as const,
   },
+  skills: {
+    list: (companyId: string) => ["skills", companyId] as const,
+    detail: (companyId: string, skillId: string) => ["skills", companyId, skillId] as const,
+    access: (companyId: string, skillId: string) => ["skills", "access", companyId, skillId] as const,
+  },
+  mcpServers: {
+    list: (companyId: string) => ["mcp-servers", companyId] as const,
+    detail: (companyId: string, serverId: string) => ["mcp-servers", companyId, serverId] as const,
+    access: (companyId: string, serverId: string) => ["mcp-servers", "access", companyId, serverId] as const,
+    catalog: (companyId: string) => ["mcp-catalog", companyId] as const,
+  },
+  connectors: {
+    list: (companyId: string) => ["connectors", companyId] as const,
+  },
+  plugins: {
+    list: (companyId: string) => ["plugins", companyId] as const,
+    detail: (companyId: string, pluginId: string) => ["plugins", companyId, pluginId] as const,
+    access: (companyId: string, pluginId: string) => ["plugins", "access", companyId, pluginId] as const,
+  },
 };
