@@ -36,6 +36,7 @@ import { assertCompanyAccess, getActorInfo } from "./authz.js";
 import { shouldWakeAssigneeOnCheckout } from "./issues-checkout-wakeup.js";
 import { isAllowedContentType, MAX_ATTACHMENT_BYTES, MAX_VIDEO_BYTES } from "../attachment-types.js";
 import { queueIssueAssignmentWakeup } from "../services/issue-assignment-wakeup.js";
+import { parseAttachTokens, resolveAttachTokens, replaceAttachTokens } from "../services/attachment-resolver.js";
 
 const MAX_ISSUE_COMMENT_LIMIT = 500;
 
@@ -906,7 +907,20 @@ export function issueRoutes(db: Db, storage: StorageService) {
 
     let comment = null;
     if (commentBody) {
-      comment = await svc.addComment(id, commentBody, {
+      let resolvedCommentBody = commentBody as string;
+      const patchAttachTokens = parseAttachTokens(resolvedCommentBody);
+      if (patchAttachTokens.length > 0 && actor.agentId) {
+        const patchResolved = await resolveAttachTokens(patchAttachTokens, {
+          companyId: issue.companyId,
+          issueId: id,
+          agentId: actor.agentId,
+          db,
+          storage,
+        });
+        resolvedCommentBody = replaceAttachTokens(resolvedCommentBody, patchResolved);
+      }
+
+      comment = await svc.addComment(id, resolvedCommentBody, {
         agentId: actor.agentId ?? undefined,
         userId: actor.actorType === "user" ? actor.actorId : undefined,
       });
@@ -1295,7 +1309,20 @@ export function issueRoutes(db: Db, storage: StorageService) {
       }
     }
 
-    const comment = await svc.addComment(id, req.body.body, {
+    let commentBody = req.body.body as string;
+    const attachTokens = parseAttachTokens(commentBody);
+    if (attachTokens.length > 0 && actor.agentId) {
+      const resolvedTokens = await resolveAttachTokens(attachTokens, {
+        companyId: currentIssue.companyId,
+        issueId: id,
+        agentId: actor.agentId,
+        db,
+        storage,
+      });
+      commentBody = replaceAttachTokens(commentBody, resolvedTokens);
+    }
+
+    const comment = await svc.addComment(id, commentBody, {
       agentId: actor.agentId ?? undefined,
       userId: actor.actorType === "user" ? actor.actorId : undefined,
     });
