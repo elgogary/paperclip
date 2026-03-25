@@ -14,6 +14,8 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks:
+      - paperclip-internal
 
   server:
     build: .
@@ -27,11 +29,29 @@ services:
       PAPERCLIP_DEPLOYMENT_EXPOSURE: "private"
       PAPERCLIP_PUBLIC_URL: "${PAPERCLIP_PUBLIC_URL:-http://localhost:3100}"
       BETTER_AUTH_SECRET: "${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET must be set}"
+      PAPERCLIP_MEDIA_WORKER_URL: "http://paperclip-media-worker:3200"
     volumes:
       - paperclip-data:/paperclip
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - paperclip-internal
+
+  media-worker:
+    build: ./docker/media-worker
+    container_name: paperclip-media-worker
+    restart: unless-stopped
+    environment:
+      - PORT=3200
+    expose:
+      - "3200"
+    networks:
+      - paperclip-internal
+
+networks:
+  paperclip-internal:
+    driver: bridge
 
 volumes:
   pgdata:

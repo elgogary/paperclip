@@ -1,0 +1,17 @@
+{
+  "name": "media-worker",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "express": "^4.18.0",
+    "sharp": "^0.33.0"
+  },
+  "devDependencies": {
+    "supertest": "^6.3.0",
+    "vitest": "^1.6.0"
+  }
+}
