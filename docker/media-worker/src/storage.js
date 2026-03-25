@@ -36,12 +36,20 @@ export async function getObject(key, maxBytes = 500 * 1024 * 1024) {
   const client = getClient();
   const command = new GetObjectCommand({ Bucket: MINIO_BUCKET, Key: key });
   const response = await client.send(command);
+  // ContentLength check (fast path when header is present)
   if (response.ContentLength && response.ContentLength > maxBytes) {
-    response.Body.destroy?.();
     throw new Error(`Object too large: ${response.ContentLength} bytes (max: ${maxBytes})`);
   }
   const chunks = [];
+  let totalBytes = 0;
   for await (const chunk of response.Body) {
+    totalBytes += chunk.length;
+    if (totalBytes > maxBytes) {
+      // Try to abort the stream
+      response.Body.destroy?.();
+      response.Body.cancel?.();
+      throw new Error(`Object too large: exceeded ${maxBytes} bytes while streaming`);
+    }
     chunks.push(chunk);
   }
   return Buffer.concat(chunks);
