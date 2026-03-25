@@ -58,6 +58,51 @@ async function buildSkillsDir(config: Record<string, unknown>): Promise<string> 
   return tmp;
 }
 
+interface McpServerEntry {
+  name: string;
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>;
+  transport?: string;
+  url?: string;
+}
+
+/**
+ * Build a temporary .mcp.json config file from MCP server entries so Claude Code
+ * can connect to the configured MCP servers during a run.
+ */
+async function buildMcpConfig(
+  mcpServers: McpServerEntry[] | undefined,
+): Promise<string | null> {
+  if (!mcpServers || mcpServers.length === 0) return null;
+
+  const config: Record<string, unknown> = { mcpServers: {} };
+  const mcpServersObj = config.mcpServers as Record<string, Record<string, unknown>>;
+
+  for (const server of mcpServers) {
+    const serverConfig: Record<string, unknown> = {};
+
+    if (server.transport === "sse" || server.transport === "streamable-http") {
+      serverConfig.url = server.url;
+    } else {
+      serverConfig.command = server.command;
+      if (server.args) serverConfig.args = server.args;
+    }
+
+    if (server.env) {
+      serverConfig.env = server.env;
+    }
+
+    mcpServersObj[server.name] = serverConfig;
+  }
+
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-mcp-"));
+  const configPath = path.join(tempDir, ".mcp.json");
+  await fs.writeFile(configPath, JSON.stringify(config, null, 2));
+
+  return configPath;
+}
+
 interface ClaudeExecutionInput {
   runId: string;
   agent: AdapterExecutionContext["agent"];
@@ -341,6 +386,20 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   const billingType = resolveClaudeBillingType(effectiveEnv);
   const skillsDir = await buildSkillsDir(config);
 
+  // Build MCP config from context-injected server definitions
+  const contextMcpServers = Array.isArray(context.mcpServers)
+    ? (context.mcpServers as McpServerEntry[])
+    : undefined;
+  let mcpConfigPath: string | null = null;
+  try {
+    mcpConfigPath = await buildMcpConfig(contextMcpServers);
+  } catch (err) {
+    await onLog(
+      "stderr",
+      `[paperclip] Failed to build MCP config: ${err instanceof Error ? err.message : String(err)}; continuing without MCP servers.\n`,
+    );
+  }
+
   // When instructionsFilePath is configured, create a combined temp file that
   // includes both the file content and the path directive, so we only need
   // --append-system-prompt-file (Claude CLI forbids using both flags together).
@@ -409,6 +468,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       args.push("--append-system-prompt-file", effectiveInstructionsFilePath);
     }
     args.push("--add-dir", skillsDir);
+    if (mcpConfigPath) args.push("--mcp-config", mcpConfigPath);
     if (extraArgs.length > 0) args.push(...extraArgs);
     return args;
   };
@@ -579,5 +639,8 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     return toAdapterResult(initial, { fallbackSessionId: runtimeSessionId || runtime.sessionId });
   } finally {
     fs.rm(skillsDir, { recursive: true, force: true }).catch(() => {});
+    if (mcpConfigPath) {
+      fs.rm(path.dirname(mcpConfigPath), { recursive: true, force: true }).catch(() => {});
+    }
   }
 }

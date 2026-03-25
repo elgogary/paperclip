@@ -22,6 +22,9 @@ import { Approvals } from "./pages/Approvals";
 import { ApprovalDetail } from "./pages/ApprovalDetail";
 import { Costs } from "./pages/Costs";
 import { Activity } from "./pages/Activity";
+import { ScheduledJobs } from "./pages/ScheduledJobs";
+import { Toolkit } from "./pages/Toolkit";
+import { Skills } from "./pages/Skills";
 import { Inbox } from "./pages/Inbox";
 import { CompanySettings } from "./pages/CompanySettings";
 import { CompanySkills } from "./pages/CompanySkills";
@@ -170,6 +173,9 @@ function boardRoutes() {
       <Route path="approvals/:approvalId" element={<ApprovalDetail />} />
       <Route path="costs" element={<Costs />} />
       <Route path="activity" element={<Activity />} />
+      <Route path="scheduled-jobs" element={<ScheduledJobs />} />
+      <Route path="skills" element={<Skills />} />
+      <Route path="toolkit" element={<Toolkit />} />
       <Route path="inbox" element={<InboxRootRedirect />} />
       <Route path="inbox/recent" element={<Inbox />} />
       <Route path="inbox/unread" element={<Inbox />} />

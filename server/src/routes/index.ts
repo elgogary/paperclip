@@ -18,3 +18,8 @@ export { attachmentRoutes } from "./attachments.js";
 export { instanceSettingsRoutes } from "./instance-settings.js";
 export { agentAccessRoutes } from "./agent-access.js";
 export { sanadBrainRoutes } from "./sanad-brain.js";
+export { skillRoutes } from "./skills.js";
+export { mcpServerRoutes } from "./mcp-servers.js";
+export { connectorRoutes } from "./connectors.js";
+export { pluginRoutes } from "./plugins.js";
+export { evolutionRoutes } from "./evolution.js";

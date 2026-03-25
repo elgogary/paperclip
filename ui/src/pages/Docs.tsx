@@ -17,6 +17,9 @@ import {
   Plug,
   Code,
   Terminal,
+  Brain,
+  Crown,
+  Bot,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { DOC_SECTIONS, type DocSection, type DocPage } from "./docs-content";
@@ -34,6 +37,9 @@ const ICON_MAP: Record<string, typeof BookOpen> = {
   Plug,
   Code,
   Terminal,
+  Brain,
+  Crown,
+  Bot,
 };
 
 export function Docs() {

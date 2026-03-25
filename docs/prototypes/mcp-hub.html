@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MCP Hub — Prototype</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:       oklch(0.145 0 0);
+    --fg:       oklch(0.985 0 0);
+    --card:     oklch(0.205 0 0);
+    --border:   oklch(0.26 0 0);
+    --muted:    oklch(0.269 0 0);
+    --muted-fg: oklch(0.78 0 0);
+    --accent:   oklch(0.269 0 0);
+    --primary:  oklch(0.922 0 0);
+    --green:    #10b981;
+    --red:      #ef4444;
+    --yellow:   #f59e0b;
+    --blue:     #3b82f6;
+    --purple:   #8b5cf6;
+    --orange:   #f97316;
+    --cyan:     #06b6d4;
+    --pink:     #ec4899;
+  }
+  body { background: var(--bg); color: var(--fg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+  ::-webkit-scrollbar { width: 5px; height: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: oklch(0.35 0 0); border-radius: 3px; }
+
+  /* ── Layout ── */
+  .layout { display: flex; flex: 1; overflow: hidden; }
+  .sidebar { width: 228px; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 10px; gap: 12px; flex-shrink: 0; overflow-y: auto; }
+  .main    { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ── Sidebar ── */
+  .co-name { font-size: 13px; font-weight: 700; padding: 4px 8px 10px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); }
+  .brand-dot { width: 14px; height: 14px; border-radius: 3px; background: #6366f1; flex-shrink: 0; }
+  .sec-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted-fg); padding: 0 8px 4px; }
+  .nav { display: flex; flex-direction: column; gap: 1px; }
+  .nav a { display: flex; align-items: center; gap: 9px; padding: 6px 8px; border-radius: 5px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.65); cursor: pointer; text-decoration: none; transition: background .1s, color .1s; }
+  .nav a:hover { background: var(--accent); color: var(--fg); }
+  .nav a.active { background: var(--accent); color: var(--fg); }
+
+  /* ── Breadcrumb ── */
+  .breadcrumb { height: 38px; border-bottom: 1px solid var(--border); padding: 0 16px; display: flex; align-items: center; font-size: 12px; color: var(--muted-fg); flex-shrink: 0; gap: 6px; }
+
+  /* ── Page header ── */
+  .page-header { display: flex; align-items: flex-start; justify-content: space-between; padding: 14px 16px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .page-title  { font-size: 20px; font-weight: 700; line-height: 1.2; }
+  .page-sub    { font-size: 12px; color: var(--muted-fg); margin-top: 3px; }
+
+  /* ── Buttons ── */
+  .btn { display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; font-family: inherit; }
+  .btn-primary { background: var(--primary); color: var(--bg); }
+  .btn-primary:hover { opacity: .88; }
+  .btn-ghost { background: transparent; color: var(--muted-fg); padding: 5px; border-radius: 5px; }
+  .btn-ghost:hover { background: var(--accent); color: var(--fg); }
+  .btn-cancel { background: transparent; color: var(--fg); border: 1px solid var(--border); }
+  .btn-cancel:hover { background: var(--accent); }
+  .btn-success { background: var(--green); color: #fff; border: none; }
+  .btn-success:hover { opacity: .88; }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+  .btn-icon { width: 28px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 5px; background: transparent; border: 1px solid var(--border); color: var(--muted-fg); cursor: pointer; }
+  .btn-icon:hover { background: var(--accent); color: var(--fg); }
+
+  /* ── View toggle ── */
+  .view-toggle { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .view-toggle-btn { padding: 5px 10px; font-size: 13px; cursor: pointer; background: transparent; border: none; color: var(--muted-fg); transition: all .15s; display: flex; align-items: center; }
+  .view-toggle-btn:not(:last-child) { border-right: 1px solid var(--border); }
+  .view-toggle-btn.active { background: rgba(255,255,255,.1); color: var(--fg); }
+  .view-toggle-btn:hover { color: var(--fg); }
+
+  /* ── Tabs ── */
+  .tab-bar { display: flex; gap: 0; border-bottom: 1px solid var(--border); padding: 0 16px; flex-shrink: 0; }
+  .tab { padding: 10px 16px; font-size: 13px; font-weight: 500; color: var(--muted-fg); cursor: pointer; border-bottom: 2px solid transparent; transition: all .15s; display: flex; align-items: center; gap: 6px; }
+  .tab:hover { color: var(--fg); }
+  .tab.active { color: var(--fg); border-bottom-color: var(--fg); }
+  .tab-count { font-size: 11px; background: var(--muted); padding: 1px 6px; border-radius: 10px; }
+
+  /* ── Content ── */
+  .content { flex: 1; overflow-y: auto; padding: 16px; }
+
+  /* ── Stats row ── */
+  .stats-row { display: flex; gap: 12px; margin-bottom: 16px; }
+  .stat-card { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+  .stat-value { font-size: 22px; font-weight: 700; }
+  .stat-label { font-size: 11px; color: var(--muted-fg); margin-top: 2px; }
+
+  /* ── Search & Filters ── */
+  .search-bar { display: flex; gap: 8px; margin-bottom: 16px; align-items: center; }
+  .search-input { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-size: 13px; color: var(--fg); outline: none; font-family: inherit; }
+  .search-input:focus { border-color: oklch(0.55 0 0); }
+  .search-input::placeholder { color: var(--muted-fg); }
+  .filter-chip { display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--muted-fg); transition: all .15s; }
+  .filter-chip:hover { background: var(--accent); color: var(--fg); }
+  .filter-chip.active { background: rgba(255,255,255,.1); color: var(--fg); border-color: rgba(255,255,255,.2); }
+
+  /* ── Catalog Grid ── */
+  .catalog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+  .catalog-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; transition: all .15s; cursor: pointer; display: flex; flex-direction: column; }
+  .catalog-card:hover { border-color: oklch(0.45 0 0); transform: translateY(-1px); }
+  .catalog-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .catalog-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .catalog-card-name { font-size: 14px; font-weight: 600; }
+  .catalog-card-pkg { font-size: 11px; color: var(--muted-fg); font-family: monospace; margin-top: 2px; }
+  .catalog-card-desc { font-size: 12px; color: var(--muted-fg); line-height: 1.5; flex: 1; margin-bottom: 12px; }
+  .catalog-card-footer { display: flex; align-items: center; justify-content: space-between; }
+  .catalog-installed { font-size: 11px; color: var(--green); display: flex; align-items: center; gap: 4px; font-weight: 500; }
+
+  /* ── Server cards (My Servers) ── */
+  .server-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+  .server-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .server-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .server-card-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .server-card-name { font-size: 14px; font-weight: 600; }
+  .server-card-transport { font-size: 11px; color: var(--muted-fg); font-family: monospace; }
+  .server-card-meta { display: flex; gap: 16px; margin: 10px 0; font-size: 12px; color: var(--muted-fg); }
+  .server-card-meta-item { display: flex; align-items: center; gap: 5px; }
+  .server-card-actions { display: flex; gap: 6px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+
+  /* ── Server table (list view) ── */
+  .server-table { width: 100%; border-collapse: collapse; }
+  .server-table th { text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted-fg); padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; background: var(--bg); position: sticky; top: 0; z-index: 2; }
+  .server-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .server-table tbody tr { cursor: pointer; transition: background .1s; }
+  .server-table tbody tr:hover { background: rgba(255,255,255,.025); }
+  .server-table .cell-name { display: flex; align-items: center; gap: 10px; }
+  .server-table .cell-name-icon { width: 30px; height: 30px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .server-table .cell-name-text { font-weight: 500; }
+  .server-table .cell-name-sub { font-size: 11px; color: var(--muted-fg); margin-top: 1px; }
+
+  /* ── Health / Status ── */
+  .health-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .health-healthy { background: var(--green); box-shadow: 0 0 6px rgba(16,185,129,.4); }
+  .health-unhealthy { background: var(--red); box-shadow: 0 0 6px rgba(239,68,68,.4); }
+  .health-unknown { background: oklch(0.45 0 0); }
+  .status-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+  .status-enabled { background: rgba(16,185,129,.12); color: #34d399; }
+  .status-disabled { background: rgba(255,255,255,.07); color: var(--muted-fg); }
+
+  /* ── Toggle switch ── */
+  .toggle { position: relative; width: 36px; height: 20px; cursor: pointer; display: inline-block; }
+  .toggle input { display: none; }
+  .toggle-track { position: absolute; inset: 0; background: oklch(0.35 0 0); border-radius: 10px; transition: background .2s; }
+  .toggle input:checked + .toggle-track { background: var(--green); }
+  .toggle-thumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: transform .2s; }
+  .toggle input:checked ~ .toggle-thumb { transform: translateX(16px); }
+
+  /* ── Badges ── */
+  .badge { display: inline-flex; align-items: center; font-size: 11px; font-weight: 500; padding: 2px 7px; border-radius: 999px; white-space: nowrap; }
+  .badge-dev    { background: rgba(99,102,241,.14); color: #a5b4fc; }
+  .badge-comm   { background: rgba(236,72,153,.12); color: #f9a8d4; }
+  .badge-data   { background: rgba(6,182,212,.12); color: #67e8f9; }
+  .badge-search { background: rgba(249,115,22,.12); color: #fdba74; }
+  .badge-files  { background: rgba(34,197,94,.12); color: #86efac; }
+  .badge-ai     { background: rgba(168,85,247,.12); color: #d8b4fe; }
+  .badge-infra  { background: rgba(251,191,36,.12); color: #fcd34d; }
+  .badge-tools  { background: rgba(59,130,246,.12); color: #93c5fd; }
+  .badge-outbound { background: rgba(59,130,246,.12); color: #93c5fd; }
+  .badge-inbound  { background: rgba(168,85,247,.12); color: #d8b4fe; }
+  .badge-both     { background: rgba(249,115,22,.12); color: #fdba74; }
+
+  /* ── Modal / Dialog ── */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--card); border: 1px solid var(--border); border-radius: 10px; width: 560px; max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 16px 48px rgba(0,0,0,.4); }
+  .modal-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .modal-header h3 { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .modal-close { background: none; border: none; color: var(--muted-fg); font-size: 18px; cursor: pointer; padding: 4px; }
+  .modal-close:hover { color: var(--fg); }
+  .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+  .modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+
+  /* ── Drawer (slide from right) ── */
+  .drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 100; }
+  .drawer-overlay.open { display: block; }
+  .drawer { position: fixed; top: 0; right: -480px; width: 480px; height: 100vh; background: var(--card); border-left: 1px solid var(--border); z-index: 101; display: flex; flex-direction: column; transition: right .25s ease; box-shadow: -8px 0 32px rgba(0,0,0,.3); }
+  .drawer.open { right: 0; }
+  .drawer-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+  .drawer-header h3 { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .drawer-body { flex: 1; overflow-y: auto; padding: 0; }
+  .drawer-filters { padding: 10px 16px; border-bottom: 1px solid var(--border); display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+
+  /* ── Log entries ── */
+  .log-entry { padding: 10px 16px; border-bottom: 1px solid var(--border); transition: background .1s; }
+  .log-entry:hover { background: rgba(255,255,255,.02); }
+  .log-entry-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .log-tool-name { font-weight: 600; font-size: 13px; }
+  .log-agent { font-size: 11px; color: var(--muted-fg); }
+  .log-time { font-size: 11px; color: var(--muted-fg); margin-left: auto; }
+  .log-entry-meta { display: flex; gap: 12px; font-size: 11px; color: var(--muted-fg); }
+  .log-status-ok { color: var(--green); }
+  .log-status-err { color: var(--red); }
+  .log-error-detail { margin-top: 6px; padding: 6px 10px; background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.15); border-radius: 4px; font-size: 11px; color: #f87171; font-family: monospace; }
+
+  /* ── Step bar ── */
+  .step-bar { display: flex; align-items: center; gap: 8px; padding: 14px 20px; border-bottom: 1px solid var(--border); }
+  .step-pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; border: 1px solid var(--border); color: var(--muted-fg); background: transparent; }
+  .step-pill.active { border-color: var(--fg); color: var(--fg); background: rgba(255,255,255,.06); }
+  .step-pill.done { border-color: var(--green); color: var(--green); background: rgba(16,185,129,.08); }
+  .step-sep { color: oklch(0.4 0 0); font-size: 14px; }
+
+  /* ── Form controls ── */
+  .form-group { margin-bottom: 16px; }
+  .form-label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 5px; color: var(--fg); }
+  .form-label .reqd { color: var(--red); margin-left: 2px; }
+  .form-input { width: 100%; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; font-size: 13px; color: var(--fg); outline: none; font-family: inherit; }
+  .form-input:focus { border-color: oklch(0.55 0 0); }
+  .form-select { width: 100%; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; font-size: 13px; color: var(--fg); outline: none; font-family: inherit; appearance: none; }
+  .form-hint { font-size: 11px; color: var(--muted-fg); margin-top: 4px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .env-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .env-row .form-input { flex: 1; }
+
+  /* ── JSON editor ── */
+  .json-editor { width: 100%; min-height: 160px; padding: 12px; background: oklch(0.12 0 0); border: 1px solid var(--border); border-radius: 6px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; color: var(--fg); outline: none; resize: vertical; line-height: 1.6; tab-size: 2; }
+  .json-editor:focus { border-color: oklch(0.55 0 0); }
+
+  /* ── Connection test result ── */
+  .test-result { padding: 12px 16px; border-radius: 8px; margin-top: 12px; font-size: 13px; display: flex; align-items: flex-start; gap: 10px; }
+  .test-success { background: rgba(16,185,129,.1); border: 1px solid rgba(16,185,129,.3); color: #34d399; }
+  .test-fail { background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3); color: #f87171; }
+  .test-tools-list { margin-top: 8px; font-size: 12px; color: var(--muted-fg); line-height: 1.6; }
+
+  /* ── Agent access table ── */
+  .access-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  .access-table th { text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted-fg); padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  .access-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .access-table tr:hover { background: rgba(255,255,255,.02); }
+  .agent-name { display: flex; align-items: center; gap: 8px; }
+  .agent-avatar { width: 24px; height: 24px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; }
+
+  /* ── Gateway section ── */
+  .gateway-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+  .gateway-card h4 { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+  .token-display { background: oklch(0.12 0 0); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; font-family: monospace; font-size: 13px; }
+  .token-mask { color: var(--muted-fg); letter-spacing: 2px; }
+  .client-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .client-row:last-child { border-bottom: none; }
+  .client-name { font-weight: 500; }
+  .client-meta { font-size: 11px; color: var(--muted-fg); }
+
+  /* ── Prototype label ── */
+  .proto-label { position: fixed; top: 8px; right: 8px; background: var(--red); color: #fff; padding: 3px 10px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; z-index: 200; letter-spacing: .5px; }
+
+  .hidden { display: none !important; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .5; } }
+</style>
+</head>
+<body>
+
+<span class="proto-label">Prototype</span>
+
+<div class="layout">
+  <!-- ─── Sidebar ─── -->
+  <div class="sidebar">
+    <div class="co-name"><div class="brand-dot"></div> Optiflow</div>
+    <div class="sec-label">Main</div>
+    <div class="nav">
+      <a>&#x1F4CA; Dashboard</a>
+      <a>&#x1F465; Agents</a>
+      <a>&#x1F4CB; Issues</a>
+      <a>&#x1F3AF; Goals</a>
+      <a>&#x1F4C1; Projects</a>
+      <a>&#x23F0; Scheduled Jobs</a>
+    </div>
+    <div class="sec-label">Platform</div>
+    <div class="nav">
+      <a class="active">&#x1F50C; MCP Hub</a>
+      <a>&#x1F9E0; Brain</a>
+      <a>&#x1F4AC; Chat</a>
+      <a>&#x2699;&#xFE0F; Settings</a>
+    </div>
+  </div>
+
+  <!-- ─── Main Content ─── -->
+  <div class="main">
+    <div class="breadcrumb">
+      <span>Optiflow</span> <span style="opacity:.4">/</span> <span style="color:var(--fg)">MCP Hub</span>
+    </div>
+
+    <div class="page-header">
+      <div>
+        <div class="page-title">MCP Hub</div>
+        <div class="page-sub">Connect, manage, and monitor MCP servers for your agents</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-cancel" onclick="openModal('add-custom')">+ Custom Server</button>
+        <button class="btn btn-primary" onclick="switchTab('marketplace')">Browse Marketplace</button>
+      </div>
+    </div>
+
+    <!-- ─── Tabs ─── -->
+    <div class="tab-bar">
+      <div class="tab active" data-tab="my-servers" onclick="switchTab('my-servers')">
+        My Servers <span class="tab-count">4</span>
+      </div>
+      <div class="tab" data-tab="marketplace" onclick="switchTab('marketplace')">
+        Marketplace <span class="tab-count">15</span>
+      </div>
+      <div class="tab" data-tab="gateway" onclick="switchTab('gateway')">
+        Gateway
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- TAB: My Servers                                     -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <div class="content" id="tab-my-servers">
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div style="float:right;width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;background:rgba(16,185,129,.1);color:var(--green);">&#x2713;</div>
+          <div class="stat-value">3</div>
+          <div class="stat-label">Healthy Servers</div>
+        </div>
+        <div class="stat-card">
+          <div style="float:right;width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;background:rgba(239,68,68,.1);color:var(--red);">&#x26A0;</div>
+          <div class="stat-value">1</div>
+          <div class="stat-label">Unhealthy</div>
+        </div>
+        <div class="stat-card">
+          <div style="float:right;width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;background:rgba(59,130,246,.1);color:var(--blue);">&#x1F527;</div>
+          <div class="stat-value">47</div>
+          <div class="stat-label">Available Tools</div>
+        </div>
+        <div class="stat-card">
+          <div style="float:right;width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;background:rgba(168,85,247,.1);color:var(--purple);">&#x1F916;</div>
+          <div class="stat-value">6</div>
+          <div class="stat-label">Agents Connected</div>
+        </div>
+      </div>
+
+      <!-- Search + View Toggle -->
+      <div class="search-bar">
+        <input class="search-input" type="text" placeholder="Search installed servers..." />
+        <button class="filter-chip active">All</button>
+        <button class="filter-chip">Outbound</button>
+        <button class="filter-chip">Inbound</button>
+        <div style="margin-left:auto;">
+          <div class="view-toggle">
+            <button class="view-toggle-btn active" onclick="switchView('card', this)" title="Card view">&#x25A6;</button>
+            <button class="view-toggle-btn" onclick="switchView('list', this)" title="List view">&#x2630;</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Card View ── -->
+      <div id="view-card" class="server-grid">
+
+        <!-- Server 1: GitHub -->
+        <div class="server-card">
+          <div class="server-card-header">
+            <div class="server-card-icon" style="background:rgba(255,255,255,.08);">&#x1F4BB;</div>
+            <div style="flex:1">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="server-card-name">GitHub</div>
+                <span class="health-dot health-healthy"></span>
+              </div>
+              <div class="server-card-transport">stdio &middot; @modelcontextprotocol/server-github</div>
+            </div>
+            <label class="toggle"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+          <div class="server-card-meta">
+            <div class="server-card-meta-item"><span class="badge badge-outbound">Outbound</span></div>
+            <div class="server-card-meta-item">&#x1F527; 12 tools</div>
+            <div class="server-card-meta-item">&#x1F916; 4 agents</div>
+          </div>
+          <div class="server-card-actions">
+            <button class="btn btn-cancel btn-sm" onclick="openModal('server-detail')">Configure</button>
+            <button class="btn btn-cancel btn-sm" onclick="testConnection(this)">Test</button>
+            <button class="btn btn-cancel btn-sm" onclick="openDrawer('logs')">Logs</button>
+            <div style="flex:1"></div>
+            <button class="btn-icon" title="Delete" style="color:var(--red);border-color:rgba(239,68,68,.3);">&#x1F5D1;</button>
+          </div>
+        </div>
+
+        <!-- Server 2: Slack -->
+        <div class="server-card">
+          <div class="server-card-header">
+            <div class="server-card-icon" style="background:rgba(236,72,153,.1);">&#x1F4AC;</div>
+            <div style="flex:1">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="server-card-name">Slack</div>
+                <span class="health-dot health-healthy"></span>
+              </div>
+              <div class="server-card-transport">stdio &middot; @anthropic/slack-mcp</div>
+            </div>
+            <label class="toggle"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+          <div class="server-card-meta">
+            <div class="server-card-meta-item"><span class="badge badge-outbound">Outbound</span></div>
+            <div class="server-card-meta-item">&#x1F527; 8 tools</div>
+            <div class="server-card-meta-item">&#x1F916; 3 agents</div>
+          </div>
+          <div class="server-card-actions">
+            <button class="btn btn-cancel btn-sm">Configure</button>
+            <button class="btn btn-cancel btn-sm" onclick="testConnection(this)">Test</button>
+            <button class="btn btn-cancel btn-sm" onclick="openDrawer('logs')">Logs</button>
+            <div style="flex:1"></div>
+            <button class="btn-icon" title="Delete" style="color:var(--red);border-color:rgba(239,68,68,.3);">&#x1F5D1;</button>
+          </div>
+        </div>
+
+        <!-- Server 3: PostgreSQL -->
+        <div class="server-card">
+          <div class="server-card-header">
+            <div class="server-card-icon" style="background:rgba(6,182,212,.1);">&#x1F4BE;</div>
+            <div style="flex:1">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="server-card-name">PostgreSQL</div>
+                <span class="health-dot health-healthy"></span>
+              </div>
+              <div class="server-card-transport">stdio &middot; @modelcontextprotocol/server-postgres</div>
+            </div>
+            <label class="toggle"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+          <div class="server-card-meta">
+            <div class="server-card-meta-item"><span class="badge badge-outbound">Outbound</span></div>
+            <div class="server-card-meta-item">&#x1F527; 5 tools</div>
+            <div class="server-card-meta-item">&#x1F916; 2 agents</div>
+          </div>
+          <div class="server-card-actions">
+            <button class="btn btn-cancel btn-sm">Configure</button>
+            <button class="btn btn-cancel btn-sm" onclick="testConnection(this)">Test</button>
+            <button class="btn btn-cancel btn-sm" onclick="openDrawer('logs')">Logs</button>
+            <div style="flex:1"></div>
+            <button class="btn-icon" title="Delete" style="color:var(--red);border-color:rgba(239,68,68,.3);">&#x1F5D1;</button>
+          </div>
+        </div>
+
+        <!-- Server 4: Brave Search (unhealthy) -->
+        <div class="server-card" style="border-color:rgba(239,68,68,.3);">
+          <div class="server-card-header">
+            <div class="server-card-icon" style="background:rgba(249,115,22,.1);">&#x1F50D;</div>
+            <div style="flex:1">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="server-card-name">Brave Search</div>
+                <span class="health-dot health-unhealthy"></span>
+              </div>
+              <div class="server-card-transport">stdio &middot; @modelcontextprotocol/server-brave-search</div>
+            </div>
+            <label class="toggle"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+          <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:6px;padding:8px 12px;margin:8px 0;font-size:12px;color:#f87171;">
+            Connection failed: Invalid API key. Last checked 3m ago.
+          </div>
+          <div class="server-card-meta">
+            <div class="server-card-meta-item"><span class="badge badge-outbound">Outbound</span></div>
+            <div class="server-card-meta-item">&#x1F527; 2 tools</div>
+            <div class="server-card-meta-item">&#x1F916; 1 agent</div>
+          </div>
+          <div class="server-card-actions">
+            <button class="btn btn-cancel btn-sm">Configure</button>
+            <button class="btn btn-cancel btn-sm" onclick="testConnection(this)">Test</button>
+            <button class="btn btn-cancel btn-sm" onclick="openDrawer('logs')">Logs</button>
+            <div style="flex:1"></div>
+            <button class="btn-icon" title="Delete" style="color:var(--red);border-color:rgba(239,68,68,.3);">&#x1F5D1;</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── List View ── -->
+      <div id="view-list" class="hidden">
+        <table class="server-table">
+          <thead>
+            <tr>
+              <th>Server</th>
+              <th>Health</th>
+              <th>Direction</th>
+              <th>Transport</th>
+              <th>Tools</th>
+              <th>Agents</th>
+              <th>Enabled</th>
+              <th style="width:120px">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr onclick="openModal('server-detail')">
+              <td>
+                <div class="cell-name">
+                  <div class="cell-name-icon" style="background:rgba(255,255,255,.08);">&#x1F4BB;</div>
+                  <div>
+                    <div class="cell-name-text">GitHub</div>
+                    <div class="cell-name-sub">@modelcontextprotocol/server-github</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="status-pill status-enabled"><span class="health-dot health-healthy" style="width:6px;height:6px;"></span> Healthy</span></td>
+              <td><span class="badge badge-outbound">Outbound</span></td>
+              <td style="font-family:monospace;font-size:12px;color:var(--muted-fg);">stdio</td>
+              <td>12</td>
+              <td>4</td>
+              <td><label class="toggle"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></td>
+              <td>
+                <div style="display:flex;gap:4px;">
+                  <button class="btn btn-cancel btn-sm" onclick="event.stopPropagation();testConnection(this)">Test</button>
+                  <button class="btn btn-cancel btn-sm" onclick="event.stopPropagation();openDrawer('logs')">Logs</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="cell-name">
+                  <div class="cell-name-icon" style="background:rgba(236,72,153,.1);">&#x1F4AC;</div>
+                  <div>
+                    <div class="cell-name-text">Slack</div>
+                    <div class="cell-name-sub">@anthropic/slack-mcp</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="status-pill status-enabled"><span class="health-dot health-healthy" style="width:6px;height:6px;"></span> Healthy</span></td>
+              <td><span class="badge badge-outbound">Outbound</span></td>
+              <td style="font-family:monospace;font-size:12px;color:var(--muted-fg);">stdio</td>
+              <td>8</td>
+              <td>3</td>
+              <td><label class="toggle"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></td>
+              <td>
+                <div style="display:flex;gap:4px;">
+                  <button class="btn btn-cancel btn-sm" onclick="event.stopPropagation();testConnection(this)">Test</button>
+                  <button class="btn btn-cancel btn-sm" onclick="event.stopPropagation();openDrawer('logs')">Logs</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="cell-name">
+                  <div class="cell-name-icon" style="background:rgba(6,182,212,.1);">&#x1F4BE;</div>
+                  <div>
+                    <div class="cell-name-text">PostgreSQL</div>
+                    <div class="cell-name-sub">@modelcontextprotocol/server-postgres</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="status-pill status-enabled"><span class="health-dot health-healthy" style="width:6px;height:6px;"></span> Healthy</span></td>
+              <td><span class="badge badge-outbound">Outbound</span></td>
+              <td style="font-family:monospace;font-size:12px;color:var(--muted-fg);">stdio</td>
+              <td>5</td>
+              <td>2</td>
+              <td><label class="toggle"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></td>
+              <td>
+                <div style="display:flex;gap:4px;">
+                  <button class="btn btn-cancel btn-sm" onclick="event.stopPropagation();testConnection(this)">Test</button>
+                  <button class="btn btn-cancel btn-sm" onclick="event.stopPropagation();openDrawer('logs')">Logs</button>
+                </div>
+              </td>
+            </tr>
+            <tr style="background:rgba(239,68,68,.03);">
+              <td>
+                <div class="cell-name">
+                  <div class="cell-name-icon" style="background:rgba(249,115,22,.1);">&#x1F50D;</div>
+                  <div>
+                    <div class="cell-name-text">Brave Search</div>
+                    <div class="cell-name-sub">@modelcontextprotocol/server-brave-search</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="status-pill" style="background:rgba(239,68,68,.12);color:#f87171;"><span class="health-dot health-unhealthy" style="width:6px;height:6px;"></span> Error</span></td>
+              <td><span class="badge badge-outbound">Outbound</span></td>
+              <td style="font-family:monospace;font-size:12px;color:var(--muted-fg);">stdio</td>
+              <td>2</td>
+              <td>1</td>
+              <td><label class="toggle"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></td>
+              <td>
+                <div style="display:flex;gap:4px;">
+                  <button class="btn btn-cancel btn-sm" onclick="event.stopPropagation();testConnection(this)">Test</button>
+                  <button class="btn btn-cancel btn-sm" onclick="event.stopPropagation();openDrawer('logs')">Logs</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- TAB: Marketplace (same as before, abbreviated)      -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <div class="content hidden" id="tab-marketplace">
+      <div class="search-bar">
+        <input class="search-input" type="text" placeholder="Search MCP servers..." />
+        <button class="filter-chip active" onclick="filterCatalog(this,'all')">All</button>
+        <button class="filter-chip" onclick="filterCatalog(this,'dev')">Dev Tools</button>
+        <button class="filter-chip" onclick="filterCatalog(this,'comm')">Communication</button>
+        <button class="filter-chip" onclick="filterCatalog(this,'data')">Data</button>
+        <button class="filter-chip" onclick="filterCatalog(this,'search')">Search</button>
+        <button class="filter-chip" onclick="filterCatalog(this,'files')">Files</button>
+      </div>
+      <div class="catalog-grid">
+        <div class="catalog-card" data-cat="dev"><div class="catalog-card-header"><div class="catalog-icon" style="background:rgba(255,255,255,.08);">&#x1F4BB;</div><div><div class="catalog-card-name">GitHub</div><div class="catalog-card-pkg">@modelcontextprotocol/server-github</div></div></div><div class="catalog-card-desc">Repository management, issues, pull requests, code search.</div><div class="catalog-card-footer"><span class="badge badge-dev">Dev Tools</span><span class="catalog-installed">&#x2713; Installed</span></div></div>
+        <div class="catalog-card" data-cat="dev"><div class="catalog-card-header"><div class="catalog-icon" style="background:rgba(249,115,22,.1);">&#x1F98A;</div><div><div class="catalog-card-name">GitLab</div><div class="catalog-card-pkg">@modelcontextprotocol/server-gitlab</div></div></div><div class="catalog-card-desc">GitLab repository ops, merge requests, pipelines.</div><div class="catalog-card-footer"><span class="badge badge-dev">Dev Tools</span><button class="btn btn-success btn-sm" onclick="openModal('install-wizard')">Install</button></div></div>
+        <div class="catalog-card" data-cat="dev"><div class="catalog-card-header"><div class="catalog-icon" style="background:rgba(99,102,241,.1);">&#x25B6;</div><div><div class="catalog-card-name">Linear</div><div class="catalog-card-pkg">@anthropic/linear-mcp</div></div></div><div class="catalog-card-desc">Issue tracking, project management, cycles.</div><div class="catalog-card-footer"><span class="badge badge-dev">Dev Tools</span><button class="btn btn-success btn-sm" onclick="openModal('install-wizard')">Install</button></div></div>
+        <div class="catalog-card" data-cat="comm"><div class="catalog-card-header"><div class="catalog-icon" style="background:rgba(236,72,153,.1);">&#x1F4AC;</div><div><div class="catalog-card-name">Slack</div><div class="catalog-card-pkg">@anthropic/slack-mcp</div></div></div><div class="catalog-card-desc">Send messages, read channels, manage threads.</div><div class="catalog-card-footer"><span class="badge badge-comm">Communication</span><span class="catalog-installed">&#x2713; Installed</span></div></div>
+        <div class="catalog-card" data-cat="data"><div class="catalog-card-header"><div class="catalog-icon" style="background:rgba(6,182,212,.1);">&#x1F4BE;</div><div><div class="catalog-card-name">PostgreSQL</div><div class="catalog-card-pkg">@modelcontextprotocol/server-postgres</div></div></div><div class="catalog-card-desc">Query databases, inspect schemas, read/write data.</div><div class="catalog-card-footer"><span class="badge badge-data">Data</span><span class="catalog-installed">&#x2713; Installed</span></div></div>
+        <div class="catalog-card" data-cat="search"><div class="catalog-card-header"><div class="catalog-icon" style="background:rgba(249,115,22,.1);">&#x1F50D;</div><div><div class="catalog-card-name">Brave Search</div><div class="catalog-card-pkg">@modelcontextprotocol/server-brave-search</div></div></div><div class="catalog-card-desc">Privacy-focused web search with rich snippets.</div><div class="catalog-card-footer"><span class="badge badge-search">Search</span><span class="catalog-installed" style="color:var(--red);">&#x26A0; Error</span></div></div>
+        <div class="catalog-card" data-cat="files"><div class="catalog-card-header"><div class="catalog-icon" style="background:rgba(34,197,94,.1);">&#x1F4C2;</div><div><div class="catalog-card-name">Google Drive</div><div class="catalog-card-pkg">@anthropic/gdrive-mcp</div></div></div><div class="catalog-card-desc">Browse, search, read files in Google Drive and Docs.</div><div class="catalog-card-footer"><span class="badge badge-files">Files</span><button class="btn btn-success btn-sm" onclick="openModal('install-wizard')">Install</button></div></div>
+        <div class="catalog-card" data-cat="files"><div class="catalog-card-header"><div class="catalog-icon" style="background:rgba(34,197,94,.1);">&#x1F4C1;</div><div><div class="catalog-card-name">Filesystem</div><div class="catalog-card-pkg">@modelcontextprotocol/server-filesystem</div></div></div><div class="catalog-card-desc">Read, write, search files on the local filesystem.</div><div class="catalog-card-footer"><span class="badge badge-files">Files</span><button class="btn btn-success btn-sm" onclick="openModal('install-wizard')">Install</button></div></div>
+        <div class="catalog-card" data-cat="dev"><div class="catalog-card-header"><div class="catalog-icon" style="background:rgba(99,102,241,.1);">&#x1F310;</div><div><div class="catalog-card-name">Puppeteer</div><div class="catalog-card-pkg">@modelcontextprotocol/server-puppeteer</div></div></div><div class="catalog-card-desc">Browser automation, screenshots, form filling.</div><div class="catalog-card-footer"><span class="badge badge-dev">Dev Tools</span><button class="btn btn-success btn-sm" onclick="openModal('install-wizard')">Install</button></div></div>
+        <div class="catalog-card" data-cat="dev"><div class="catalog-card-header"><div class="catalog-icon" style="background:rgba(239,68,68,.1);">&#x1F41B;</div><div><div class="catalog-card-name">Sentry</div><div class="catalog-card-pkg">@sentry/mcp-server</div></div></div><div class="catalog-card-desc">Error tracking, issue search, release management.</div><div class="catalog-card-footer"><span class="badge badge-dev">Dev Tools</span><button class="btn btn-success btn-sm" onclick="openModal('install-wizard')">Install</button></div></div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════ -->
+    <!-- TAB: Gateway                                        -->
+    <!-- ══════════════════════════════════════════════════ -->
+    <div class="content hidden" id="tab-gateway">
+      <div class="gateway-card">
+        <h4>&#x1F510; Inbound Access Tokens</h4>
+        <p style="font-size:12px;color:var(--muted-fg);margin-bottom:14px;">External clients (Claude Code, other AI agents) use these tokens to connect to your Paperclip instance via MCP.</p>
+        <div class="token-display" style="margin-bottom:10px;">
+          <span><span style="color:var(--muted-fg);">Token:</span> <span class="token-mask">sk-mcp-&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;a7f3</span></span>
+          <div style="display:flex;gap:6px;"><button class="btn btn-cancel btn-sm">&#x1F441; Show</button><button class="btn btn-cancel btn-sm">&#x1F4CB; Copy</button></div>
+        </div>
+        <div style="display:flex;gap:8px;"><button class="btn btn-cancel btn-sm">Regenerate Token</button><button class="btn btn-cancel btn-sm">+ Create New Token</button></div>
+      </div>
+      <div class="gateway-card">
+        <h4>&#x1F4E1; Connected Clients</h4>
+        <p style="font-size:12px;color:var(--muted-fg);margin-bottom:14px;">External clients currently connected to your MCP gateway.</p>
+        <div class="client-row"><div class="health-dot health-healthy"></div><div style="flex:1"><div class="client-name">Claude Code (eslam@laptop)</div><div class="client-meta">Connected 2h ago &middot; 142 tool calls today &middot; IP: 100.109.59.30</div></div><span class="status-pill status-enabled"><span class="health-dot health-healthy" style="width:6px;height:6px;"></span> Active</span></div>
+        <div class="client-row"><div class="health-dot health-unknown"></div><div style="flex:1"><div class="client-name">n8n Webhook (automation-server)</div><div class="client-meta">Last seen 45m ago &middot; 23 tool calls today &middot; IP: 65.109.65.159</div></div><span class="status-pill status-disabled"><span class="health-dot health-unknown" style="width:6px;height:6px;"></span> Idle</span></div>
+      </div>
+      <div class="gateway-card">
+        <h4>&#x26A1; Rate Limits</h4>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+          <div class="form-group"><label class="form-label">Requests per minute</label><input class="form-input" type="number" value="60" /></div>
+          <div class="form-group"><label class="form-label">Requests per hour</label><input class="form-input" type="number" value="1000" /></div>
+          <div class="form-group"><label class="form-label">Max concurrent</label><input class="form-input" type="number" value="10" /></div>
+          <div class="form-group"><label class="form-label">IP whitelist</label><input class="form-input" type="text" placeholder="Leave empty for all" /></div>
+        </div>
+        <button class="btn btn-primary btn-sm" style="margin-top:8px;">Save Settings</button>
+      </div>
+      <div class="gateway-card">
+        <h4>&#x1F527; Exposed Tools (17)</h4>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
+          <span class="badge badge-tools">list_agents</span><span class="badge badge-tools">get_agent_detail</span><span class="badge badge-tools">wakeup_agent</span><span class="badge badge-tools">read_instructions</span><span class="badge badge-tools">list_notes</span><span class="badge badge-tools">add_note</span><span class="badge badge-tools">list_runs</span><span class="badge badge-tools">read_run_log</span><span class="badge badge-tools">read_run_events</span><span class="badge badge-tools">create_task</span><span class="badge badge-tools">list_tasks</span><span class="badge badge-tools">read_task_comments</span><span class="badge badge-tools">comment_on_task</span><span class="badge badge-tools">get_task_detail</span><span class="badge badge-tools">update_task</span><span class="badge badge-tools">delegate_to_agent</span><span class="badge badge-tools">search_conversations</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- DRAWER: Logs (slides from right)                        -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="drawer-overlay" id="drawer-logs-overlay" onclick="closeDrawer('logs')"></div>
+<div class="drawer" id="drawer-logs">
+  <div class="drawer-header">
+    <h3>&#x1F4CB; GitHub — Tool Call Logs</h3>
+    <button class="modal-close" onclick="closeDrawer('logs')">&times;</button>
+  </div>
+  <div class="drawer-filters">
+    <button class="filter-chip active" style="font-size:11px;padding:3px 10px;">All</button>
+    <button class="filter-chip" style="font-size:11px;padding:3px 10px;">Success</button>
+    <button class="filter-chip" style="font-size:11px;padding:3px 10px;">Errors</button>
+    <div style="margin-left:auto;font-size:11px;color:var(--muted-fg);">Last 24h &middot; 38 calls</div>
+  </div>
+  <div class="drawer-body">
+    <!-- Log entries -->
+    <div class="log-entry">
+      <div class="log-entry-header">
+        <span class="health-dot health-healthy" style="width:6px;height:6px;"></span>
+        <span class="log-tool-name">create_pull_request</span>
+        <span class="log-agent">by TechLead</span>
+        <span class="log-time">2m ago</span>
+      </div>
+      <div class="log-entry-meta">
+        <span class="log-status-ok">&#x2713; Success</span>
+        <span>Duration: 340ms</span>
+        <span>Args: {owner: "optiflow", repo: "core", title: "Fix auth..."}</span>
+      </div>
+    </div>
+
+    <div class="log-entry">
+      <div class="log-entry-header">
+        <span class="health-dot health-healthy" style="width:6px;height:6px;"></span>
+        <span class="log-tool-name">search_repositories</span>
+        <span class="log-agent">by BackendEngineer</span>
+        <span class="log-time">8m ago</span>
+      </div>
+      <div class="log-entry-meta">
+        <span class="log-status-ok">&#x2713; Success</span>
+        <span>Duration: 210ms</span>
+        <span>Args: {query: "mcp server template"}</span>
+      </div>
+    </div>
+
+    <div class="log-entry">
+      <div class="log-entry-header">
+        <span class="health-dot health-unhealthy" style="width:6px;height:6px;"></span>
+        <span class="log-tool-name">create_issue</span>
+        <span class="log-agent">by TechLead</span>
+        <span class="log-time">15m ago</span>
+      </div>
+      <div class="log-entry-meta">
+        <span class="log-status-err">&#x2717; Error</span>
+        <span>Duration: 1,240ms</span>
+        <span>Args: {owner: "optiflow", repo: "core"}</span>
+      </div>
+      <div class="log-error-detail">422 Unprocessable Entity: Validation failed: Title is required</div>
+    </div>
+
+    <div class="log-entry">
+      <div class="log-entry-header">
+        <span class="health-dot health-healthy" style="width:6px;height:6px;"></span>
+        <span class="log-tool-name">get_file_contents</span>
+        <span class="log-agent">by FrontendEngineer</span>
+        <span class="log-time">22m ago</span>
+      </div>
+      <div class="log-entry-meta">
+        <span class="log-status-ok">&#x2713; Success</span>
+        <span>Duration: 180ms</span>
+        <span>Args: {path: "src/App.tsx"}</span>
+      </div>
+    </div>
+
+    <div class="log-entry">
+      <div class="log-entry-header">
+        <span class="health-dot health-healthy" style="width:6px;height:6px;"></span>
+        <span class="log-tool-name">list_commits</span>
+        <span class="log-agent">by DevOps</span>
+        <span class="log-time">34m ago</span>
+      </div>
+      <div class="log-entry-meta">
+        <span class="log-status-ok">&#x2713; Success</span>
+        <span>Duration: 290ms</span>
+        <span>Args: {owner: "optiflow", repo: "infra"}</span>
+      </div>
+    </div>
+
+    <div class="log-entry">
+      <div class="log-entry-header">
+        <span class="health-dot health-healthy" style="width:6px;height:6px;"></span>
+        <span class="log-tool-name">create_or_update_file</span>
+        <span class="log-agent">by BackendEngineer</span>
+        <span class="log-time">41m ago</span>
+      </div>
+      <div class="log-entry-meta">
+        <span class="log-status-ok">&#x2713; Success</span>
+        <span>Duration: 520ms</span>
+        <span>Args: {path: "README.md", message: "Update docs"}</span>
+      </div>
+    </div>
+
+    <div class="log-entry">
+      <div class="log-entry-header">
+        <span class="health-dot health-healthy" style="width:6px;height:6px;"></span>
+        <span class="log-tool-name">search_code</span>
+        <span class="log-agent">by TechLead</span>
+        <span class="log-time">1h ago</span>
+      </div>
+      <div class="log-entry-meta">
+        <span class="log-status-ok">&#x2713; Success</span>
+        <span>Duration: 450ms</span>
+        <span>Args: {query: "MCPClientManager"}</span>
+      </div>
+    </div>
+
+    <div style="text-align:center;padding:16px;font-size:12px;color:var(--muted-fg);">
+      <button class="btn btn-cancel btn-sm">Load more...</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- MODAL: Install Wizard                                    -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-install-wizard">
+  <div class="modal" style="width:620px;">
+    <div class="modal-header">
+      <h3>&#x1F4E6; Install MCP Server</h3>
+      <button class="modal-close" onclick="closeModal('install-wizard')">&times;</button>
+    </div>
+    <div class="step-bar">
+      <span class="step-pill done">&#x2713; 1 Select</span><span class="step-sep">&#x203A;</span>
+      <span class="step-pill active">&#x25CF; 2 Configure</span><span class="step-sep">&#x203A;</span>
+      <span class="step-pill">3 Test</span><span class="step-sep">&#x203A;</span>
+      <span class="step-pill">4 Agents</span>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border);">
+        <div class="catalog-icon" style="background:rgba(249,115,22,.1);width:44px;height:44px;font-size:20px;">&#x1F98A;</div>
+        <div><div style="font-size:15px;font-weight:600;">GitLab</div><div style="font-size:12px;color:var(--muted-fg);">@modelcontextprotocol/server-gitlab</div></div>
+      </div>
+      <div class="form-group"><label class="form-label">Display Name</label><input class="form-input" type="text" value="GitLab" /></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Transport</label><select class="form-select"><option selected>stdio</option><option>sse</option><option>streamable-http</option></select></div>
+        <div class="form-group"><label class="form-label">Direction</label><select class="form-select"><option selected>Outbound (agent uses it)</option><option>Inbound</option><option>Both</option></select></div>
+      </div>
+      <div style="margin:16px 0 8px;font-size:12px;font-weight:600;">Environment Variables</div>
+      <div style="background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.15);border-radius:6px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--orange);">&#x26A0; This server requires a GitLab Personal Access Token with <code>api</code> scope.</div>
+      <div class="env-row"><input class="form-input" type="text" value="GITLAB_TOKEN" readonly style="max-width:180px;color:var(--muted-fg);" /><input class="form-input" type="password" placeholder="glpat-xxxxxxxxxxxxxxxxxxxx" /><span class="badge" style="background:rgba(239,68,68,.15);color:var(--red);font-size:10px;">Required</span></div>
+      <div class="env-row"><input class="form-input" type="text" value="GITLAB_URL" readonly style="max-width:180px;color:var(--muted-fg);" /><input class="form-input" type="text" placeholder="https://gitlab.com (optional)" /></div>
+      <details style="margin-top:16px;"><summary style="font-size:12px;font-weight:600;cursor:pointer;color:var(--muted-fg);">&#x25B6; Advanced: Raw JSON Config</summary><textarea class="json-editor" style="margin-top:8px;">{"command":"npx","args":["-y","@modelcontextprotocol/server-gitlab"],"env":{"GITLAB_TOKEN":"","GITLAB_URL":"https://gitlab.com"}}</textarea></details>
+    </div>
+    <div class="modal-footer"><button class="btn btn-cancel" onclick="closeModal('install-wizard')">Cancel</button><button class="btn btn-primary">Test Connection &#x2192;</button></div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- MODAL: Server Detail                                     -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-server-detail">
+  <div class="modal" style="width:660px;">
+    <div class="modal-header">
+      <h3>&#x1F4BB; GitHub — Configuration</h3>
+      <button class="modal-close" onclick="closeModal('server-detail')">&times;</button>
+    </div>
+    <div class="tab-bar" style="padding:0 20px;">
+      <div class="tab active" onclick="switchDetailTab(this,'detail-config')">Config</div>
+      <div class="tab" onclick="switchDetailTab(this,'detail-agents')">Agent Access</div>
+      <div class="tab" onclick="switchDetailTab(this,'detail-tools')">Tools (12)</div>
+      <div class="tab" onclick="switchDetailTab(this,'detail-json')">JSON</div>
+    </div>
+    <div class="modal-body">
+      <div id="detail-config">
+        <div class="form-row"><div class="form-group"><label class="form-label">Display Name</label><input class="form-input" type="text" value="GitHub" /></div><div class="form-group"><label class="form-label">Slug</label><input class="form-input" type="text" value="github" readonly style="color:var(--muted-fg);" /></div></div>
+        <div class="form-row"><div class="form-group"><label class="form-label">Transport</label><select class="form-select"><option selected>stdio</option><option>sse</option><option>streamable-http</option></select></div><div class="form-group"><label class="form-label">Direction</label><select class="form-select"><option selected>Outbound</option><option>Inbound</option><option>Both</option></select></div></div>
+        <div style="margin:16px 0 8px;font-size:12px;font-weight:600;">Environment Variables</div>
+        <div class="env-row"><input class="form-input" type="text" value="GITHUB_TOKEN" readonly style="max-width:180px;color:var(--muted-fg);" /><input class="form-input" type="password" value="ghp_xxxxxxxxxxxxxxxxxxxx" /></div>
+        <div class="test-result test-success" style="margin-top:16px;"><span>&#x2713;</span><div><div><strong>Healthy</strong> — Last checked 2 minutes ago</div><div class="test-tools-list">Response time: 120ms &middot; 12 tools available</div></div></div>
+      </div>
+      <div id="detail-agents" class="hidden">
+        <p style="font-size:12px;color:var(--muted-fg);margin-bottom:14px;">Control which agents can use this MCP server's tools.</p>
+        <table class="access-table"><thead><tr><th>Agent</th><th>Role</th><th>Access</th></tr></thead><tbody>
+          <tr><td><div class="agent-name"><div class="agent-avatar" style="background:rgba(168,85,247,.15);color:#c084fc;">TL</div> TechLead</div></td><td><span class="badge badge-dev">CTO</span></td><td><label class="toggle"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></td></tr>
+          <tr><td><div class="agent-name"><div class="agent-avatar" style="background:rgba(59,130,246,.15);color:#93c5fd;">BE</div> BackendEngineer</div></td><td><span class="badge badge-dev">Engineer</span></td><td><label class="toggle"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></td></tr>
+          <tr><td><div class="agent-name"><div class="agent-avatar" style="background:rgba(236,72,153,.15);color:#f9a8d4;">FE</div> FrontendEngineer</div></td><td><span class="badge badge-dev">Engineer</span></td><td><label class="toggle"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></td></tr>
+          <tr><td><div class="agent-name"><div class="agent-avatar" style="background:rgba(34,197,94,.15);color:#86efac;">DO</div> DevOps</div></td><td><span class="badge badge-infra">DevOps</span></td><td><label class="toggle"><input type="checkbox" checked /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></td></tr>
+          <tr><td><div class="agent-name"><div class="agent-avatar" style="background:rgba(251,191,36,.15);color:#fcd34d;">CE</div> CEO</div></td><td><span class="badge badge-ai">CEO</span></td><td><label class="toggle"><input type="checkbox" /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></td></tr>
+          <tr><td><div class="agent-name"><div class="agent-avatar" style="background:rgba(249,115,22,.15);color:#fdba74;">SM</div> SalesManager</div></td><td><span class="badge badge-comm">Sales</span></td><td><label class="toggle"><input type="checkbox" /><div class="toggle-track"></div><div class="toggle-thumb"></div></label></td></tr>
+        </tbody></table>
+        <div style="margin-top:12px;display:flex;gap:8px;"><button class="btn btn-cancel btn-sm">Grant All</button><button class="btn btn-cancel btn-sm">Revoke All</button></div>
+      </div>
+      <div id="detail-tools" class="hidden">
+        <p style="font-size:12px;color:var(--muted-fg);margin-bottom:14px;">Tools discovered from this MCP server.</p>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 14px;"><div style="font-weight:600;font-size:13px;">create_or_update_file</div><div style="font-size:11px;color:var(--muted-fg);margin-top:2px;">Create or update a single file in a GitHub repository</div></div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 14px;"><div style="font-weight:600;font-size:13px;">search_repositories</div><div style="font-size:11px;color:var(--muted-fg);margin-top:2px;">Search for GitHub repositories</div></div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 14px;"><div style="font-weight:600;font-size:13px;">create_issue</div><div style="font-size:11px;color:var(--muted-fg);margin-top:2px;">Create a new issue in a GitHub repository</div></div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 14px;"><div style="font-weight:600;font-size:13px;">create_pull_request</div><div style="font-size:11px;color:var(--muted-fg);margin-top:2px;">Create a new pull request in a GitHub repository</div></div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 14px;"><div style="font-weight:600;font-size:13px;">push_files</div><div style="font-size:11px;color:var(--muted-fg);margin-top:2px;">Push multiple files in a single commit</div></div>
+          <div style="font-size:12px;color:var(--muted-fg);text-align:center;padding:8px;">+ 7 more tools</div>
+        </div>
+      </div>
+      <div id="detail-json" class="hidden">
+        <p style="font-size:12px;color:var(--muted-fg);margin-bottom:10px;">Raw server configuration. Edit with care.</p>
+        <textarea class="json-editor" style="min-height:280px;">{"name":"GitHub","slug":"github","direction":"outbound","transport":"stdio","command":"npx","args":["-y","@modelcontextprotocol/server-github"],"env":{"GITHUB_TOKEN":"ghp_xxxxxxxxxxxxxxxxxxxx"},"enabled":true,"health_status":"healthy"}</textarea>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-cancel" onclick="closeModal('server-detail')">Cancel</button><button class="btn btn-primary">Save Changes</button></div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- MODAL: Add Custom Server                                -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-add-custom">
+  <div class="modal" style="width:580px;">
+    <div class="modal-header"><h3>&#x2795; Add Custom MCP Server</h3><button class="modal-close" onclick="closeModal('add-custom')">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Server Name <span class="reqd">*</span></label><input class="form-input" type="text" placeholder="My Custom Server" /></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Transport <span class="reqd">*</span></label><select class="form-select"><option>stdio</option><option>sse</option><option selected>streamable-http</option></select></div>
+        <div class="form-group"><label class="form-label">Direction</label><select class="form-select"><option selected>Outbound</option><option>Inbound</option><option>Both</option></select></div>
+      </div>
+      <div class="form-group"><label class="form-label">URL / Command <span class="reqd">*</span></label><input class="form-input" type="text" placeholder="https://my-mcp-server.com/mcp or npx my-mcp-server" /><div class="form-hint">For stdio: the command to run. For SSE/HTTP: the server URL.</div></div>
+      <div style="margin:16px 0 8px;font-size:12px;font-weight:600;">Environment Variables (optional)</div>
+      <div class="env-row"><input class="form-input" type="text" placeholder="KEY" style="max-width:160px;" /><input class="form-input" type="text" placeholder="value" /><button class="btn-icon" title="Remove" style="color:var(--red);border-color:rgba(239,68,68,.3);">&#x2715;</button></div>
+      <button class="btn btn-cancel btn-sm" style="margin-top:4px;">+ Add Variable</button>
+      <details style="margin-top:16px;"><summary style="font-size:12px;font-weight:600;cursor:pointer;color:var(--muted-fg);">&#x25B6; Paste full JSON config</summary><textarea class="json-editor" style="margin-top:8px;" placeholder='{"command": "npx", "args": [...], "env": {...}}'></textarea></details>
+    </div>
+    <div class="modal-footer"><button class="btn btn-cancel" onclick="closeModal('add-custom')">Cancel</button><button class="btn btn-primary">Add & Test &#x2192;</button></div>
+  </div>
+</div>
+
+
+<script>
+// ── Tab switching ──
+function switchTab(tab) {
+  document.querySelectorAll('.tab-bar:not(.modal .tab-bar) .tab').forEach(t => t.classList.remove('active'));
+  const target = document.querySelector(`.tab[data-tab="${tab}"]`);
+  if (target) target.classList.add('active');
+  document.querySelectorAll('.main > .content, .main > div > .content').forEach(c => c.classList.add('hidden'));
+  const panel = document.getElementById('tab-' + tab);
+  if (panel) panel.classList.remove('hidden');
+}
+
+// ── View toggle (card/list) ──
+function switchView(view, btn) {
+  btn.closest('.view-toggle').querySelectorAll('.view-toggle-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('view-card').classList.toggle('hidden', view !== 'card');
+  document.getElementById('view-list').classList.toggle('hidden', view !== 'list');
+}
+
+// ── Modal open/close ──
+function openModal(id) { document.getElementById('modal-' + id).classList.add('open'); }
+function closeModal(id) { document.getElementById('modal-' + id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+});
+
+// ── Drawer open/close ──
+function openDrawer(id) {
+  document.getElementById('drawer-' + id + '-overlay').classList.add('open');
+  document.getElementById('drawer-' + id).classList.add('open');
+}
+function closeDrawer(id) {
+  document.getElementById('drawer-' + id + '-overlay').classList.remove('open');
+  document.getElementById('drawer-' + id).classList.remove('open');
+}
+
+// ── Filter catalog ──
+function filterCatalog(btn, cat) {
+  btn.closest('.search-bar').querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.catalog-card').forEach(card => {
+    card.style.display = (cat === 'all' || card.dataset.cat === cat) ? '' : 'none';
+  });
+}
+
+// ── Detail modal sub-tabs ──
+function switchDetailTab(btn, panelId) {
+  btn.closest('.modal').querySelectorAll('.tab-bar .tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  btn.closest('.modal').querySelector('.modal-body').querySelectorAll(':scope > div').forEach(d => d.classList.add('hidden'));
+  document.getElementById(panelId).classList.remove('hidden');
+}
+
+// ── Simulate test connection ──
+function testConnection(btn) {
+  const original = btn.textContent;
+  btn.textContent = 'Testing...';
+  btn.disabled = true;
+  setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 1200);
+}
+</script>
+
+</body>
+</html>

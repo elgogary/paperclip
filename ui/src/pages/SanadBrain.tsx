@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { NavLink, Navigate, useParams } from "@/lib/router";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
-import { Brain } from "lucide-react";
+import { BarChart3, Brain, ExternalLink } from "lucide-react";
 import { cn } from "../lib/utils";
 import { LiveTab } from "../components/sanad-brain/LiveTab";
 import { MemoriesTab } from "../components/sanad-brain/MemoriesTab";
@@ -10,6 +10,35 @@ import { AuditTab } from "../components/sanad-brain/AuditTab";
 import { GraphTab } from "../components/sanad-brain/GraphTab";
 import { KnowledgeTab } from "../components/sanad-brain/KnowledgeTab";
 
+function MonitoringTab() {
+  const grafanaUrl =
+    "http://100.109.59.30:3050/d/brain-overview/brain-overview?orgId=1&kiosk";
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <BarChart3 className="h-4 w-4" />
+          <span>Grafana dashboards embedded below</span>
+        </div>
+        <a
+          href="http://100.109.59.30:3050"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+        >
+          Open in Grafana <ExternalLink className="h-3 w-3" />
+        </a>
+      </div>
+      <iframe
+        src={grafanaUrl}
+        className="w-full rounded-lg border border-border"
+        style={{ height: "calc(100vh - 220px)" }}
+        title="Grafana Brain Overview"
+      />
+    </div>
+  );
+}
+
 const TABS = [
   { path: "live", label: "Live", component: LiveTab },
   { path: "memories", label: "Memories", component: MemoriesTab },
@@ -17,6 +46,7 @@ const TABS = [
   { path: "graph", label: "Graph", component: GraphTab },
   { path: "health", label: "Health", component: HealthTab },
   { path: "audit", label: "Audit", component: AuditTab },
+  { path: "monitoring", label: "Monitoring", component: MonitoringTab },
 ] as const;
 
 export function SanadBrain() {

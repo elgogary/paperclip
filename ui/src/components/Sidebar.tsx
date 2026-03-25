@@ -14,6 +14,9 @@ import {
   Repeat,
   Settings,
   Brain,
+  CalendarClock,
+  BookOpenCheck,
+  Wrench,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { SidebarSection } from "./SidebarSection";
@@ -118,6 +121,9 @@ export function Sidebar() {
           <SidebarNavItem to="/brain" label="Brain" icon={Brain} />
           <SidebarNavItem to="/costs" label="Costs" icon={DollarSign} />
           <SidebarNavItem to="/activity" label="Activity" icon={History} />
+          <SidebarNavItem to="/scheduled-jobs" label="Scheduled Jobs" icon={CalendarClock} />
+          <SidebarNavItem to="/skills" label="Skills" icon={BookOpenCheck} />
+          <SidebarNavItem to="/toolkit" label="Toolkit" icon={Wrench} />
           <SidebarNavItem to="/company/settings" label="Settings" icon={Settings} />
         </SidebarSection>
 

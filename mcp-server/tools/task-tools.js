@@ -30,7 +30,7 @@ export function registerTaskTools(server) {
         method: "POST",
         body: JSON.stringify({
           title, body: body || "", assigneeAgentId: agentId, projectId,
-          priority: priority || "medium",
+          priority: priority || "medium", status: "todo",
         }),
       });
       return {
@@ -150,14 +150,20 @@ export function registerTaskTools(server) {
         method: "POST",
         body: JSON.stringify({
           title, body, assigneeAgentId: resolvedAgentId, projectId,
-          priority: priority || "medium",
+          priority: priority || "medium", status: "todo",
         }),
       });
 
       let wakeResult = "not woken";
       try {
         await api(`/agents/${resolvedAgentId}/wakeup`, {
-          method: "POST", body: JSON.stringify({ message: `New task: ${title}` }),
+          method: "POST", body: JSON.stringify({
+            source: "assignment",
+            triggerDetail: "system",
+            reason: "issue_assigned",
+            payload: { issueId: issue.id, mutation: "create" },
+            contextSnapshot: { issueId: issue.id, source: "delegate_to_agent" },
+          }),
         });
         wakeResult = "woken up";
       } catch (e) {

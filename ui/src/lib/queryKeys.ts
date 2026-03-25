@@ -130,8 +130,32 @@ export const queryKeys = {
   liveRuns: (companyId: string) => ["live-runs", companyId] as const,
   runIssues: (runId: string) => ["run-issues", runId] as const,
   org: (companyId: string) => ["org", companyId] as const,
+  scheduledJobs: {
+    list: (companyId: string) => ["scheduled-jobs", companyId] as const,
+    detail: (companyId: string, jobId: string) => ["scheduled-jobs", companyId, jobId] as const,
+    runs: (companyId: string, jobId: string) => ["scheduled-job-runs", companyId, jobId] as const,
+  },
+  evolution: {
+    events: (companyId: string, status?: string) => ["evolution", "events", companyId, status] as const,
+    eventDetail: (companyId: string, eventId: string) => ["evolution", "event", companyId, eventId] as const,
+    skillMetrics: (companyId: string, skillId: string) => ["evolution", "metrics", companyId, skillId] as const,
+  },
   skills: {
     available: ["skills", "available"] as const,
+    list: (companyId: string) => ["skills", companyId] as const,
+    detail: (companyId: string, skillId: string) => ["skills", companyId, skillId] as const,
+    access: (companyId: string, skillId: string) => ["skills", "access", companyId, skillId] as const,
+    versions: (companyId: string, skillId: string) => ["skills", "versions", companyId, skillId] as const,
+    audit: (companyId: string, skillId: string) => ["skills", "audit", companyId, skillId] as const,
+  },
+  mcpServers: {
+    list: (companyId: string) => ["mcp-servers", companyId] as const,
+    detail: (companyId: string, serverId: string) => ["mcp-servers", companyId, serverId] as const,
+    access: (companyId: string, serverId: string) => ["mcp-servers", "access", companyId, serverId] as const,
+    catalog: (companyId: string) => ["mcp-catalog", companyId] as const,
+  },
+  connectors: {
+    list: (companyId: string) => ["connectors", companyId] as const,
   },
   plugins: {
     all: ["plugins"] as const,
@@ -142,5 +166,8 @@ export const queryKeys = {
     config: (pluginId: string) => ["plugins", pluginId, "config"] as const,
     dashboard: (pluginId: string) => ["plugins", pluginId, "dashboard"] as const,
     logs: (pluginId: string) => ["plugins", pluginId, "logs"] as const,
+    list: (companyId: string) => ["plugins", companyId] as const,
+    listDetail: (companyId: string, pluginId: string) => ["plugins", companyId, pluginId] as const,
+    access: (companyId: string, pluginId: string) => ["plugins", "access", companyId, pluginId] as const,
   },
 };

@@ -41,6 +41,12 @@ services:
       AWS_SECRET_ACCESS_KEY: "${MINIO_SECRET_KEY:?MINIO_SECRET_KEY must be set}"
     volumes:
       - paperclip-data:/paperclip
+      - /home/eslam/optiflow:/workspace:rw
+      - /home/eslam/data/projects/sanad-brain-mcp:/home/eslam/data/projects/sanad-brain-mcp:ro
+      - /home/eslam/data/projects/paperclip/skills:/workspace/skills:ro
+      - /home/eslam/data/projects/paperclip/plugins:/workspace/plugins:ro
+      - /home/eslam/data/projects/paperclip/mcp-servers:/workspace/mcp-servers:ro
+      - /home/eslam/.npm:/home/eslam/.npm:ro
     depends_on:
       db:
         condition: service_healthy
