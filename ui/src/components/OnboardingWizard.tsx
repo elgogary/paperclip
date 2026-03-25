@@ -33,6 +33,8 @@ import { DEFAULT_GEMINI_LOCAL_MODEL } from "@paperclipai/adapter-gemini-local";
 import { resolveRouteOnboardingOptions } from "../lib/onboarding-route";
 import { AsciiArtAnimation } from "./AsciiArtAnimation";
 import { OpenCodeLogoIcon } from "./OpenCodeLogoIcon";
+import { ChoosePathButton } from "./PathInstructionsModal";
+import { HintIcon } from "./agent-config-primitives";
 import {
   Building2,
   Bot,
@@ -48,7 +50,8 @@ import {
   Check,
   Loader2,
   ChevronDown,
-  X
+  X,
+  FolderOpen
 } from "lucide-react";
 
 type Step = 1 | 2 | 3 | 4;
@@ -73,6 +76,7 @@ export function OnboardingWizard() {
   const { companies, setSelectedCompanyId, loading: companiesLoading } = useCompany();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [cwd, setCwd] = useState("");
   const location = useLocation();
   const { companyPrefix } = useParams<{ companyPrefix?: string }>();
   const [routeDismissed, setRouteDismissed] = useState(false);
