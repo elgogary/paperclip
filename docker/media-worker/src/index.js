@@ -31,9 +31,9 @@ export function createApp() {
       return;
     }
 
-    // Skip types we cannot thumbnail
+    // Reject types we cannot thumbnail
     if (!mimeType.startsWith("image/") && !mimeType.startsWith("video/")) {
-      res.json({ thumbnailKey: null });
+      res.status(422).json({ error: "unsupported_mime_type", mimeType });
       return;
     }
 
@@ -85,15 +85,16 @@ export function createApp() {
     }
 
     if (!isOfficeType(mimeType)) {
-      res.status(400).json({ error: "Unsupported MIME type for conversion: " + mimeType });
+      res.status(422).json({ error: "Unsupported MIME type for conversion: " + mimeType });
       return;
     }
 
-    const workDir = await mkdtemp(join(tmpdir(), "media-worker-"));
-    const ext = MIME_TO_EXT[mimeType] || "bin";
-    const inputPath = join(workDir, `input.${ext}`);
-
+    let workDir;
     try {
+      workDir = await mkdtemp(join(tmpdir(), "media-worker-"));
+      const ext = MIME_TO_EXT[mimeType] || "bin";
+      const inputPath = join(workDir, `input.${ext}`);
+
       const buffer = await getObject(storageKey);
       await fs.writeFile(inputPath, buffer);
       const result = await convertToHtml(inputPath, workDir);
@@ -108,8 +109,9 @@ export function createApp() {
       res.json({ outputKey });
     } catch (err) {
       res.status(500).json({ error: err.message || "Conversion failed" });
+    } finally {
+      if (workDir) await fs.rm(workDir, { recursive: true, force: true }).catch(() => {});
     }
-    // workDir cleanup is handled inside convertToHtml's finally block
   });
 
   // POST /extract — extract text from a document

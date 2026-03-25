@@ -54,12 +54,13 @@ describe("POST /thumbnail", () => {
     expect(res.body.error).toMatch(/mimeType/);
   });
 
-  it("returns null thumbnailKey for application/pdf", async () => {
+  it("returns 422 for unsupported mime type", async () => {
     const res = await request(app)
       .post("/thumbnail")
       .send({ storageKey: "uploads/file.pdf", mimeType: "application/pdf" });
-    expect(res.status).toBe(200);
-    expect(res.body.thumbnailKey).toBeNull();
+    expect(res.status).toBe(422);
+    expect(res.body.error).toBe("unsupported_mime_type");
+    expect(res.body.mimeType).toBe("application/pdf");
   });
 
   it("fetches from MinIO and returns thumbnailKey for images", async () => {
@@ -104,11 +105,11 @@ describe("POST /convert", () => {
     expect(res.body.error).toMatch(/mimeType/);
   });
 
-  it("returns 400 for unsupported mime type", async () => {
+  it("returns 422 for unsupported mime type", async () => {
     const res = await request(app)
       .post("/convert")
       .send({ storageKey: "uploads/file.txt", mimeType: "text/plain" });
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(422);
     expect(res.body.error).toMatch(/Unsupported/);
   });
 });
