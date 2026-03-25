@@ -182,13 +182,17 @@ export async function resolveAttachTokens(
         .returning();
 
       const workerUrl = process.env.PAPERCLIP_MEDIA_WORKER_URL ?? process.env.MEDIA_WORKER_URL ?? "http://media-worker:8200";
-      fetch(`${workerUrl}/thumbnail`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ attachmentId: attachment.id, storageKey: stored.objectKey, mimeType }),
-      })
-        .then((r) => { if (!r.ok) console.warn(`[attach-resolver] media-worker ${r.status}`); })
-        .catch((err) => console.warn("[attach-resolver] media-worker unreachable:", (err as Error).message));
+      if (!isAllowedMediaWorkerOrigin(workerUrl)) {
+        console.warn(`[attachment-resolver] Media worker URL rejected (SSRF guard): ${workerUrl}`);
+      } else {
+        fetch(`${workerUrl}/thumbnail`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ attachmentId: attachment.id, storageKey: stored.objectKey, mimeType }),
+        })
+          .then((r) => { if (!r.ok) console.warn(`[attach-resolver] media-worker ${r.status}`); })
+          .catch((err) => console.warn("[attach-resolver] media-worker unreachable:", (err as Error).message));
+      }
 
       resolved.push({ ...token, attachmentId: attachment.id, filename });
     } catch (err) {
@@ -204,6 +208,22 @@ export async function resolveAttachTokens(
   }
 
   return { resolved, failed };
+}
+
+function isAllowedMediaWorkerOrigin(url: string): boolean {
+  try {
+    const { hostname } = new URL(url);
+    return (
+      hostname === "media-worker" ||
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname === "[::1]" ||
+      hostname.endsWith(".internal") ||
+      hostname.endsWith(".local")
+    );
+  } catch {
+    return false;
+  }
 }
 
 function classifyError(message: string): string {
