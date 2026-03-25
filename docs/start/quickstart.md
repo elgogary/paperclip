@@ -1,60 +1,106 @@
 ---
 title: Quickstart
-summary: Get Paperclip running in minutes
+summary: Deploy Sanad AI EOI with docker-compose in minutes
 ---
 
-Get Paperclip running locally in under 5 minutes.
+This guide deploys the full Sanad AI EOI stack: server, PostgreSQL, MinIO (S3 storage), and media worker.
 
-## Quick Start (Recommended)
+## Prerequisites
 
-```sh
-npx paperclipai onboard --yes
+- Docker + Docker Compose v2
+- 4GB RAM minimum (8GB recommended)
+- Port 3100 open or Tailscale for private access
+
+## 1. Clone and Configure
+
+```bash
+git clone https://github.com/elgogary/paperclip.git sanad-ai-eoi
+cd sanad-ai-eoi
+git checkout feature/multimodal-attachments
+cp .env.example .env
 ```
 
-This walks you through setup, configures your environment, and gets Paperclip running.
+Edit `.env`:
 
-To start Paperclip again later:
+```bash
+# Required
+BETTER_AUTH_SECRET=$(openssl rand -hex 32)
+MINIO_SECRET_KEY=your-strong-password
 
-```sh
-npx paperclipai run
+# Your server's public IP or Tailscale IP
+PAPERCLIP_PUBLIC_URL=http://100.109.59.30:3100
+
+# Optional — connect to Sanad Brain for persistent agent memory
+SANAD_BRAIN_URL=http://100.109.59.30:8100
+SANAD_BRAIN_API_KEY=your-brain-api-key
 ```
 
-> **Note:** If you used `npx` for setup, always use `npx paperclipai` to run commands. The `pnpm paperclipai` form only works inside a cloned copy of the Paperclip repository (see Local Development below).
+## 2. Start the Stack
 
-## Local Development
-
-For contributors working on Paperclip itself. Prerequisites: Node.js 20+ and pnpm 9+.
-
-Clone the repository, then:
-
-```sh
-pnpm install
-pnpm dev
+```bash
+docker compose up -d
 ```
 
-This starts the API server and UI at [http://localhost:3100](http://localhost:3100).
+Services start in order: `db` → `minio` + `media-worker` → `server`.
 
-No external database required — Paperclip uses an embedded PostgreSQL instance by default.
-
-When working from the cloned repo, you can also use:
-
-```sh
-pnpm paperclipai run
+Check status:
+```bash
+docker compose ps
 ```
 
-This auto-onboards if config is missing, runs health checks with auto-repair, and starts the server.
+All four services should show `healthy` or `running`.
+
+## 3. Create the MinIO Bucket
+
+On first run only:
+
+```bash
+docker run --rm --network paperclip_paperclip-internal \
+  --entrypoint /bin/sh minio/mc:latest -c \
+  "mc alias set local http://minio:9000 paperclip-minio YOUR_MINIO_SECRET_KEY && mc mb local/paperclip-files"
+```
+
+Replace `YOUR_MINIO_SECRET_KEY` with your `MINIO_SECRET_KEY` value.
+
+## 4. Verify Health
+
+```bash
+curl http://localhost:3100/api/health
+```
+
+Expected:
+```json
+{"status":"ok","version":"0.3.1","deploymentMode":"authenticated","authReady":true}
+```
+
+## 5. Open the UI
+
+Go to `http://localhost:3100` (or your server IP).
+
+1. Sign up to create the first admin account
+2. Create your first company (e.g., "Optiflow Systems")
+3. Add agents under the company
+4. Configure their adapters (claude_local, openclaw, etc.)
+
+## Apply a New Migration
+
+Migrations run automatically on startup. To apply manually after an update:
+
+```bash
+docker compose up -d server
+docker logs paperclip-server-1 | grep -i migrat
+```
+
+## Update to Latest
+
+```bash
+git pull origin feature/multimodal-attachments
+docker build --no-cache -t paperclip-server .
+docker compose up -d server
+```
 
 ## What's Next
 
-Once Paperclip is running:
-
-1. Create your first company in the web UI
-2. Define a company goal
-3. Create a CEO agent and configure its adapter
-4. Build out the org chart with more agents
-5. Set budgets and assign initial tasks
-6. Hit go — agents start their heartbeats and the company runs
-
-<Card title="Core Concepts" href="/start/core-concepts">
-  Learn the key concepts behind Paperclip
-</Card>
+<Card title="Connect Sanad Brain" href="/guides/board-operator/brain-architecture">Give your agents persistent memory</Card>
+<Card title="Set Up Toolkit" href="/guides/board-operator/toolkit-capabilities">Add skills, MCP servers, scheduled jobs</Card>
+<Card title="Multimodal Attachments" href="/guides/agent-developer/attachments">Upload files and give agents vision</Card>

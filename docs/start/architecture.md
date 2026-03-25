@@ -1,98 +1,144 @@
 ---
 title: Architecture
-summary: Stack overview, request flow, and adapter model
+summary: Full system architecture including Sanad Brain, media worker, and MinIO storage
 ---
 
-Paperclip is a monorepo with four main layers.
+Sanad AI EOI is a multi-service system. The core server is extended with Sanad Brain (memory), MinIO (storage), and a media worker (file processing).
 
-## Stack Overview
+## System Diagram
 
 ```
-┌─────────────────────────────────────┐
-│  React UI (Vite)                    │
-│  Dashboard, org management, tasks   │
-├─────────────────────────────────────┤
-│  Express.js REST API (Node.js)      │
-│  Routes, services, auth, adapters   │
-├─────────────────────────────────────┤
-│  PostgreSQL (Drizzle ORM)           │
-│  Schema, migrations, embedded mode  │
-├─────────────────────────────────────┤
-│  Adapters                           │
-│  Claude Local, Codex Local,         │
-│  Process, HTTP                      │
-└─────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│  Browser / CLI                                           │
+│  React UI (Vite) · REST client                          │
+└──────────────────────┬──────────────────────────────────┘
+                       │ :3100
+┌──────────────────────▼──────────────────────────────────┐
+│  Sanad AI EOI Server (Express.js / Node.js)             │
+│  ├── REST API (/api/*)                                   │
+│  ├── Auth (Better Auth — sessions + API keys)           │
+│  ├── Scheduler Loop (60s — scheduled jobs)              │
+│  ├── Heartbeat Monitor (30s)                            │
+│  ├── Attachment Pipeline (chunked upload → MinIO)       │
+│  └── Agent Adapters (claude_local, openclaw, codex)     │
+└────────┬──────────┬──────────┬───────────────┬──────────┘
+         │          │          │               │
+   :5432 │    :9000 │    :3200 │         :8100 │
+┌────────▼─┐ ┌──────▼──┐ ┌────▼───────┐ ┌─────▼────────────┐
+│PostgreSQL│ │  MinIO   │ │   Media    │ │  Sanad Brain     │
+│(Drizzle) │ │  (S3)    │ │  Worker    │ │  (FastAPI)       │
+│44 migs   │ │paperclip │ │ ├─ ffmpeg  │ │  ├─ Memory API   │
+│          │ │-files    │ │ └─ LibreOff│ │  ├─ Knowledge    │
+└──────────┘ └──────────┘ └───────────┘ │  ├─ Dream Engine │
+                                         │  └─ Tool Loader  │
+                                         └─────────────────┘
+                                                │
+                                     ┌──────────┴──────────┐
+                                     │ Qdrant · Neo4j      │
+                                     │ SQLite · Ollama     │
+                                     └─────────────────────┘
 ```
+
+## Services
+
+| Service | Port | Technology | Purpose |
+|---------|------|-----------|---------|
+| Server | 3100 | Express.js + TypeScript | Control plane, API, UI |
+| PostgreSQL | 5432 | PostgreSQL 16 | Primary database |
+| MinIO | 9000/9001 | MinIO (S3-compatible) | File attachments |
+| Media Worker | 3200 | Express.js + ffmpeg + LibreOffice | File processing, thumbnails |
+| Sanad Brain | 8100 | FastAPI (Python) | Persistent agent memory |
 
 ## Technology Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | React 19, Vite 6, React Router 7, Radix UI, Tailwind CSS 4, TanStack Query |
-| Backend | Node.js 20+, Express.js 5, TypeScript |
-| Database | PostgreSQL 17 (or embedded PGlite), Drizzle ORM |
+| Frontend | React 19, Vite, React Router 7, Radix UI, Tailwind CSS 4, TanStack Query |
+| Backend | Node.js 20+, Express.js 5, TypeScript 5 |
+| Database | PostgreSQL 16, Drizzle ORM, 44+ migrations |
 | Auth | Better Auth (sessions + API keys) |
-| Adapters | Claude Code CLI, Codex CLI, shell process, HTTP webhook |
+| Storage | MinIO (S3-compatible) — swappable to AWS S3 / Cloudflare R2 |
+| Media | ffmpeg (video thumbnails), LibreOffice (Office → HTML) |
+| Memory | Sanad Brain — Mem0 + Qdrant + Neo4j + Ollama |
 | Package manager | pnpm 9 with workspaces |
 
 ## Repository Structure
 
 ```
 paperclip/
-├── ui/                          # React frontend
-│   ├── src/pages/              # Route pages
-│   ├── src/components/         # React components
-│   ├── src/api/                # API client
-│   └── src/context/            # React context providers
+├── ui/src/
+│   ├── pages/           # Toolkit, Skills, Brain, Chat, Docs, ScheduledJobs…
+│   ├── components/      # React components (AttachmentCard, JobDialog…)
+│   └── api/             # Typed API clients
 │
-├── server/                      # Express.js API
-│   ├── src/routes/             # REST endpoints
-│   ├── src/services/           # Business logic
-│   ├── src/adapters/           # Agent execution adapters
-│   └── src/middleware/         # Auth, logging
+├── server/src/
+│   ├── routes/          # attachments, plugins, scheduled-jobs, skills, mcp-servers…
+│   ├── services/        # business logic (scheduler-loop, attachment-context…)
+│   └── adapters/        # claude_local, openclaw, codex_local, gemini
 │
 ├── packages/
-│   ├── db/                      # Drizzle schema + migrations
-│   ├── shared/                  # API types, constants, validators
-│   ├── adapter-utils/           # Adapter interfaces and helpers
-│   └── adapters/
-│       ├── claude-local/        # Claude Code adapter
-│       └── codex-local/         # OpenAI Codex adapter
+│   ├── db/              # Drizzle schema + 44 migrations (including attachments)
+│   └── shared/          # API types, constants
 │
-├── skills/                      # Agent skills
-│   └── paperclip/               # Core Paperclip skill (heartbeat protocol)
+├── docker/
+│   └── media-worker/    # ffmpeg + LibreOffice processing service
 │
-├── cli/                         # CLI client
-│   └── src/                     # Setup and control-plane commands
-│
-└── doc/                         # Internal documentation
+├── skills/              # Skill files deployed to /workspace/skills
+├── plugins/             # Plugin definitions
+├── mcp-servers/         # MCP server configs
+└── docs/                # This documentation
 ```
 
-## Request Flow
+## Attachment Pipeline
 
-When a heartbeat fires:
+```
+Browser → POST /attachments/init
+  → POST /chunk (N × 5MB)
+  → POST /complete
+    → MinIO compose (assemble chunks)
+    → Media worker: POST /process
+      ├── image → thumbnail (sharp)
+      ├── video → thumbnail (ffmpeg)
+      ├── Office → HTML (LibreOffice)
+      └── PDF → text extract
+    → status = "ready"
+  → Agent run context builder
+    ├── image/video → vision blocks (base64, 5MB/image)
+    └── document → extracted text (10MB total budget)
+```
 
-1. **Trigger** — Scheduler, manual invoke, or event (assignment, mention) triggers a heartbeat
-2. **Adapter invocation** — Server calls the configured adapter's `execute()` function
-3. **Agent process** — Adapter spawns the agent (e.g. Claude Code CLI) with Paperclip env vars and a prompt
-4. **Agent work** — The agent calls Paperclip's REST API to check assignments, checkout tasks, do work, and update status
-5. **Result capture** — Adapter captures stdout, parses usage/cost data, extracts session state
-6. **Run record** — Server records the run result, costs, and any session state for next heartbeat
+## Scheduled Job Pipeline
 
-## Adapter Model
+```
+Scheduler (every 60s) → SELECT due jobs FOR UPDATE SKIP LOCKED
+  ├── knowledge_sync → pull docs from source
+  ├── webhook → POST to URL (SSRF-guarded)
+  └── agent_run → trigger heartbeat
+→ Update next_run_at
+→ Write run log
+```
 
-Adapters are the bridge between Paperclip and agent runtimes. Each adapter is a package with three modules:
+## Sanad Brain Memory Flow
 
-- **Server module** — `execute()` function that spawns/calls the agent, plus environment diagnostics
-- **UI module** — stdout parser for the run viewer, config form fields for agent creation
-- **CLI module** — terminal formatter for `paperclipai run --watch`
+```
+Agent run completes
+  → POST /memory/remember (Sanad Brain)
+    → PII Guard (strip credentials)
+    → Mem0 → entity extraction (glm-4.5-air)
+    → Qdrant upsert (768-dim, nomic-embed-text)
+    → Neo4j (entity relations)
 
-Built-in adapters: `claude_local`, `codex_local`, `process`, `http`. You can create custom adapters for any runtime.
+Agent next run
+  → GET /memory/recall?query=...
+    → Top-k memories injected into prompt context
+```
+
+See [Sanad Brain Architecture](/guides/board-operator/brain-architecture) for the full memory system diagram.
 
 ## Key Design Decisions
 
-- **Control plane, not execution plane** — Paperclip orchestrates agents; it doesn't run them
-- **Company-scoped** — all entities belong to exactly one company; strict data boundaries
-- **Single-assignee tasks** — atomic checkout prevents concurrent work on the same task
-- **Adapter-agnostic** — any runtime that can call an HTTP API works as an agent
-- **Embedded by default** — zero-config local mode with embedded PostgreSQL
+- **Control plane, not execution plane** — orchestrates agents, doesn't run them
+- **Company-scoped** — all data isolated per company; strict boundaries
+- **S3 for all uploads** — MinIO by default; ENV swap to AWS S3 or R2
+- **In-process scheduler** — no Redis/Celery; runs inside the server process
+- **Adapter-agnostic** — any runtime that calls the REST API works as an agent

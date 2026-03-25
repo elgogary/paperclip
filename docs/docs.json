@@ -16,7 +16,7 @@
   "topbarLinks": [
     {
       "name": "GitHub",
-      "url": "https://github.com/paperclip-ai/paperclip"
+      "url": "https://github.com/elgogary/paperclip"
     }
   ],
   "navigation": {
@@ -48,7 +48,11 @@
               "guides/board-operator/managing-tasks",
               "guides/board-operator/approvals",
               "guides/board-operator/costs-and-budgets",
-              "guides/board-operator/activity-log"
+              "guides/board-operator/activity-log",
+              "guides/board-operator/scheduled-jobs",
+              "guides/board-operator/skills",
+              "guides/board-operator/toolkit-capabilities",
+              "guides/board-operator/brain-architecture"
             ]
           },
           {
@@ -60,7 +64,8 @@
               "guides/agent-developer/task-workflow",
               "guides/agent-developer/comments-and-communication",
               "guides/agent-developer/handling-approvals",
-              "guides/agent-developer/cost-reporting"
+              "guides/agent-developer/cost-reporting",
+              "guides/agent-developer/attachments"
             ]
           }
         ]
@@ -69,17 +74,22 @@
         "tab": "Deploy",
         "groups": [
           {
-            "group": "Deployment",
+            "group": "Sanad AI EOI",
             "pages": [
+              "deploy/sanad-ai-deployment",
               "deploy/overview",
-              "deploy/local-development",
-              "deploy/tailscale-private-access",
               "deploy/docker",
-              "deploy/deployment-modes",
-              "deploy/database",
-              "deploy/secrets",
+              "deploy/environment-variables",
               "deploy/storage",
-              "deploy/environment-variables"
+              "deploy/database"
+            ]
+          },
+          {
+            "group": "Access & Security",
+            "pages": [
+              "deploy/deployment-modes",
+              "deploy/tailscale-private-access",
+              "deploy/secrets"
             ]
           }
         ]
@@ -104,7 +114,7 @@
         "tab": "API Reference",
         "groups": [
           {
-            "group": "REST API",
+            "group": "Core",
             "pages": [
               "api/overview",
               "api/authentication",
@@ -117,6 +127,16 @@
               "api/secrets",
               "api/activity",
               "api/dashboard"
+            ]
+          },
+          {
+            "group": "Sanad AI EOI Extensions",
+            "pages": [
+              "api/attachments",
+              "api/scheduled-jobs",
+              "api/brain-memory",
+              "api/brain-dream",
+              "api/brain-tools"
             ]
           }
         ]
@@ -137,6 +157,6 @@
     ]
   },
   "footerSocials": {
-    "github": "https://github.com/paperclip-ai/paperclip"
+    "github": "https://github.com/elgogary/paperclip"
   }
 }

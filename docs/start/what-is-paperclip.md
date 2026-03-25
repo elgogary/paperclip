@@ -1,39 +1,50 @@
 ---
-title: What is Paperclip?
-summary: The control plane for autonomous AI companies
+title: What is Sanad AI EOI?
+summary: Enterprise Operational Intelligence — the control plane for AI agent crews
 ---
 
-Paperclip is the control plane for autonomous AI companies. It is the infrastructure backbone that enables AI workforces to operate with structure, governance, and accountability.
+Sanad AI EOI (Enterprise Operational Intelligence) is a fork of [Paperclip](https://github.com/paperclip-ai/paperclip) — a control plane for running autonomous AI agent companies. This fork extends the base with Sanad Brain (persistent memory), multimodal attachments, a full Toolkit (Skills, MCP Servers, Plugins, Scheduled Jobs), and an enterprise deployment configuration.
 
-One instance of Paperclip can run multiple companies. Each company has employees (AI agents), org structure, goals, budgets, and task management — everything a real company needs, except the operating system is real software.
+## What It Does
 
-## The Problem
+A Sanad AI EOI instance runs one or more **companies** — each company is an AI crew with employees (agents), org structure, goals, tasks, budgets, and governance:
 
-Task management software doesn't go far enough. When your entire workforce is AI agents, you need more than a to-do list — you need a **control plane** for an entire company.
+- **Agent orchestration** — heartbeat-driven scheduling, task assignment, run recording
+- **Persistent memory** — Sanad Brain gives every agent long-term memory across sessions
+- **Toolkit** — Skills (reusable instructions), MCP Servers (tool integrations), Plugins, Scheduled Jobs
+- **Multimodal input** — agents receive images, PDFs, Office files, and videos as context
+- **Governance** — approval gates, board oversight, spend budgets, audit trails
 
-## What Paperclip Does
+## Our Deployment: Optiflow AI Crew
 
-Paperclip is the command, communication, and control plane for a company of AI agents. It is the single place where you:
+The primary deployment is the **Optiflow Systems AI Crew** — a 9-agent company (Board → CEO → TechLead, SalesManager, ProductManager, DevOps):
 
-- **Manage agents as employees** — hire, organize, and track who does what
-- **Define org structure** — org charts that agents themselves operate within
-- **Track work in real time** — see at any moment what every agent is working on
-- **Control costs** — token salary budgets per agent, spend tracking, burn rate
-- **Align to goals** — agents see how their work serves the bigger mission
-- **Govern autonomy** — board approval gates, activity audit trails, budget enforcement
+| Component | Location |
+|-----------|---------|
+| Sanad AI EOI | Hetzner VPS · `100.109.59.30:3100` (Tailscale) |
+| Sanad Brain | Same VPS · `100.109.59.30:8100` |
+| MinIO (S3 storage) | Docker container · same VPS |
+| Media Worker | Docker container (ffmpeg + LibreOffice) |
+| Workspace | `/home/eslam/optiflow/` |
 
-## Two Layers
+Access: `http://100.109.59.30:3100/OPT/` (Tailscale private network)
 
-### 1. Control Plane (Paperclip)
+## How It Differs from Upstream Paperclip
 
-The central nervous system. Manages agent registry and org chart, task assignment and status, budget and token spend tracking, goal hierarchy, and heartbeat monitoring.
-
-### 2. Execution Services (Adapters)
-
-Agents run externally and report into the control plane. Adapters connect different execution environments — Claude Code, OpenAI Codex, shell processes, HTTP webhooks, or any runtime that can call an API.
-
-The control plane doesn't run agents. It orchestrates them. Agents run wherever they run and phone home.
+| Feature | Upstream | Sanad AI EOI |
+|---------|---------|-------------|
+| Memory | None | Sanad Brain (Mem0 + Qdrant + Neo4j) |
+| File attachments | None | Multimodal — images, video, PDF, Office, code |
+| Scheduled Jobs | None | Full scheduler — knowledge sync, webhooks, agent runs |
+| Skills | None | AI-create, evolution timeline, version history |
+| MCP Servers | None | Marketplace + custom + health monitoring |
+| Plugins | Basic registry | Company-scoped, tool-aware, agent access control |
+| Chat interface | None | Direct agent chat with context |
+| Storage | Local disk | MinIO (S3-compatible) for all uploads |
 
 ## Core Principle
 
-You should be able to look at Paperclip and understand your entire company at a glance — who's doing what, how much it costs, and whether it's working.
+> Run your AI company like a real company — with memory that persists, tools that extend, and governance that scales.
+
+<Card title="Quickstart" href="/start/quickstart">Deploy Sanad AI EOI with docker-compose</Card>
+<Card title="Architecture" href="/start/architecture">Full system architecture including Sanad Brain</Card>
