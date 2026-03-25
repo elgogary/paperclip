@@ -91,6 +91,8 @@ export const queryKeys = {
     list: (companyId: string) => ["skills", companyId] as const,
     detail: (companyId: string, skillId: string) => ["skills", companyId, skillId] as const,
     access: (companyId: string, skillId: string) => ["skills", "access", companyId, skillId] as const,
+    versions: (companyId: string, skillId: string) => ["skills", "versions", companyId, skillId] as const,
+    audit: (companyId: string, skillId: string) => ["skills", "audit", companyId, skillId] as const,
   },
   mcpServers: {
     list: (companyId: string) => ["mcp-servers", companyId] as const,
