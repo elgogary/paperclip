@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS "attachments" (
   "id"               uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-  "company_id"       uuid NOT NULL REFERENCES "companies"("id"),
+  "company_id"       uuid NOT NULL REFERENCES "companies"("id") ON DELETE RESTRICT,
   "issue_id"         uuid NOT NULL REFERENCES "issues"("id") ON DELETE CASCADE,
   "comment_id"       uuid REFERENCES "issue_comments"("id") ON DELETE SET NULL,
   "uploader_type"    text NOT NULL,

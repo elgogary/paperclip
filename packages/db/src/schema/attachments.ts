@@ -2,13 +2,12 @@ import { pgTable, uuid, text, bigint, integer, timestamp, index } from "drizzle-
 import { companies } from "./companies.js";
 import { issues } from "./issues.js";
 import { issueComments } from "./issue_comments.js";
-import { agents } from "./agents.js";
 
 export const attachments = pgTable(
   "attachments",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id),
+    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "restrict" }),
     issueId: uuid("issue_id").notNull().references(() => issues.id, { onDelete: "cascade" }),
     commentId: uuid("comment_id").references(() => issueComments.id, { onDelete: "set null" }),
     uploaderType: text("uploader_type").notNull(),
