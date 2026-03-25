@@ -20,7 +20,8 @@ const mockDb = {
 };
 
 vi.mock("@paperclipai/db", () => ({
-  attachments: { id: "id", companyId: "company_id", issueId: "issue_id" },
+  attachments: { id: "id", companyId: "company_id", issueId: "issue_id", status: "status" },
+  issues: { id: "id", companyId: "company_id" },
 }));
 
 vi.mock("drizzle-orm", () => ({
@@ -71,6 +72,10 @@ function createApp(actorOverrides: Record<string, unknown> = {}) {
 describe("attachment routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Re-establish default mock chain after clearAllMocks
+    mockFrom.mockImplementation(() => ({ where: mockWhere }));
+    mockSetFn.mockImplementation(() => ({ where: mockWhere }));
+    mockWhere.mockImplementation(() => ({ returning: mockReturning }));
   });
 
   describe("POST /api/attachments/init", () => {
@@ -144,7 +149,25 @@ describe("attachment routes", () => {
       expect(res.status).toBe(401);
     });
 
+    it("rejects dangerous filenames with 400", async () => {
+      const res = await request(createApp())
+        .post("/api/attachments/init")
+        .send({
+          filename: "../../etc/passwd",
+          mimeType: "image/png",
+          sizeBytes: 1024,
+          issueId: "issue-1",
+          companyId: "company-1",
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/invalid filename/i);
+    });
+
     it("succeeds with valid payload and returns attachmentId", async () => {
+      // First db.select: issue ownership check
+      mockWhere.mockResolvedValueOnce([{ id: "issue-1", companyId: "company-1" }]);
+      // Then db.insert().values().returning()
       mockReturning.mockResolvedValueOnce([
         { id: "att-new", companyId: "company-1", issueId: "issue-1" },
       ]);
@@ -162,6 +185,23 @@ describe("attachment routes", () => {
       expect(res.status).toBe(201);
       expect(res.body.attachmentId).toBe("att-new");
     });
+
+    it("returns 404 when issue does not belong to company", async () => {
+      mockWhere.mockResolvedValueOnce([{ id: "issue-1", companyId: "other-company" }]);
+
+      const res = await request(createApp())
+        .post("/api/attachments/init")
+        .send({
+          filename: "photo.png",
+          mimeType: "image/png",
+          sizeBytes: 1024,
+          issueId: "issue-1",
+          companyId: "company-1",
+        });
+
+      expect(res.status).toBe(404);
+      expect(res.body.error).toMatch(/issue not found/i);
+    });
   });
 
   describe("PUT /api/attachments/:id/chunk", () => {
@@ -175,18 +215,17 @@ describe("attachment routes", () => {
     });
 
     it("returns 403 when attachment belongs to a different company", async () => {
-      mockFrom.mockReturnValueOnce({
-        where: vi.fn().mockResolvedValueOnce([
-          {
-            id: "att-1",
-            companyId: "other-company",
-            storageKey: "",
-            sizeBytes: 100,
-            mimeType: "image/png",
-            filename: "file.png",
-          },
-        ]),
-      });
+      mockWhere.mockResolvedValueOnce([
+        {
+          id: "att-1",
+          companyId: "other-company",
+          storageKey: "",
+          sizeBytes: 100,
+          mimeType: "image/png",
+          filename: "file.png",
+          status: "uploading",
+        },
+      ]);
 
       const res = await request(createApp())
         .put("/api/attachments/att-1/chunk")
@@ -208,18 +247,17 @@ describe("attachment routes", () => {
     });
 
     it("returns 403 when attachment belongs to a different company", async () => {
-      mockFrom.mockReturnValueOnce({
-        where: vi.fn().mockResolvedValueOnce([
-          {
-            id: "att-1",
-            companyId: "other-company",
-            storageKey: "",
-            sizeBytes: 10,
-            mimeType: "text/plain",
-            filename: "file.txt",
-          },
-        ]),
-      });
+      // Atomic update returns a row from different company
+      mockReturning.mockResolvedValueOnce([
+        {
+          id: "att-1",
+          companyId: "other-company",
+          storageKey: "",
+          sizeBytes: 10,
+          mimeType: "text/plain",
+          filename: "file.txt",
+        },
+      ]);
 
       const res = await request(createApp())
         .post("/api/attachments/att-1/complete")
@@ -230,37 +268,34 @@ describe("attachment routes", () => {
 
     it("links commentId when provided in complete request", async () => {
       const chunkData = Buffer.from("hello file");
-      mockFrom.mockReturnValueOnce({
-        where: vi.fn().mockResolvedValueOnce([
-          {
-            id: "att-1",
-            companyId: "company-1",
-            storageKey: "",
-            sizeBytes: chunkData.length,
-            mimeType: "text/plain",
-            filename: "file.txt",
-          },
-        ]),
-      });
+      // Atomic update returns the row
+      mockReturning.mockResolvedValueOnce([
+        {
+          id: "att-1",
+          companyId: "company-1",
+          storageKey: "",
+          sizeBytes: chunkData.length,
+          mimeType: "text/plain",
+          filename: "file.txt",
+        },
+      ]);
       mockStorage.getRawObject.mockResolvedValueOnce(chunkData);
-      mockWhere.mockResolvedValueOnce({ returning: mockReturning });
 
       const res = await request(createApp())
         .post("/api/attachments/att-1/complete")
         .send({ commentId: "comment-99" });
 
       expect(res.status).toBe(200);
+      // Verify the second update was called with commentId
       expect(mockSetFn).toHaveBeenCalled();
-      const setArg = mockSetFn.mock.calls[0][0];
-      expect(setArg.commentId).toBe("comment-99");
+      const lastSetCall = mockSetFn.mock.calls[mockSetFn.mock.calls.length - 1][0];
+      expect(lastSetCall.commentId).toBe("comment-99");
     });
   });
 
   describe("GET /api/attachments/:id", () => {
     it("returns 404 for non-existent attachment", async () => {
-      mockFrom.mockReturnValueOnce({
-        where: vi.fn().mockResolvedValueOnce([]),
-      });
+      mockWhere.mockResolvedValueOnce([]);
 
       const res = await request(createApp())
         .get("/api/attachments/nonexistent-id");
@@ -270,19 +305,17 @@ describe("attachment routes", () => {
     });
 
     it("returns 403 for attachment belonging to different company", async () => {
-      mockFrom.mockReturnValueOnce({
-        where: vi.fn().mockResolvedValueOnce([
-          {
-            id: "att-1",
-            companyId: "other-company",
-            issueId: "issue-1",
-            storageKey: "other-company/attachments/file.png",
-            mimeType: "image/png",
-            thumbnailKey: null,
-            htmlPreviewKey: null,
-          },
-        ]),
-      });
+      mockWhere.mockResolvedValueOnce([
+        {
+          id: "att-1",
+          companyId: "other-company",
+          issueId: "issue-1",
+          storageKey: "other-company/attachments/file.png",
+          mimeType: "image/png",
+          thumbnailKey: null,
+          htmlPreviewKey: null,
+        },
+      ]);
 
       const res = await request(createApp())
         .get("/api/attachments/att-1");
@@ -290,21 +323,29 @@ describe("attachment routes", () => {
       expect(res.status).toBe(403);
     });
 
-    it("returns attachment metadata for valid request", async () => {
-      mockFrom.mockReturnValueOnce({
-        where: vi.fn().mockResolvedValueOnce([
-          {
-            id: "att-1",
-            companyId: "company-1",
-            issueId: "issue-1",
-            storageKey: "company-1/attachments/file.png",
-            mimeType: "image/png",
-            filename: "file.png",
-            thumbnailKey: null,
-            htmlPreviewKey: null,
-          },
-        ]),
-      });
+    it("returns attachment DTO without internal keys for valid request", async () => {
+      mockWhere.mockResolvedValueOnce([
+        {
+          id: "att-1",
+          companyId: "company-1",
+          issueId: "issue-1",
+          commentId: null,
+          uploaderType: "user",
+          uploaderId: "user-1",
+          storageKey: "company-1/attachments/file.png",
+          mimeType: "image/png",
+          filename: "file.png",
+          sizeBytes: 1024,
+          thumbnailKey: null,
+          htmlPreviewKey: null,
+          versionOf: null,
+          versionNum: 1,
+          status: "ready",
+          publishUrl: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ]);
 
       const res = await request(createApp())
         .get("/api/attachments/att-1");
@@ -312,6 +353,9 @@ describe("attachment routes", () => {
       expect(res.status).toBe(200);
       expect(res.body.downloadUrl).toBe("/api/attachments/att-1/content");
       expect(res.body.id).toBe("att-1");
+      // Fix 8: DTO should NOT include storageKey or htmlPreviewKey
+      expect(res.body).not.toHaveProperty("storageKey");
+      expect(res.body).not.toHaveProperty("htmlPreviewKey");
     });
 
     it("returns 401 for unauthenticated requests", async () => {

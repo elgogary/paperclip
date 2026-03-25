@@ -1,12 +1,14 @@
 import { Router } from "express";
 import { eq, and } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
-import { attachments } from "@paperclipai/db";
+import { attachments, issues } from "@paperclipai/db";
 import type { StorageService } from "../storage/types.js";
 import { assertCompanyAccess, getActorInfo } from "./authz.js";
 import { isAllowedContentType, maxBytesForType } from "../attachment-types.js";
 import { logActivity } from "../services/index.js";
 import { logger } from "../middleware/logger.js";
+
+const MAX_CHUNK_BYTES = 50 * 1024 * 1024; // 50 MB per chunk
 
 function zeroPad(n: number, width = 20): string {
   return String(n).padStart(width, "0");
@@ -45,6 +47,17 @@ export function attachmentRoutes(db: Db, storage: StorageService) {
       res.status(400).json({ error: "filename is required" });
       return;
     }
+    // Fix 9: reject dangerous filenames
+    if (
+      filename.includes("..") ||
+      filename.includes("/") ||
+      filename.includes("\\") ||
+      filename.includes("\0") ||
+      filename.length > 255
+    ) {
+      res.status(400).json({ error: "Invalid filename" });
+      return;
+    }
     if (!mimeType || typeof mimeType !== "string") {
       res.status(400).json({ error: "mimeType is required" });
       return;
@@ -54,23 +67,25 @@ export function attachmentRoutes(db: Db, storage: StorageService) {
       return;
     }
 
-    // Fix 5: 415 for unsupported MIME type
     if (!isAllowedContentType(mimeType)) {
-      res.status(415).json({ error: `Unsupported content type: ${mimeType}` });
+      res.status(415).json({ error: "Unsupported content type: " + mimeType });
       return;
     }
 
-    // Fix 5: 413 for oversized file
     const maxBytes = maxBytesForType(mimeType);
     if (sizeBytes > maxBytes) {
-      res.status(413).json({ error: `File too large. Max ${maxBytes} bytes for ${mimeType}` });
+      res.status(413).json({ error: "File too large. Max " + maxBytes + " bytes for " + mimeType });
       return;
     }
 
-    // Derive companyId from actor context
+    // Fix 3: Derive companyId from actor context with explicit guard
     let companyId: string;
     if (req.actor.type === "agent") {
-      companyId = req.actor.companyId!;
+      if (!req.actor.companyId) {
+        res.status(400).json({ error: "Agent token is missing company context" });
+        return;
+      }
+      companyId = req.actor.companyId;
     } else {
       const requested = req.body.companyId as string | undefined;
       if (!requested) {
@@ -81,9 +96,18 @@ export function attachmentRoutes(db: Db, storage: StorageService) {
     }
     assertCompanyAccess(req, companyId);
 
+    // Fix 2: Verify issueId belongs to the company
+    const issueRows = await db
+      .select({ id: issues.id, companyId: issues.companyId })
+      .from(issues)
+      .where(eq(issues.id, issueId));
+    if (!issueRows[0] || issueRows[0].companyId !== companyId) {
+      res.status(404).json({ error: "Issue not found" });
+      return;
+    }
+
     const actor = getActorInfo(req);
 
-    // Fix 1: use 'processing' — schema only allows processing|ready|error
     const [row] = await db
       .insert(attachments)
       .values({
@@ -96,7 +120,7 @@ export function attachmentRoutes(db: Db, storage: StorageService) {
         mimeType,
         sizeBytes,
         storageKey: "",
-        status: "processing",
+        status: "uploading",
       })
       .returning();
 
@@ -132,6 +156,13 @@ export function attachmentRoutes(db: Db, storage: StorageService) {
       return;
     }
 
+    // Fix 4: Content-Length pre-check for chunk size cap
+    const contentLength = Number(req.headers["content-length"]);
+    if (contentLength > MAX_CHUNK_BYTES) {
+      res.status(413).json({ error: "Chunk exceeds 50 MB limit" });
+      return;
+    }
+
     const [row] = await db
       .select()
       .from(attachments)
@@ -143,29 +174,36 @@ export function attachmentRoutes(db: Db, storage: StorageService) {
     }
     assertCompanyAccess(req, row.companyId);
 
-    // Fix 1: guard on empty storageKey (not status "uploading")
-    if (row.storageKey) {
+    if (row.status !== "uploading") {
       res.status(409).json({ error: "Upload already completed or failed" });
       return;
     }
 
-    // Collect raw body
+    // Collect raw body with size tracking (Fix 4)
     const buffers: Buffer[] = [];
+    let totalSize = 0;
     for await (const chunk of req) {
-      buffers.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      totalSize += buf.length;
+      if (totalSize > MAX_CHUNK_BYTES) {
+        req.destroy();
+        res.status(413).json({ error: "Chunk too large" });
+        return;
+      }
+      buffers.push(buf);
     }
     const body = Buffer.concat(buffers);
 
     const expectedLength = range.end - range.start + 1;
     if (body.length !== expectedLength) {
       res.status(400).json({
-        error: `Chunk size mismatch: expected ${expectedLength}, got ${body.length}`,
+        error: "Chunk size mismatch: expected " + expectedLength + ", got " + body.length,
       });
       return;
     }
 
-    // Fix 4: Store chunk at a predictable key for later assembly
-    const chunkKey = `${row.companyId}/uploads/${attachmentId}/chunk-${zeroPad(range.start)}`;
+    // Fix 1: Store chunk at predictable key using putRawObject
+    const chunkKey = row.companyId + "/uploads/" + attachmentId + "/chunk-" + zeroPad(range.start);
     await storage.putRawObject(row.companyId, chunkKey, body, "application/octet-stream");
 
     res.json({ received: true, bytesReceived: body.length });
@@ -180,32 +218,37 @@ export function attachmentRoutes(db: Db, storage: StorageService) {
 
     const { attachmentId } = req.params;
 
-    const [row] = await db
-      .select()
-      .from(attachments)
-      .where(eq(attachments.id, attachmentId));
+    // Fix 5: Atomic transition to prevent double-complete race
+    const [updated] = await db
+      .update(attachments)
+      .set({ status: "assembling", updatedAt: new Date() })
+      .where(and(eq(attachments.id, attachmentId), eq(attachments.status, "uploading")))
+      .returning();
 
-    if (!row) {
-      res.status(404).json({ error: "Attachment not found" });
+    if (!updated) {
+      // Could be not found or already completed — check which
+      const [existing] = await db
+        .select()
+        .from(attachments)
+        .where(eq(attachments.id, attachmentId));
+      if (!existing) {
+        res.status(404).json({ error: "Attachment not found" });
+      } else {
+        res.status(409).json({ error: "Upload already completed or not found" });
+      }
       return;
     }
-    assertCompanyAccess(req, row.companyId);
+    assertCompanyAccess(req, updated.companyId);
 
-    // Fix 1: guard on empty storageKey (not status "uploading")
-    if (row.storageKey) {
-      res.status(409).json({ error: "Upload already completed or failed" });
-      return;
-    }
-
-    // Fix 4: Assemble chunks into final file
-    const chunkPrefix = `${row.companyId}/uploads/${attachmentId}/chunk-`;
+    // Fix 1: Assemble chunks into final file
+    const chunkPrefix = updated.companyId + "/uploads/" + attachmentId + "/chunk-";
     const assembledBuffers: Buffer[] = [];
     const chunkOffsets: number[] = [];
     let offset = 0;
 
-    while (offset < row.sizeBytes) {
-      const chunkKey = `${chunkPrefix}${zeroPad(offset)}`;
-      const chunkData = await storage.getRawObject(row.companyId, chunkKey);
+    while (offset < updated.sizeBytes) {
+      const chunkKey = chunkPrefix + zeroPad(offset);
+      const chunkData = await storage.getRawObject(updated.companyId, chunkKey);
       assembledBuffers.push(chunkData);
       chunkOffsets.push(offset);
       offset += chunkData.length;
@@ -213,24 +256,30 @@ export function attachmentRoutes(db: Db, storage: StorageService) {
 
     const assembledFile = Buffer.concat(assembledBuffers);
 
+    // Fix 7: Sanitize filename before building storage key
+    const safeFilename = updated.filename
+      .replace(/[/\\]/g, "_")
+      .replace(/\0/g, "")
+      .slice(0, 255);
+    const finalKey = updated.companyId + "/files/" + attachmentId + "/" + safeFilename;
+
     // Write assembled file to final storage key
-    const finalStorageKey = `${row.companyId}/files/${attachmentId}/${row.filename}`;
-    await storage.putRawObject(row.companyId, finalStorageKey, assembledFile, row.mimeType);
+    await storage.putRawObject(updated.companyId, finalKey, assembledFile, updated.mimeType);
 
     // Delete temporary chunks (best-effort)
     for (const chunkOffset of chunkOffsets) {
-      const chunkKey = `${chunkPrefix}${zeroPad(chunkOffset)}`;
+      const chunkKey = chunkPrefix + zeroPad(chunkOffset);
       try {
-        await storage.deleteObject(row.companyId, chunkKey);
+        await storage.deleteObject(updated.companyId, chunkKey);
       } catch {
         // best-effort cleanup
       }
     }
 
-    // Fix 3: support commentId in /complete
+    // Link commentId if provided
     const { commentId } = req.body ?? {};
     const updateFields: Record<string, unknown> = {
-      storageKey: finalStorageKey,
+      storageKey: finalKey,
       status: "ready",
       updatedAt: new Date(),
     };
@@ -238,37 +287,36 @@ export function attachmentRoutes(db: Db, storage: StorageService) {
       updateFields.commentId = commentId;
     }
 
-    // Fix 6: media-worker is fire-and-forget, status stays 'ready'
     const needsThumbnail =
-      row.mimeType.startsWith("image/") || row.mimeType.startsWith("video/");
+      updated.mimeType.startsWith("image/") || updated.mimeType.startsWith("video/");
 
     await db
       .update(attachments)
       .set(updateFields as any)
       .where(eq(attachments.id, attachmentId));
 
-    // Fix 11: fallback env vars for media worker URL
+    // Fire-and-forget thumbnail job
     if (needsThumbnail) {
       const mediaWorkerUrl =
         process.env.PAPERCLIP_MEDIA_WORKER_URL ??
         process.env.MEDIA_WORKER_URL ??
         "http://media-worker:8200";
-      fetch(`${mediaWorkerUrl}/jobs/thumbnail`, {
+      fetch(mediaWorkerUrl + "/jobs/thumbnail", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           attachmentId,
-          storageKey: finalStorageKey,
-          mimeType: row.mimeType,
+          storageKey: finalKey,
+          mimeType: updated.mimeType,
         }),
       })
-        .then((r) => { if (!r.ok) logger.warn(`media-worker returned ${r.status}`); })
-        .catch((err) => logger.warn({ err }, "media-worker unreachable"));
+        .then((r) => { if (!r.ok) logger.warn("media-worker returned " + r.status); })
+        .catch((err: Error) => logger.warn("media-worker unreachable:", err.message));
     }
 
     const actor = getActorInfo(req);
     await logActivity(db, {
-      companyId: row.companyId,
+      companyId: updated.companyId,
       actorType: actor.actorType,
       actorId: actor.actorId,
       agentId: actor.agentId,
@@ -276,17 +324,17 @@ export function attachmentRoutes(db: Db, storage: StorageService) {
       action: "attachment.upload_complete",
       entityType: "attachment",
       entityId: attachmentId,
-      details: { filename: row.filename, mimeType: row.mimeType, sizeBytes: row.sizeBytes },
+      details: { filename: updated.filename, mimeType: updated.mimeType, sizeBytes: updated.sizeBytes },
     });
 
     res.json({
-      url: `/api/attachments/${attachmentId}/content`,
+      url: "/api/attachments/" + attachmentId + "/content",
       attachmentId,
       status: "ready",
     });
   });
 
-  // Fix 2: GET /issue/:issueId — list attachments for an issue
+  // GET /issue/:issueId — list attachments for an issue
   router.get("/issue/:issueId", async (req, res) => {
     if (req.actor.type === "none") {
       res.status(401).json({ error: "Unauthorized" });
@@ -295,13 +343,15 @@ export function attachmentRoutes(db: Db, storage: StorageService) {
 
     const { issueId } = req.params;
 
-    // Derive companyId from actor or query param
     let companyId: string | undefined;
     if (req.actor.type === "agent") {
-      companyId = req.actor.companyId!;
+      if (!req.actor.companyId) {
+        res.status(400).json({ error: "Agent token is missing company context" });
+        return;
+      }
+      companyId = req.actor.companyId;
     } else {
-      const qp = req.query.companyId;
-      companyId = typeof qp === "string" ? qp : undefined;
+      companyId = req.query.companyId as string | undefined;
     }
 
     if (!companyId) {
@@ -319,7 +369,7 @@ export function attachmentRoutes(db: Db, storage: StorageService) {
     res.json({ attachments: rows });
   });
 
-  // GET /:attachmentId — metadata + download URL
+  // Fix 8: GET /:attachmentId — metadata + download URL (DTO response)
   router.get("/:attachmentId", async (req, res) => {
     if (req.actor.type === "none") {
       res.status(401).json({ error: "Unauthorized" });
@@ -340,8 +390,22 @@ export function attachmentRoutes(db: Db, storage: StorageService) {
     assertCompanyAccess(req, row.companyId);
 
     res.json({
-      ...row,
-      downloadUrl: `/api/attachments/${attachmentId}/content`,
+      id: row.id,
+      issueId: row.issueId,
+      commentId: row.commentId,
+      uploaderType: row.uploaderType,
+      uploaderId: row.uploaderId,
+      filename: row.filename,
+      mimeType: row.mimeType,
+      sizeBytes: row.sizeBytes,
+      versionOf: row.versionOf,
+      versionNum: row.versionNum,
+      status: row.status,
+      publishUrl: row.publishUrl,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      downloadUrl: "/api/attachments/" + attachmentId + "/content",
+      thumbnailUrl: row.thumbnailKey ? "/api/attachments/" + attachmentId + "/thumbnail" : null,
     });
   });
 
@@ -375,11 +439,10 @@ export function attachmentRoutes(db: Db, storage: StorageService) {
         res.setHeader("Content-Length", String(row.sizeBytes || object.contentLength || 0));
       }
       res.setHeader("Cache-Control", "private, max-age=60");
-      // Fix 10: proper Content-Disposition header for unicode filenames
       const fname = row.filename ?? "attachment";
       res.setHeader(
         "Content-Disposition",
-        `inline; filename*=UTF-8''${encodeURIComponent(fname)}`,
+        "inline; filename*=UTF-8''" + encodeURIComponent(fname),
       );
       object.stream.on("error", (err) => next(err));
       object.stream.pipe(res);

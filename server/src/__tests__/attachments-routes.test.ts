@@ -8,7 +8,9 @@ import type { StorageService } from "../storage/types.js";
 
 const insertReturningMock = vi.fn();
 const selectWhereMock = vi.fn();
-const updateSetMock = vi.fn();
+const updateReturningMock = vi.fn();
+const updateWhereMock = vi.fn(() => ({ returning: updateReturningMock }));
+const updateSetMock = vi.fn(() => ({ where: updateWhereMock }));
 const deleteWhereMock = vi.fn();
 const logActivityMock = vi.fn();
 
@@ -27,11 +29,7 @@ function createDbMock() {
   }));
   const selectFn = vi.fn(() => ({ from: selectFrom }));
 
-  const updateReturning = vi.fn();
-  const updateWhere = vi.fn(() => ({ returning: updateReturning }));
-  const updateSet = vi.fn(() => ({ where: updateWhere }));
-  updateSetMock.mockImplementation(updateSet);
-  const updateFn = vi.fn(() => ({ set: updateSet }));
+  const updateFn = vi.fn(() => ({ set: updateSetMock }));
 
   const deleteFn = vi.fn(() => ({ where: deleteWhereMock }));
 
@@ -57,7 +55,9 @@ function createStorageMock(): StorageService {
     getObject: vi.fn(),
     headObject: vi.fn(),
     deleteObject: vi.fn(),
-  };
+    putRawObject: vi.fn().mockResolvedValue(undefined),
+    getRawObject: vi.fn().mockResolvedValue(Buffer.from("chunk-data")),
+  } as any;
 }
 
 function makeRow(overrides: Record<string, unknown> = {}) {
@@ -71,7 +71,7 @@ function makeRow(overrides: Record<string, unknown> = {}) {
     filename: "test.png",
     mimeType: "image/png",
     sizeBytes: 1024,
-    storageKey: "files/company-1/att-1/test.png",
+    storageKey: "company-1/files/att-1/test.png",
     thumbnailKey: null,
     htmlPreviewKey: null,
     versionOf: null,
@@ -124,7 +124,7 @@ function createApp(
 
 describe("POST /api/attachments/init", () => {
   afterEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   it("validates required fields — missing issueId", async () => {
@@ -163,7 +163,7 @@ describe("POST /api/attachments/init", () => {
     expect(res.body.error).toContain("mimeType");
   });
 
-  it("rejects unsupported mimeType", async () => {
+  it("rejects unsupported mimeType with 415", async () => {
     const db = createDbMock();
     const app = createApp(db, createStorageMock());
 
@@ -177,15 +177,35 @@ describe("POST /api/attachments/init", () => {
         companyId: "company-1",
       });
 
-    expect(res.status).toBe(422);
+    expect(res.status).toBe(415);
     expect(res.body.error).toContain("Unsupported content type");
+  });
+
+  it("rejects dangerous filenames", async () => {
+    const db = createDbMock();
+    const app = createApp(db, createStorageMock());
+
+    const res = await request(app)
+      .post("/api/attachments/init")
+      .send({
+        issueId: "issue-1",
+        filename: "../../../etc/passwd",
+        mimeType: "image/png",
+        sizeBytes: 100,
+        companyId: "company-1",
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain("Invalid filename");
   });
 
   it("creates attachment row on valid input", async () => {
     const db = createDbMock();
     const row = makeRow();
-    insertReturningMock.mockResolvedValue([row]);
-    logActivityMock.mockResolvedValue(undefined);
+    // First select: issue ownership check
+    selectWhereMock.mockResolvedValueOnce([{ id: "issue-1", companyId: "company-1" }]);
+    insertReturningMock.mockResolvedValueOnce([row]);
+    logActivityMock.mockResolvedValueOnce(undefined);
 
     const app = createApp(db, createStorageMock());
 
@@ -203,17 +223,35 @@ describe("POST /api/attachments/init", () => {
     expect(res.body).toHaveProperty("uploadId");
     expect(res.body).toHaveProperty("attachmentId");
   });
+
+  it("returns 404 when issue does not belong to company", async () => {
+    const db = createDbMock();
+    selectWhereMock.mockResolvedValueOnce([{ id: "issue-1", companyId: "other-company" }]);
+
+    const app = createApp(db, createStorageMock());
+
+    const res = await request(app)
+      .post("/api/attachments/init")
+      .send({
+        issueId: "issue-1",
+        filename: "test.png",
+        mimeType: "image/png",
+        sizeBytes: 1024,
+        companyId: "company-1",
+      });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toContain("Issue not found");
+  });
 });
 
 describe("PUT /api/attachments/:attachmentId/chunk", () => {
   afterEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   it("rejects missing Content-Range header", async () => {
     const db = createDbMock();
-    const row = makeRow();
-    selectWhereMock.mockResolvedValue([row]);
 
     const app = createApp(db, createStorageMock());
 
@@ -227,7 +265,6 @@ describe("PUT /api/attachments/:attachmentId/chunk", () => {
 
   it("rejects invalid Content-Range format", async () => {
     const db = createDbMock();
-    selectWhereMock.mockResolvedValue([makeRow()]);
 
     const app = createApp(db, createStorageMock());
 
@@ -242,7 +279,7 @@ describe("PUT /api/attachments/:attachmentId/chunk", () => {
 
   it("returns 404 for non-existent attachment", async () => {
     const db = createDbMock();
-    selectWhereMock.mockResolvedValue([]);
+    selectWhereMock.mockResolvedValueOnce([]);
 
     const app = createApp(db, createStorageMock());
 
@@ -256,7 +293,7 @@ describe("PUT /api/attachments/:attachmentId/chunk", () => {
 
   it("rejects chunk for already-completed upload", async () => {
     const db = createDbMock();
-    selectWhereMock.mockResolvedValue([makeRow({ status: "ready" })]);
+    selectWhereMock.mockResolvedValueOnce([makeRow({ status: "ready" })]);
 
     const app = createApp(db, createStorageMock());
 
@@ -271,16 +308,20 @@ describe("PUT /api/attachments/:attachmentId/chunk", () => {
 
 describe("POST /api/attachments/:attachmentId/complete", () => {
   afterEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
-  it("updates status to ready when no thumbnail needed", async () => {
+  it("assembles chunks and updates status to ready", async () => {
     const db = createDbMock();
-    const row = makeRow({ mimeType: "application/pdf" });
-    selectWhereMock.mockResolvedValue([row]);
-    logActivityMock.mockResolvedValue(undefined);
+    const storageMock = createStorageMock();
+    const row = makeRow({ mimeType: "application/pdf", sizeBytes: 10, storageKey: "" });
 
-    const app = createApp(db, createStorageMock());
+    // Fix 5: first update (atomic transition) uses default chain -> returning
+    updateReturningMock.mockResolvedValueOnce([row]);
+    logActivityMock.mockResolvedValueOnce(undefined);
+    (storageMock.getRawObject as any).mockResolvedValueOnce(Buffer.alloc(10));
+
+    const app = createApp(db, storageMock);
 
     const res = await request(app)
       .post("/api/attachments/att-1/complete")
@@ -294,7 +335,10 @@ describe("POST /api/attachments/:attachmentId/complete", () => {
 
   it("returns 409 for already completed upload", async () => {
     const db = createDbMock();
-    selectWhereMock.mockResolvedValue([makeRow({ status: "ready" })]);
+    // Atomic update returns nothing (already completed)
+    updateReturningMock.mockResolvedValueOnce([]);
+    // Fallback select finds the row with non-uploading status
+    selectWhereMock.mockResolvedValueOnce([makeRow({ status: "ready" })]);
 
     const app = createApp(db, createStorageMock());
 
@@ -304,18 +348,33 @@ describe("POST /api/attachments/:attachmentId/complete", () => {
 
     expect(res.status).toBe(409);
   });
+
+  it("returns 404 for non-existent attachment", async () => {
+    const db = createDbMock();
+    // Atomic update returns nothing
+    updateReturningMock.mockResolvedValueOnce([]);
+    // Fallback select also finds nothing
+    selectWhereMock.mockResolvedValueOnce([]);
+
+    const app = createApp(db, createStorageMock());
+
+    const res = await request(app)
+      .post("/api/attachments/att-1/complete")
+      .send();
+
+    expect(res.status).toBe(404);
+  });
 });
 
 describe("GET /api/attachments/:attachmentId", () => {
   afterEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   it("returns 404 for wrong company (tenant isolation)", async () => {
     const db = createDbMock();
-    selectWhereMock.mockResolvedValue([makeRow({ companyId: "other-company" })]);
+    selectWhereMock.mockResolvedValueOnce([makeRow({ companyId: "other-company" })]);
 
-    // Actor has access to company-1, attachment belongs to other-company
     const app = createApp(db, createStorageMock(), {
       type: "board",
       source: "session",
@@ -325,14 +384,13 @@ describe("GET /api/attachments/:attachmentId", () => {
 
     const res = await request(app).get("/api/attachments/att-1");
 
-    // assertCompanyAccess throws a forbidden error
     expect(res.status).toBe(403);
   });
 
-  it("returns attachment metadata for matching company", async () => {
+  it("returns attachment DTO for matching company", async () => {
     const db = createDbMock();
     const row = makeRow({ status: "ready" });
-    selectWhereMock.mockResolvedValue([row]);
+    selectWhereMock.mockResolvedValueOnce([row]);
 
     const app = createApp(db, createStorageMock());
 
@@ -341,11 +399,14 @@ describe("GET /api/attachments/:attachmentId", () => {
     expect(res.status).toBe(200);
     expect(res.body.id).toBe("att-1");
     expect(res.body.downloadUrl).toContain("/api/attachments/att-1/content");
+    // Fix 8: should NOT leak storageKey or htmlPreviewKey
+    expect(res.body).not.toHaveProperty("storageKey");
+    expect(res.body).not.toHaveProperty("htmlPreviewKey");
   });
 
   it("returns 404 for non-existent attachment", async () => {
     const db = createDbMock();
-    selectWhereMock.mockResolvedValue([]);
+    selectWhereMock.mockResolvedValueOnce([]);
 
     const app = createApp(db, createStorageMock());
 
@@ -357,13 +418,13 @@ describe("GET /api/attachments/:attachmentId", () => {
 
 describe("DELETE /api/attachments/:attachmentId", () => {
   afterEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   it("rejects deletion by non-owner non-admin", async () => {
     const db = createDbMock();
     const row = makeRow({ uploaderId: "other-user" });
-    selectWhereMock.mockResolvedValue([row]);
+    selectWhereMock.mockResolvedValueOnce([row]);
 
     const app = createApp(db, createStorageMock(), {
       type: "board",
@@ -382,10 +443,10 @@ describe("DELETE /api/attachments/:attachmentId", () => {
   it("allows deletion by the uploader", async () => {
     const db = createDbMock();
     const storageMock = createStorageMock();
-    const row = makeRow({ uploaderId: "user-1", storageKey: "files/company-1/att-1/test.png" });
-    selectWhereMock.mockResolvedValue([row]);
-    deleteWhereMock.mockResolvedValue(undefined);
-    logActivityMock.mockResolvedValue(undefined);
+    const row = makeRow({ uploaderId: "user-1", storageKey: "company-1/files/att-1/test.png" });
+    selectWhereMock.mockResolvedValueOnce([row]);
+    deleteWhereMock.mockResolvedValueOnce(undefined);
+    logActivityMock.mockResolvedValueOnce(undefined);
 
     const app = createApp(db, storageMock);
 
@@ -393,16 +454,16 @@ describe("DELETE /api/attachments/:attachmentId", () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ ok: true });
-    expect(storageMock.deleteObject).toHaveBeenCalledWith("company-1", "files/company-1/att-1/test.png");
+    expect(storageMock.deleteObject).toHaveBeenCalledWith("company-1", "company-1/files/att-1/test.png");
   });
 
   it("allows deletion by instance admin", async () => {
     const db = createDbMock();
     const storageMock = createStorageMock();
     const row = makeRow({ uploaderId: "other-user" });
-    selectWhereMock.mockResolvedValue([row]);
-    deleteWhereMock.mockResolvedValue(undefined);
-    logActivityMock.mockResolvedValue(undefined);
+    selectWhereMock.mockResolvedValueOnce([row]);
+    deleteWhereMock.mockResolvedValueOnce(undefined);
+    logActivityMock.mockResolvedValueOnce(undefined);
 
     const app = createApp(db, storageMock, {
       type: "board",
