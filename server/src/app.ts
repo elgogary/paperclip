@@ -215,8 +215,5 @@ export async function createApp(
 
   app.use(errorHandler);
 
-  jobCoordinator.start();
-
-
   return app;
 }
