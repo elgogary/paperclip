@@ -150,6 +150,11 @@ export async function createApp(
   api.use(sidebarBadgeRoutes(db));
   api.use(instanceSettingsRoutes(db));
   api.use(pluginRoutes(db));
+  api.use(scheduledJobRoutes(db));
+  api.use(skillRoutes(db));
+  api.use(mcpServerRoutes(db));
+  api.use(connectorRoutes(db));
+  api.use(evolutionRoutes(db));
   api.use(
     accessRoutes(db, {
       deploymentMode: opts.deploymentMode,
