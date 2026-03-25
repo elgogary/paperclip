@@ -67,5 +67,4 @@ export { mcpServerConfigs } from "./mcp_server_configs.js";
 export { mcpAgentAccess } from "./mcp_agent_access.js";
 export { mcpCatalog } from "./mcp_catalog.js";
 export { connectors } from "./connectors.js";
-export { plugins } from "./plugins.js";
 export { pluginAgentAccess } from "./plugin_agent_access.js";
