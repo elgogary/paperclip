@@ -1,4 +1,5 @@
-import { writeFile, readFile, unlink, mkdtemp } from "node:fs/promises";
+import * as fs from "node:fs/promises";
+import { readFile, mkdtemp } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { spawn } from "node:child_process";
@@ -15,7 +16,7 @@ const OFFICE_MIME_TYPES = new Set([
   "application/vnd.oasis.opendocument.presentation",
 ]);
 
-const MIME_TO_EXT = {
+export const MIME_TO_EXT = {
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
   "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
@@ -35,22 +36,14 @@ export function isOfficeType(mimeType) {
 }
 
 /**
- * Run LibreOffice headless to convert a buffer to HTML.
+ * Run LibreOffice headless to convert a file on disk to HTML.
+ * @param {string} inputPath - path to the input file on disk
+ * @param {string} workDir - temp directory for output
  * Returns { htmlBase64: string } or { htmlBase64: null, error: string }.
  */
-export async function convertToHtml(buffer, mimeType) {
-  if (!isOfficeType(mimeType)) {
-    return { htmlBase64: null, error: "Unsupported MIME type for conversion" };
-  }
-
-  const workDir = await mkdtemp(join(tmpdir(), "media-worker-"));
-  const ext = MIME_TO_EXT[mimeType] || "bin";
-  const inputPath = join(workDir, `input.${ext}`);
-
+export async function convertToHtml(inputPath, workDir) {
   try {
-    await writeFile(inputPath, buffer);
-
-    const exitCode = await new Promise((resolve, reject) => {
+    const { exitCode, stderr } = await new Promise((resolve, reject) => {
       const proc = spawn("libreoffice", [
         "--headless",
         "--convert-to", "html",
@@ -58,14 +51,15 @@ export async function convertToHtml(buffer, mimeType) {
         inputPath,
       ], { stdio: ["ignore", "pipe", "pipe"] });
 
-      let stderr = "";
-      proc.stderr.on("data", (d) => { stderr += d; });
-      proc.on("close", (code) => resolve(code));
+      let stderrBuf = "";
+      proc.stderr.on("data", (d) => { stderrBuf += d; });
+      proc.on("close", (code) => resolve({ exitCode: code, stderr: stderrBuf }));
       proc.on("error", (err) => reject(err));
     });
 
     if (exitCode !== 0) {
-      return { htmlBase64: null, error: "LibreOffice exited with code " + exitCode };
+      console.error(`[convert] LibreOffice exited ${exitCode}: ${stderr}`);
+      throw new Error(`LibreOffice exited with code ${exitCode}: ${stderr.slice(0, 200)}`);
     }
 
     const htmlPath = join(workDir, "input.html");
@@ -74,8 +68,8 @@ export async function convertToHtml(buffer, mimeType) {
   } catch (err) {
     return { htmlBase64: null, error: err.message || "Conversion failed" };
   } finally {
-    // Best-effort cleanup
-    try { await unlink(inputPath); } catch {}
-    try { await unlink(join(workDir, "input.html")); } catch {}
+    try {
+      await fs.rm(workDir, { recursive: true, force: true });
+    } catch {}
   }
 }
