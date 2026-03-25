@@ -127,5 +127,25 @@ export function createStorageService(provider: StorageProvider): StorageService 
       ensureCompanyPrefix(companyId, objectKey);
       await provider.deleteObject({ objectKey });
     },
+
+    async putRawObject(companyId: string, objectKey: string, body: Buffer, contentType: string) {
+      ensureCompanyPrefix(companyId, objectKey);
+      await provider.putObject({
+        objectKey,
+        body,
+        contentType,
+        contentLength: body.length,
+      });
+    },
+
+    async getRawObject(companyId: string, objectKey: string): Promise<Buffer> {
+      ensureCompanyPrefix(companyId, objectKey);
+      const result = await provider.getObject({ objectKey });
+      const chunks: Buffer[] = [];
+      for await (const chunk of result.stream) {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+      }
+      return Buffer.concat(chunks);
+    },
   };
 }

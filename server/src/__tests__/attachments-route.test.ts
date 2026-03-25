@@ -45,6 +45,8 @@ const mockStorage = {
   getObject: vi.fn(),
   headObject: vi.fn(),
   deleteObject: vi.fn(),
+  putRawObject: vi.fn().mockResolvedValue(undefined),
+  getRawObject: vi.fn().mockResolvedValue(Buffer.from("chunk-data")),
 };
 
 function createApp(actorOverrides: Record<string, unknown> = {}) {
@@ -72,7 +74,7 @@ describe("attachment routes", () => {
   });
 
   describe("POST /api/attachments/init", () => {
-    it("rejects disallowed MIME type with 422", async () => {
+    it("rejects disallowed MIME type with 415", async () => {
       const res = await request(createApp())
         .post("/api/attachments/init")
         .send({
@@ -83,11 +85,11 @@ describe("attachment routes", () => {
           companyId: "company-1",
         });
 
-      expect(res.status).toBe(422);
+      expect(res.status).toBe(415);
       expect(res.body.error).toMatch(/unsupported content type/i);
     });
 
-    it("rejects oversized file with 422", async () => {
+    it("rejects oversized file with 413", async () => {
       const res = await request(createApp())
         .post("/api/attachments/init")
         .send({
@@ -98,7 +100,7 @@ describe("attachment routes", () => {
           companyId: "company-1",
         });
 
-      expect(res.status).toBe(422);
+      expect(res.status).toBe(413);
       expect(res.body.error).toMatch(/too large/i);
     });
 
@@ -159,6 +161,98 @@ describe("attachment routes", () => {
 
       expect(res.status).toBe(201);
       expect(res.body.attachmentId).toBe("att-new");
+    });
+  });
+
+  describe("PUT /api/attachments/:id/chunk", () => {
+    it("returns 400 when Content-Range header is missing", async () => {
+      const res = await request(createApp())
+        .put("/api/attachments/att-1/chunk")
+        .send(Buffer.from("data"));
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/content-range/i);
+    });
+
+    it("returns 403 when attachment belongs to a different company", async () => {
+      mockFrom.mockReturnValueOnce({
+        where: vi.fn().mockResolvedValueOnce([
+          {
+            id: "att-1",
+            companyId: "other-company",
+            storageKey: "",
+            sizeBytes: 100,
+            mimeType: "image/png",
+            filename: "file.png",
+          },
+        ]),
+      });
+
+      const res = await request(createApp())
+        .put("/api/attachments/att-1/chunk")
+        .set("Content-Range", "bytes 0-3/100")
+        .set("Content-Type", "application/octet-stream")
+        .send(Buffer.from("data"));
+
+      expect(res.status).toBe(403);
+    });
+  });
+
+  describe("POST /api/attachments/:id/complete", () => {
+    it("returns 401 for unauthenticated request", async () => {
+      const res = await request(createApp({ type: "none" }))
+        .post("/api/attachments/att-1/complete")
+        .send({});
+
+      expect(res.status).toBe(401);
+    });
+
+    it("returns 403 when attachment belongs to a different company", async () => {
+      mockFrom.mockReturnValueOnce({
+        where: vi.fn().mockResolvedValueOnce([
+          {
+            id: "att-1",
+            companyId: "other-company",
+            storageKey: "",
+            sizeBytes: 10,
+            mimeType: "text/plain",
+            filename: "file.txt",
+          },
+        ]),
+      });
+
+      const res = await request(createApp())
+        .post("/api/attachments/att-1/complete")
+        .send({});
+
+      expect(res.status).toBe(403);
+    });
+
+    it("links commentId when provided in complete request", async () => {
+      const chunkData = Buffer.from("hello file");
+      mockFrom.mockReturnValueOnce({
+        where: vi.fn().mockResolvedValueOnce([
+          {
+            id: "att-1",
+            companyId: "company-1",
+            storageKey: "",
+            sizeBytes: chunkData.length,
+            mimeType: "text/plain",
+            filename: "file.txt",
+          },
+        ]),
+      });
+      mockStorage.getRawObject.mockResolvedValueOnce(chunkData);
+      mockWhere.mockResolvedValueOnce({ returning: mockReturning });
+
+      const res = await request(createApp())
+        .post("/api/attachments/att-1/complete")
+        .send({ commentId: "comment-99" });
+
+      expect(res.status).toBe(200);
+      expect(mockSetFn).toHaveBeenCalled();
+      const setArg = mockSetFn.mock.calls[0][0];
+      expect(setArg.commentId).toBe("comment-99");
     });
   });
 
