@@ -31,6 +31,12 @@ services:
       SANAD_BRAIN_API_KEY: "c246f4294bf4a99ccfb2883f68352a9889789076414b7cf93cbd3fb01f735d4e"
     volumes:
       - paperclip-data:/paperclip
+      - /home/eslam/optiflow:/workspace:rw
+      - /home/eslam/data/projects/sanad-brain-mcp:/home/eslam/data/projects/sanad-brain-mcp:ro
+      - /home/eslam/data/projects/paperclip/skills:/workspace/skills:ro
+      - /home/eslam/data/projects/paperclip/plugins:/workspace/plugins:ro
+      - /home/eslam/data/projects/paperclip/mcp-servers:/workspace/mcp-servers:ro
+      - /home/eslam/.npm:/home/eslam/.npm:ro
     depends_on:
       db:
         condition: service_healthy

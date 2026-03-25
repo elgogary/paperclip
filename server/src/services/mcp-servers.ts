@@ -1,4 +1,4 @@
-import { asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
 import { mcpServerConfigs, mcpAgentAccess, mcpCatalog } from "@paperclipai/db";
 import { toSlug } from "../utils/slug.js";
@@ -102,6 +102,31 @@ export function mcpServersService(db: Db) {
         .from(mcpAgentAccess)
         .where(eq(mcpAgentAccess.mcpServerId, serverId))
         .orderBy(asc(mcpAgentAccess.createdAt));
+    },
+
+    async listForAgent(agentId: string, companyId: string): Promise<McpServerConfig[]> {
+      const accessRows = await db
+        .select({ mcpServerId: mcpAgentAccess.mcpServerId })
+        .from(mcpAgentAccess)
+        .where(and(eq(mcpAgentAccess.agentId, agentId), eq(mcpAgentAccess.granted, true)));
+
+      if (accessRows.length === 0) {
+        // No explicit access rows → default: all enabled company servers
+        return db
+          .select()
+          .from(mcpServerConfigs)
+          .where(and(eq(mcpServerConfigs.companyId, companyId), eq(mcpServerConfigs.enabled, true)))
+          .orderBy(asc(mcpServerConfigs.createdAt))
+          .limit(500);
+      }
+
+      const serverIds = accessRows.map((r) => r.mcpServerId);
+      return db
+        .select()
+        .from(mcpServerConfigs)
+        .where(and(inArray(mcpServerConfigs.id, serverIds), eq(mcpServerConfigs.enabled, true)))
+        .orderBy(asc(mcpServerConfigs.createdAt))
+        .limit(500);
     },
 
     async updateAccess(serverId: string, agentId: string, granted: boolean): Promise<void> {
