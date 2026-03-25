@@ -52,10 +52,10 @@ git checkout feature/multimodal-attachments
 git pull origin feature/multimodal-attachments
 ```
 
-Verify the latest commit hash matches `16152efd`:
+Verify the latest commit hash matches `f9854743`:
 ```bash
 git log --oneline -1
-# expected: 16152efd fix(media-worker): enforce maxBytes during stream...
+# expected: f9854743 fix(server): agent vision — per-image 5MB cap, pdf-parse types fix, CSV routing guard, oversized image test
 ```
 
 ### 2. Add new env vars to .env
