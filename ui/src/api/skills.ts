@@ -31,7 +31,6 @@ export interface SkillAgentAccess {
 
 export interface CreateSkillInput {
   name: string;
-  slug: string;
   description?: string | null;
   icon?: string | null;
   category?: string | null;
@@ -63,5 +62,5 @@ export const skillsApi = {
     api.get<{ access: SkillAgentAccess[] }>(`/companies/${companyId}/skills/${skillId}/access`),
 
   updateAccess: (companyId: string, skillId: string, access: { agentId: string; granted: boolean }[]) =>
-    api.put<{ ok: true }>(`/companies/${companyId}/skills/${skillId}/access`, { access }),
+    api.put<{ ok: true }>(`/companies/${companyId}/skills/${skillId}/access`, { grants: access }),
 };

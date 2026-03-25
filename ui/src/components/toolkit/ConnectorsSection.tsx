@@ -18,7 +18,7 @@ const CONNECTOR_ICONS: Record<string, { icon: string; bg: string }> = {
   jira: { icon: "\u{1F3AF}", bg: "rgba(59,130,246,.1)" },
 };
 
-// Mock connectors for items that may not exist in DB yet
+// TODO: replace with real connectors API
 const MOCK_CONNECTORS = [
   { id: "mock-gmail", name: "Gmail", slug: "gmail", provider: "google", status: "needs_auth", description: "Read, send, and manage emails" },
   { id: "mock-gcal", name: "Google Calendar", slug: "google-calendar", provider: "google", status: "needs_auth", description: "View and create calendar events" },

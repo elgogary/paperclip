@@ -116,7 +116,7 @@ export function SkillsSection() {
 
   const customCount = skills.filter((s) => s.source === "user").length;
   const builtinCount = skills.filter((s) => s.source === "builtin").length;
-  const agentsUsingCount = new Set(skills.flatMap(() => [])).size || agents.filter((a) => a.status !== "terminated").length;
+  const agentsUsingCount = skills.length;
 
   function openDetail(skill: Skill) {
     setSelectedSkill(skill);
@@ -124,10 +124,8 @@ export function SkillsSection() {
   }
 
   function handleCreate() {
-    const slug = newName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
     createSkill.mutate({
       name: newName,
-      slug,
       description: newDesc || null,
       category: newCategory || null,
       invokedBy: newInvokedBy as "user_or_agent" | "agent_only" | "user_only",

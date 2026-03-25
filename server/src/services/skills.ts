@@ -1,6 +1,7 @@
 import { and, asc, eq } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
 import { skills, skillAgentAccess } from "@paperclipai/db";
+import { toSlug } from "../utils/slug.js";
 
 export type Skill = typeof skills.$inferSelect;
 export type SkillAgentAccess = typeof skillAgentAccess.$inferSelect;
@@ -18,13 +19,6 @@ export type CreateSkillInput = {
   enabled?: boolean;
   createdBy?: string;
 };
-
-function toSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
 
 export function skillsService(db: Db) {
   return {

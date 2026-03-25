@@ -53,7 +53,7 @@ export function McpServersSection() {
   const servers: McpServerConfig[] = serversData?.servers ?? [];
 
   const toggleServer = useMutation({
-    mutationFn: (server: McpServerConfig) => mcpServersApi.toggle(selectedCompanyId!, server.id),
+    mutationFn: (server: McpServerConfig) => mcpServersApi.toggle(selectedCompanyId!, server.id, !server.enabled),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.mcpServers.list(selectedCompanyId!) }),
   });
@@ -91,8 +91,9 @@ export function McpServersSection() {
   const healthyCount = servers.filter((s) => s.healthStatus === "healthy").length;
   const unhealthyCount = servers.filter((s) => s.healthStatus === "unhealthy").length;
   const toolCount = servers.reduce((acc, s) => {
-    const tools = (s.configJson as any)?.toolCount ?? 0;
-    return acc + tools;
+    const cfg = s.configJson as Record<string, unknown> | null;
+    const count = typeof cfg?.toolCount === "number" ? cfg.toolCount : 0;
+    return acc + count;
   }, 0);
 
   function openConfigure(server: McpServerConfig) {
@@ -160,7 +161,7 @@ export function McpServersSection() {
           <div className="rounded-lg border border-border bg-card p-3.5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xl font-bold">{toolCount || servers.length * 5}</p>
+                <p className="text-xl font-bold">{toolCount}</p>
                 <p className="text-[11px] text-muted-foreground">Tools</p>
               </div>
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
@@ -287,7 +288,7 @@ export function McpServersSection() {
                   )}>
                     {server.direction?.charAt(0).toUpperCase() + (server.direction?.slice(1) ?? "")}
                   </span>
-                  <span>Tools: {(server.configJson as any)?.toolCount ?? "?"}</span>
+                  <span>Tools: {(typeof (server.configJson as Record<string, unknown> | null)?.toolCount === "number" ? (server.configJson as Record<string, unknown>).toolCount as number : "?")}</span>
                 </div>
 
                 <div className="flex gap-1.5 pt-2.5 border-t border-border mt-2">
@@ -302,7 +303,7 @@ export function McpServersSection() {
                   </Button>
                   <div className="flex-1" />
                   <button
-                    onClick={() => deleteServer.mutate(server.id)}
+                    onClick={() => { if (window.confirm("Delete this server? This cannot be undone.")) deleteServer.mutate(server.id); }}
                     className="flex h-6 w-6 items-center justify-center rounded border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors"
                   >
                     <Trash2 className="h-3 w-3" />
@@ -364,7 +365,7 @@ export function McpServersSection() {
                       </span>
                     </td>
                     <td className="px-3 py-2.5 text-xs text-muted-foreground">
-                      {(server.configJson as any)?.toolCount ?? "?"}
+                      {(typeof (server.configJson as Record<string, unknown> | null)?.toolCount === "number" ? (server.configJson as Record<string, unknown>).toolCount as number : "?")}
                     </td>
                     <td className="px-3 py-2.5">
                       <button

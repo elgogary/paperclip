@@ -76,7 +76,7 @@ export function skillRoutes(db: Db) {
     const existing = await getSkillOrNotFound(svc, skillId, companyId, res);
     if (!existing) return;
     await svc.remove(skillId);
-    res.status(204).end();
+    res.json({ ok: true });
   });
 
   router.get("/companies/:companyId/skills/:skillId/access", async (req, res) => {

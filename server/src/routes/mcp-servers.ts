@@ -27,7 +27,11 @@ export function mcpServerRoutes(db: Db) {
     assertCompanyAccess(req, companyId);
 
     const servers = await svc.list(companyId);
-    res.json({ servers });
+    const redacted = servers.map((s) => ({
+      ...s,
+      env: s.env ? Object.fromEntries(Object.keys(s.env).map((k) => [k, "***"])) : s.env,
+    }));
+    res.json({ servers: redacted });
   });
 
   router.post("/companies/:companyId/mcp-servers", async (req, res) => {
@@ -76,7 +80,7 @@ export function mcpServerRoutes(db: Db) {
     const existing = await getServerOrNotFound(svc, serverId, companyId, res);
     if (!existing) return;
     await svc.remove(serverId);
-    res.status(204).end();
+    res.json({ ok: true });
   });
 
   router.post("/companies/:companyId/mcp-servers/:serverId/test", async (req, res) => {

@@ -21,6 +21,7 @@ interface MockLogEntry {
   error?: string;
 }
 
+// TODO: replace with real log API
 const MOCK_LOGS: MockLogEntry[] = [
   { id: "1", tool: "create_pull_request", agent: "TechLead", timestamp: "2m ago", duration: 340, status: "success" },
   { id: "2", tool: "search_repositories", agent: "BackendEng", timestamp: "8m ago", duration: 210, status: "success" },

@@ -69,5 +69,5 @@ export const pluginsApi = {
     api.get<{ access: PluginAgentAccess[] }>(`/companies/${companyId}/plugins/${pluginId}/access`),
 
   updateAccess: (companyId: string, pluginId: string, access: { agentId: string; granted: boolean }[]) =>
-    api.put<{ ok: true }>(`/companies/${companyId}/plugins/${pluginId}/access`, { access }),
+    api.put<{ ok: true }>(`/companies/${companyId}/plugins/${pluginId}/access`, { grants: access }),
 };

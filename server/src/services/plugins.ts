@@ -1,6 +1,7 @@
 import { asc, eq } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
 import { plugins, pluginAgentAccess } from "@paperclipai/db";
+import { toSlug } from "../utils/slug.js";
 
 export type Plugin = typeof plugins.$inferSelect;
 export type PluginAgentAccess = typeof pluginAgentAccess.$inferSelect;
@@ -17,13 +18,6 @@ export type CreatePluginInput = {
   url?: string;
   enabled?: boolean;
 };
-
-function toSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
 
 export function pluginsService(db: Db) {
   return {

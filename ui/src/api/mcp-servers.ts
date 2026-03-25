@@ -80,14 +80,14 @@ export const mcpServersApi = {
       {},
     ),
 
-  toggle: (companyId: string, serverId: string) =>
-    api.post<{ ok: true }>(`/companies/${companyId}/mcp-servers/${serverId}/toggle`, {}),
+  toggle: (companyId: string, serverId: string, enabled: boolean) =>
+    api.post<{ ok: true }>(`/companies/${companyId}/mcp-servers/${serverId}/toggle`, { enabled }),
 
   getAccess: (companyId: string, serverId: string) =>
     api.get<{ access: McpAgentAccess[] }>(`/companies/${companyId}/mcp-servers/${serverId}/access`),
 
   updateAccess: (companyId: string, serverId: string, access: { agentId: string; granted: boolean }[]) =>
-    api.put<{ ok: true }>(`/companies/${companyId}/mcp-servers/${serverId}/access`, { access }),
+    api.put<{ ok: true }>(`/companies/${companyId}/mcp-servers/${serverId}/access`, { grants: access }),
 
   listCatalog: (companyId: string) =>
     api.get<{ catalog: McpCatalogEntry[] }>(`/companies/${companyId}/mcp-catalog`),

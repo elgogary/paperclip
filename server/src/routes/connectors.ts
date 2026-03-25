@@ -62,7 +62,7 @@ export function connectorRoutes(db: Db) {
     const existing = await getConnectorOrNotFound(svc, connectorId, companyId, res);
     if (!existing) return;
     await svc.remove(connectorId);
-    res.status(204).end();
+    res.json({ ok: true });
   });
 
   return router;

@@ -192,7 +192,7 @@ export function PluginsSection() {
                   </Button>
                   <div className="flex-1" />
                   <button
-                    onClick={() => deletePlugin.mutate(plugin.id)}
+                    onClick={() => { if (window.confirm("Delete this plugin? This cannot be undone.")) deletePlugin.mutate(plugin.id); }}
                     className="flex h-6 w-6 items-center justify-center rounded border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors"
                   >
                     <Trash2 className="h-3 w-3" />

@@ -27,7 +27,11 @@ export function pluginRoutes(db: Db) {
     assertCompanyAccess(req, companyId);
 
     const plugins = await svc.list(companyId);
-    res.json({ plugins });
+    const redacted = plugins.map((p) => ({
+      ...p,
+      env: p.env ? Object.fromEntries(Object.keys(p.env).map((k) => [k, "***"])) : p.env,
+    }));
+    res.json({ plugins: redacted });
   });
 
   router.post("/companies/:companyId/plugins", async (req, res) => {
@@ -76,7 +80,7 @@ export function pluginRoutes(db: Db) {
     const existing = await getPluginOrNotFound(svc, pluginId, companyId, res);
     if (!existing) return;
     await svc.remove(pluginId);
-    res.status(204).end();
+    res.json({ ok: true });
   });
 
   router.post("/companies/:companyId/plugins/:pluginId/test", async (req, res) => {

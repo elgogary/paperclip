@@ -1,6 +1,7 @@
 import { asc, desc, eq } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
 import { mcpServerConfigs, mcpAgentAccess, mcpCatalog } from "@paperclipai/db";
+import { toSlug } from "../utils/slug.js";
 
 export type McpServerConfig = typeof mcpServerConfigs.$inferSelect;
 export type McpAgentAccess = typeof mcpAgentAccess.$inferSelect;
@@ -19,13 +20,6 @@ export type CreateMcpServerInput = {
   catalogId?: string;
   configJson?: Record<string, unknown>;
 };
-
-function toSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
 
 export function mcpServersService(db: Db) {
   return {
