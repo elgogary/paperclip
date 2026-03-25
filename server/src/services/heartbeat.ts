@@ -51,6 +51,8 @@ import {
 } from "./execution-workspace-policy.js";
 import { instanceSettingsService } from "./instance-settings.js";
 import { redactCurrentUserText, redactCurrentUserValue } from "../log-redaction.js";
+import { buildAttachmentContextForIssue, renderAttachmentContextMarkdown } from "./attachment-context.js";
+import { getStorageService } from "../storage/index.js";
 import {
   hasSessionCompactionThresholds,
   resolveSessionCompactionPolicy,
@@ -2371,6 +2373,36 @@ export function heartbeatService(db: Db) {
           payload: meta as unknown as Record<string, unknown>,
         });
       };
+
+      // Inject attachment context for the issue (images, docs, code, file notes)
+      if (issueId) {
+        try {
+          const storage = getStorageService();
+          const attachCtx = await buildAttachmentContextForIssue(issueId, {
+            db,
+            storage,
+            companyId: agent.companyId,
+          });
+          if (attachCtx.attachmentCount > 0) {
+            context.paperclipAttachments = {
+              visionBlocks: attachCtx.visionBlocks,
+              textSnippets: attachCtx.textSnippets,
+              fileNotes: attachCtx.fileNotes,
+              totalImageBytes: attachCtx.totalImageBytes,
+              attachmentCount: attachCtx.attachmentCount,
+            };
+            const attachMarkdown = renderAttachmentContextMarkdown(attachCtx);
+            if (attachMarkdown) {
+              context.paperclipAttachmentMarkdown = attachMarkdown;
+            }
+          }
+        } catch (err) {
+          logger.warn(
+            { err, issueId, agentId: agent.id, runId: run.id },
+            "Failed to build attachment context for agent run (non-fatal)",
+          );
+        }
+      }
 
       const adapter = getServerAdapter(agent.adapterType);
       const authToken = adapter.supportsLocalAgentJwt
