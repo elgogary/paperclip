@@ -580,3 +580,16 @@ export {
   type SecretsLocalEncryptedConfig,
   type ConfigMeta,
 } from "./config-schema.js";
+
+export {
+  asString,
+  isPlainRecord,
+  normalizePortablePath,
+  prepareYamlLines,
+  parseYamlScalar,
+  parseYamlBlock,
+  parseYamlFrontmatter,
+  parseFrontmatterMarkdown,
+} from "./yaml-parser.js";
+
+export { normalizeSkillSlug, normalizeSkillKey } from "./skill-keys.js";
