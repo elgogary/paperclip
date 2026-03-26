@@ -1,0 +1,10 @@
+{
+  "name": "document-generator",
+  "command": "python3",
+  "args": ["mcp-servers/document-generator/server.py"],
+  "description": "Generate professional .docx and .pptx from branded templates + structured content",
+  "env": {
+    "DOC_OUTPUT_DIR": "/tmp/doc-generator"
+  },
+  "tools": ["list_templates", "generate_document_docx", "generate_document_pptx", "render_diagram"]
+}
