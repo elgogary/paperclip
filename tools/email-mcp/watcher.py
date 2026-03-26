@@ -349,7 +349,8 @@ def create_task(em, cls):
 
     log.info(f"Task {issue_id[:8]} -> {cat}")
     _api("POST", f"/agents/{agent_id}/wakeup", {
-        "source": "email",
+        "source": "automation",
+        "triggerDetail": "email-watcher",
         "reason": f"Email from {em['from_addr']}: {em['subject'][:60]}",
         "payload": {"issueId": issue_id},
     })
