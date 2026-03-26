@@ -68,6 +68,7 @@ AGENT_NAMES = {
 
 DEFAULT_AGENT = "sales"
 NOTIFY_AGENTS = ["technical"]  # Tech lead sees all incoming emails
+BOARD_CC = os.environ.get("BOARD_CC", "eng.elgogary@gmail.com")  # Board always CC'd
 PRIORITY_KEYWORDS_HIGH = ["urgent", "asap", "critical", "complaint"]
 PRIORITY_KEYWORDS_LOW = ["fyi", "newsletter", "update", "unsubscribe"]
 
@@ -131,10 +132,14 @@ def _attachments(msg):
 
 # ── SMTP Replies ────────────────────────────────────────────────────────
 
-def _send_email(to: str, subject: str, body_text: str, in_reply_to: str = ""):
+def _send_email(to: str, subject: str, body_text: str, in_reply_to: str = "", cc: str = ""):
     msg = MIMEMultipart("alternative")
     msg["From"] = MAIL_USER
     msg["To"] = to
+    if cc or BOARD_CC:
+        all_cc = ", ".join(filter(None, [cc, BOARD_CC if BOARD_CC not in (to, cc or "") else ""]))
+        if all_cc:
+            msg["Cc"] = all_cc
     msg["Subject"] = subject
     msg["Date"] = formatdate(localtime=True)
     if in_reply_to:
@@ -343,9 +348,10 @@ def create_task(em, cls):
         return None
 
     log.info(f"Task {issue_id[:8]} -> {cat}")
-    _api("POST", f"/companies/{PAPERCLIP_COMPANY_ID}/agents/{agent_id}/wake", {
+    _api("POST", f"/agents/{agent_id}/wakeup", {
+        "source": "email",
         "reason": f"Email from {em['from_addr']}: {em['subject'][:60]}",
-        "issueId": issue_id,
+        "payload": {"issueId": issue_id},
     })
 
     # Notify tech lead (and any other NOTIFY_AGENTS) on every incoming email
@@ -422,13 +428,18 @@ def _create_chat_invite(em, issue_id, agent_id, category):
         msg = MIMEText(body, "plain", "utf-8")
         msg["From"] = formataddr((agent_first, MAIL_USER))
         msg["To"] = em["from_addr"]
+        if BOARD_CC and BOARD_CC != em["from_addr"]:
+            msg["Cc"] = BOARD_CC
         msg["Subject"] = f"Re: {em['subject']}"
         if em.get("message_id"):
             msg["In-Reply-To"] = em["message_id"]
             msg["References"] = em["message_id"]
 
+        recipients = [em["from_addr"]]
+        if BOARD_CC and BOARD_CC != em["from_addr"]:
+            recipients.append(BOARD_CC)
         smtp = get_smtp()
-        smtp.sendmail(MAIL_USER, [em["from_addr"]], msg.as_string())
+        smtp.sendmail(MAIL_USER, recipients, msg.as_string())
         smtp.quit()
         log.info(f"Chat invite sent to {em['from_addr']}: {chat_url}")
     except Exception as e:
