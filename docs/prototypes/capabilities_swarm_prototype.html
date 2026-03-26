@@ -264,6 +264,8 @@
     <div class="tab" onclick="switchTab('sources')">&#x1F517; Sources <span class="tab-count">5</span></div>
     <div class="tab" onclick="switchTab('queue')">&#x1F514; Queue <span class="tab-count" style="background:rgba(239,68,68,.25);color:var(--red)">3</span></div>
     <div class="tab" onclick="switchTab('audit')">&#x1F4DC; Audit</div>
+    <div class="tab" onclick="switchTab('economics')">&#x1F4B0; Economics</div>
+    <div class="tab" onclick="switchTab('budgets')">&#x1F464; Agent Budgets</div>
   </div>
 
   <div class="content">
@@ -705,6 +707,396 @@
           <div class="audit-body">
             <div class="audit-action"><strong>Gmail Connector</strong> installed</div>
             <div class="audit-detail">Auto-approved (trusted private source). Installed by TechLead. Source: internal repo.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- TAB 5: ECONOMICS (CEO/Admin view)                          -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <div id="panel-economics" class="panel">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Swarm Economics</div>
+          <div class="page-sub">Investment tracking: what goes in (tokens, time, money) vs what comes out (capabilities, knowledge, ROI).</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <select class="form-select" style="width:140px;padding:5px 10px;font-size:12px;background:var(--card)">
+            <option>This Month</option>
+            <option>Last 7 Days</option>
+            <option>Last 30 Days</option>
+            <option>All Time</option>
+          </select>
+          <button class="btn btn-cancel btn-sm">Export CSV</button>
+        </div>
+      </div>
+
+      <!-- Investment vs Return summary -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+        <!-- INPUT side -->
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px">
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--red);margin-bottom:12px">&#x1F4C9; Total Investment (Cost)</div>
+          <div style="font-size:28px;font-weight:700;margin-bottom:14px">$847.30</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:var(--blue)"></span><span style="font-size:12px">Token costs (API)</span></div>
+              <div style="font-size:13px;font-weight:600">$140.20</div>
+            </div>
+            <div style="background:oklch(0.18 0 0);border-radius:4px;height:6px;overflow:hidden"><div style="width:16.5%;height:100%;background:var(--blue);border-radius:4px"></div></div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:var(--purple)"></span><span style="font-size:12px">Agent time (opportunity)</span></div>
+              <div style="font-size:13px;font-weight:600">$127.10</div>
+            </div>
+            <div style="background:oklch(0.18 0 0);border-radius:4px;height:6px;overflow:hidden"><div style="width:15%;height:100%;background:var(--purple);border-radius:4px"></div></div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:var(--yellow)"></span><span style="font-size:12px">Paid capabilities</span></div>
+              <div style="font-size:13px;font-weight:600">$580.00</div>
+            </div>
+            <div style="background:oklch(0.18 0 0);border-radius:4px;height:6px;overflow:hidden"><div style="width:68.5%;height:100%;background:var(--yellow);border-radius:4px"></div></div>
+          </div>
+          <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:12px;color:var(--muted-fg)">
+            <span>4.2M tokens consumed</span><span>38 hrs agent time</span>
+          </div>
+        </div>
+
+        <!-- OUTPUT side -->
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px">
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--green);margin-bottom:12px">&#x1F4C8; Total Return (Value)</div>
+          <div style="font-size:28px;font-weight:700;margin-bottom:4px">$3,218.50</div>
+          <div style="font-size:14px;font-weight:700;color:var(--green);margin-bottom:14px">ROI: 3.8x &#x2191;</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:var(--green)"></span><span style="font-size:12px">Time saved (reuse)</span></div>
+              <div style="font-size:13px;font-weight:600">$2,640.00</div>
+            </div>
+            <div style="background:oklch(0.18 0 0);border-radius:4px;height:6px;overflow:hidden"><div style="width:82%;height:100%;background:var(--green);border-radius:4px"></div></div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:var(--cyan)"></span><span style="font-size:12px">Knowledge created</span></div>
+              <div style="font-size:13px;font-weight:600">$378.50</div>
+            </div>
+            <div style="background:oklch(0.18 0 0);border-radius:4px;height:6px;overflow:hidden"><div style="width:11.8%;height:100%;background:var(--cyan);border-radius:4px"></div></div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:var(--orange)"></span><span style="font-size:12px">Cross-agent transfers</span></div>
+              <div style="font-size:13px;font-weight:600">$200.00</div>
+            </div>
+            <div style="background:oklch(0.18 0 0);border-radius:4px;height:6px;overflow:hidden"><div style="width:6.2%;height:100%;background:var(--orange);border-radius:4px"></div></div>
+          </div>
+          <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:12px;color:var(--muted-fg)">
+            <span>47 knowledge entries</span><span>12 cross-transfers</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Capability ROI Leaderboard -->
+      <div style="margin-bottom:20px">
+        <div style="font-size:14px;font-weight:700;margin-bottom:10px">Capability ROI Leaderboard</div>
+        <table class="source-table">
+          <thead><tr><th>Capability</th><th>Type</th><th>Cost</th><th>Value Generated</th><th>ROI</th><th>Uses</th><th>Agents</th><th>Quality</th><th>Market Price</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>code-review</strong></td>
+              <td><span class="type-badge type-skill">Skill</span></td>
+              <td style="color:var(--muted-fg)">$0.45</td>
+              <td style="color:var(--green);font-weight:600">$540.00</td>
+              <td><span style="color:var(--green);font-weight:700">12.0x &#x2191;</span></td>
+              <td>48</td>
+              <td>5</td>
+              <td><span style="color:var(--green)">9.2/10</span></td>
+              <td><span class="price-tag price-free">Free</span></td>
+            </tr>
+            <tr>
+              <td><strong>bug-fix</strong></td>
+              <td><span class="type-badge type-skill">Skill</span></td>
+              <td style="color:var(--muted-fg)">$0.38</td>
+              <td style="color:var(--green);font-weight:600">$320.00</td>
+              <td><span style="color:var(--green);font-weight:700">8.4x &#x2191;</span></td>
+              <td>32</td>
+              <td>3</td>
+              <td><span style="color:var(--green)">8.8/10</span></td>
+              <td><span class="price-tag price-free">Free</span></td>
+            </tr>
+            <tr>
+              <td><strong>Slack MCP</strong></td>
+              <td><span class="type-badge type-mcp">MCP</span></td>
+              <td style="color:var(--muted-fg)">$12.03</td>
+              <td style="color:var(--green);font-weight:600">$83.00</td>
+              <td><span style="color:var(--green);font-weight:700">6.9x &#x2191;</span></td>
+              <td>8</td>
+              <td>3</td>
+              <td><span style="color:var(--green)">8.5/10</span></td>
+              <td><span class="price-tag price-paid">$12 &#x2192; $10.50</span></td>
+            </tr>
+            <tr>
+              <td><strong>Gmail Connector</strong></td>
+              <td><span class="type-badge type-connector">Conn</span></td>
+              <td style="color:var(--muted-fg)">$8.02</td>
+              <td style="color:var(--green);font-weight:600">$45.00</td>
+              <td><span style="color:var(--green);font-weight:700">5.6x &#x2191;</span></td>
+              <td>12</td>
+              <td>2</td>
+              <td><span style="color:var(--blue)">7.5/10</span></td>
+              <td><span class="price-tag price-paid">$8/mo</span></td>
+            </tr>
+            <tr>
+              <td><strong>GitHub Connector Pro</strong></td>
+              <td><span class="type-badge type-connector">Conn</span></td>
+              <td style="color:var(--muted-fg)">$45.10</td>
+              <td style="color:var(--green);font-weight:600">$120.00</td>
+              <td><span style="color:var(--blue);font-weight:700">2.7x</span></td>
+              <td>6</td>
+              <td>2</td>
+              <td><span style="color:var(--blue)">7.8/10</span></td>
+              <td><span class="price-tag price-premium">$45/mo</span></td>
+            </tr>
+            <tr style="opacity:.6">
+              <td><strong>custom-scraper</strong></td>
+              <td><span class="type-badge type-skill">Skill</span></td>
+              <td style="color:var(--muted-fg)">$0.22</td>
+              <td style="color:var(--red);font-weight:600">-$5.00</td>
+              <td><span style="color:var(--red);font-weight:700">-22.7x &#x2193;</span></td>
+              <td>1</td>
+              <td>1</td>
+              <td><span style="color:var(--red)">3.0/10</span></td>
+              <td><span style="color:var(--red);font-size:11px">&#x26A0; Flagged</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Transaction Ledger (recent) -->
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="font-size:14px;font-weight:700">Recent Transactions</div>
+          <button class="btn btn-cancel btn-sm">View Full Ledger</button>
+        </div>
+        <table class="source-table">
+          <thead><tr><th>Time</th><th>Agent</th><th>Action</th><th>Capability</th><th>Tokens</th><th>Time</th><th>Cost</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="color:var(--muted-fg);font-size:12px">Today 06:15</td>
+              <td><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:18px;height:18px;border-radius:50%;background:rgba(59,130,246,.2);color:var(--blue);display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700">TL</span> TechLead</span></td>
+              <td><span style="color:var(--green)">&#x2713; Acquire</span></td>
+              <td>Slack MCP</td>
+              <td style="color:var(--muted-fg)">45.2K</td>
+              <td style="color:var(--muted-fg)">12 min</td>
+              <td style="color:var(--yellow)">$12.03</td>
+              <td style="color:var(--muted-fg)">pending...</td>
+            </tr>
+            <tr>
+              <td style="color:var(--muted-fg);font-size:12px">Today 05:42</td>
+              <td><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:18px;height:18px;border-radius:50%;background:rgba(16,185,129,.2);color:var(--green);display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700">BE</span> BackendEng</span></td>
+              <td><span style="color:var(--blue)">&#x1F504; Use</span></td>
+              <td>code-review</td>
+              <td style="color:var(--muted-fg)">8.1K</td>
+              <td style="color:var(--muted-fg)">3 min</td>
+              <td style="color:var(--muted-fg)">$0.01</td>
+              <td style="color:var(--green)">+$15.00</td>
+            </tr>
+            <tr>
+              <td style="color:var(--muted-fg);font-size:12px">Today 04:20</td>
+              <td><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:18px;height:18px;border-radius:50%;background:rgba(139,92,246,.2);color:var(--purple);display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700">SD</span> SwarmDirector</span></td>
+              <td><span style="color:var(--orange)">&#x1F4E4; Share</span></td>
+              <td>bug-fix &#x2192; FrontendEng</td>
+              <td style="color:var(--muted-fg)">2.3K</td>
+              <td style="color:var(--muted-fg)">1 min</td>
+              <td style="color:var(--muted-fg)">$0.00</td>
+              <td style="color:var(--green)">+$8.00</td>
+            </tr>
+            <tr>
+              <td style="color:var(--muted-fg);font-size:12px">Today 03:10</td>
+              <td><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:18px;height:18px;border-radius:50%;background:rgba(236,72,153,.2);color:var(--pink);display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700">FE</span> FrontendEng</span></td>
+              <td><span style="color:var(--cyan)">&#x2B50; Evaluate</span></td>
+              <td>playwright-mcp</td>
+              <td style="color:var(--muted-fg)">3.5K</td>
+              <td style="color:var(--muted-fg)">2 min</td>
+              <td style="color:var(--muted-fg)">$0.00</td>
+              <td style="color:var(--muted-fg)">Score: 9.0</td>
+            </tr>
+            <tr style="opacity:.6">
+              <td style="color:var(--muted-fg);font-size:12px">Yesterday 22:00</td>
+              <td><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:18px;height:18px;border-radius:50%;background:rgba(16,185,129,.2);color:var(--green);display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700">SR</span> SalesRep1</span></td>
+              <td><span style="color:var(--red)">&#x2717; Failed</span></td>
+              <td>custom-scraper</td>
+              <td style="color:var(--muted-fg)">12.0K</td>
+              <td style="color:var(--muted-fg)">8 min</td>
+              <td style="color:var(--red)">$0.22</td>
+              <td style="color:var(--red)">-$5.00</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- TAB 6: AGENT BUDGETS                                       -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <div id="panel-budgets" class="panel">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Agent Budgets</div>
+          <div class="page-sub">Per-agent Swarm allowances, spend tracking, and capability proficiency.</div>
+        </div>
+        <button class="btn btn-primary" onclick="">Allocate Budgets</button>
+      </div>
+
+      <!-- Agent budget cards -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <!-- TechLead -->
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <div style="width:36px;height:36px;border-radius:50%;background:rgba(59,130,246,.2);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">TL</div>
+            <div>
+              <div style="font-weight:700">TechLead</div>
+              <div style="font-size:11px;color:var(--muted-fg)">Hourly rate: $50/hr &middot; Role: CTO</div>
+            </div>
+            <div style="margin-left:auto;text-align:right">
+              <div style="font-size:11px;color:var(--muted-fg)">Monthly ROI</div>
+              <div style="font-size:16px;font-weight:700;color:var(--green)">8.2x</div>
+            </div>
+          </div>
+          <!-- Token budget -->
+          <div style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted-fg);margin-bottom:3px">
+              <span>Tokens: 280K / 400K remaining</span><span>70%</span>
+            </div>
+            <div class="budget-meter"><div class="budget-meter-fill" style="width:30%;background:var(--blue)"></div></div>
+          </div>
+          <!-- Money budget -->
+          <div style="margin-bottom:12px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted-fg);margin-bottom:3px">
+              <span>Paid caps: $132 / $200 remaining</span><span>34%</span>
+            </div>
+            <div class="budget-meter"><div class="budget-meter-fill" style="width:34%;background:var(--yellow)"></div></div>
+          </div>
+          <!-- Capabilities -->
+          <div style="font-size:11px;font-weight:600;color:var(--muted-fg);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Top Capabilities</div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;justify-content:space-between;font-size:12px"><span>code-review</span><span style="color:var(--green)">Expert &middot; 9.2</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:12px"><span>Slack MCP</span><span style="color:var(--yellow)">Learning &middot; 6.5</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:12px"><span>bug-fix</span><span style="color:var(--green)">Expert &middot; 8.8</span></div>
+          </div>
+          <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--cyan)">&#x1F4A1; Director rec: "Consider playwright-mcp for UI testing"</div>
+        </div>
+
+        <!-- BackendEng -->
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <div style="width:36px;height:36px;border-radius:50%;background:rgba(16,185,129,.2);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">BE</div>
+            <div>
+              <div style="font-weight:700">BackendEng</div>
+              <div style="font-size:11px;color:var(--muted-fg)">Hourly rate: $40/hr &middot; Role: Engineer</div>
+            </div>
+            <div style="margin-left:auto;text-align:right">
+              <div style="font-size:11px;color:var(--muted-fg)">Monthly ROI</div>
+              <div style="font-size:16px;font-weight:700;color:var(--green)">5.4x</div>
+            </div>
+          </div>
+          <div style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted-fg);margin-bottom:3px">
+              <span>Tokens: 210K / 300K remaining</span><span>70%</span>
+            </div>
+            <div class="budget-meter"><div class="budget-meter-fill" style="width:30%;background:var(--blue)"></div></div>
+          </div>
+          <div style="margin-bottom:12px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted-fg);margin-bottom:3px">
+              <span>Paid caps: $108 / $150 remaining</span><span>28%</span>
+            </div>
+            <div class="budget-meter"><div class="budget-meter-fill" style="width:28%;background:var(--yellow)"></div></div>
+          </div>
+          <div style="font-size:11px;font-weight:600;color:var(--muted-fg);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Top Capabilities</div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;justify-content:space-between;font-size:12px"><span>bug-fix</span><span style="color:var(--green)">Expert &middot; 9.0</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:12px"><span>code-review</span><span style="color:var(--green)">Competent &middot; 7.8</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:12px"><span>PostgreSQL MCP</span><span style="color:var(--yellow)">Novice &middot; 5.2</span></div>
+          </div>
+          <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--cyan)">&#x1F4A1; Director rec: "PostgreSQL MCP proficiency low, schedule practice"</div>
+        </div>
+
+        <!-- FrontendEng -->
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <div style="width:36px;height:36px;border-radius:50%;background:rgba(236,72,153,.2);color:var(--pink);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">FE</div>
+            <div>
+              <div style="font-weight:700">FrontendEng</div>
+              <div style="font-size:11px;color:var(--muted-fg)">Hourly rate: $40/hr &middot; Role: Engineer</div>
+            </div>
+            <div style="margin-left:auto;text-align:right">
+              <div style="font-size:11px;color:var(--muted-fg)">Monthly ROI</div>
+              <div style="font-size:16px;font-weight:700;color:var(--blue)">3.1x</div>
+            </div>
+          </div>
+          <div style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted-fg);margin-bottom:3px">
+              <span>Tokens: 165K / 200K remaining</span><span>82%</span>
+            </div>
+            <div class="budget-meter"><div class="budget-meter-fill" style="width:18%;background:var(--blue)"></div></div>
+          </div>
+          <div style="margin-bottom:12px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted-fg);margin-bottom:3px">
+              <span>Paid caps: $75 / $100 remaining</span><span>25%</span>
+            </div>
+            <div class="budget-meter"><div class="budget-meter-fill" style="width:25%;background:var(--yellow)"></div></div>
+          </div>
+          <div style="font-size:11px;font-weight:600;color:var(--muted-fg);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Top Capabilities</div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;justify-content:space-between;font-size:12px"><span>playwright-mcp</span><span style="color:var(--green)">Expert &middot; 9.0</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:12px"><span>stitch-design</span><span style="color:var(--blue)">Competent &middot; 7.2</span></div>
+          </div>
+          <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--cyan)">&#x1F4A1; Director rec: "Share playwright expertise with TechLead"</div>
+        </div>
+
+        <!-- SalesRep -->
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <div style="width:36px;height:36px;border-radius:50%;background:rgba(249,115,22,.2);color:var(--orange);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">SR</div>
+            <div>
+              <div style="font-weight:700">SalesRep1</div>
+              <div style="font-size:11px;color:var(--muted-fg)">Hourly rate: $30/hr &middot; Role: Sales</div>
+            </div>
+            <div style="margin-left:auto;text-align:right">
+              <div style="font-size:11px;color:var(--muted-fg)">Monthly ROI</div>
+              <div style="font-size:16px;font-weight:700;color:var(--red)">0.8x</div>
+            </div>
+          </div>
+          <div style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted-fg);margin-bottom:3px">
+              <span>Tokens: 82K / 100K remaining</span><span>82%</span>
+            </div>
+            <div class="budget-meter"><div class="budget-meter-fill" style="width:18%;background:var(--blue)"></div></div>
+          </div>
+          <div style="margin-bottom:12px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted-fg);margin-bottom:3px">
+              <span>Paid caps: $42 / $50 remaining</span><span>16%</span>
+            </div>
+            <div class="budget-meter"><div class="budget-meter-fill" style="width:16%;background:var(--yellow)"></div></div>
+          </div>
+          <div style="font-size:11px;font-weight:600;color:var(--muted-fg);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Top Capabilities</div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;justify-content:space-between;font-size:12px"><span>Gmail Connector</span><span style="color:var(--blue)">Competent &middot; 7.5</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:12px"><span>custom-scraper</span><span style="color:var(--red)">Failed &middot; 3.0</span></div>
+          </div>
+          <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--yellow)">&#x26A0; Director: "ROI below 1x. Review capability choices with SalesManager."</div>
+        </div>
+
+        <!-- Swarm Director itself -->
+        <div style="background:var(--card);border:1px solid rgba(139,92,246,.3);border-radius:10px;padding:16px;grid-column:1/-1">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <div style="width:36px;height:36px;border-radius:50%;background:rgba(139,92,246,.2);color:var(--purple);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">SD</div>
+            <div>
+              <div style="font-weight:700">Swarm Director <span style="font-size:11px;font-weight:400;color:var(--purple)">(system agent)</span></div>
+              <div style="font-size:11px;color:var(--muted-fg)">Manages discovery, analysis, mentoring, cross-agent transfers</div>
+            </div>
+            <div style="margin-left:auto;display:flex;gap:20px;text-align:center">
+              <div><div style="font-size:11px;color:var(--muted-fg)">Budget</div><div style="font-size:14px;font-weight:700">148K / 200K tokens</div></div>
+              <div><div style="font-size:11px;color:var(--muted-fg)">Actions</div><div style="font-size:14px;font-weight:700">23 this month</div></div>
+              <div><div style="font-size:11px;color:var(--muted-fg)">Recommendations</div><div style="font-size:14px;font-weight:700">8 sent &middot; 5 accepted</div></div>
+              <div><div style="font-size:11px;color:var(--muted-fg)">Knowledge Created</div><div style="font-size:14px;font-weight:700;color:var(--cyan)">47 entries</div></div>
+            </div>
           </div>
         </div>
       </div>
