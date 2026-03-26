@@ -21,6 +21,7 @@ from mcp.server.fastmcp import FastMCP
 from generators.docx_generator import generate_docx
 from generators.pptx_generator import generate_pptx
 from generators.diagram_renderer import render_mermaid
+from generators.html_presentation import generate_html_presentation, THEMES
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 OUTPUT_DIR = Path(os.environ.get("DOC_OUTPUT_DIR", "/tmp/doc-generator"))
@@ -194,6 +195,68 @@ def render_diagram(
         return json.dumps({"status": "ok", "path": str(output_path), **result})
     except Exception as e:
         return json.dumps({"error": str(e)})
+
+
+@mcp.tool()
+def generate_presentation(
+    slides_json: str,
+    theme: str = "accubuild",
+    output_filename: str = "presentation.html",
+) -> str:
+    """Generate a beautiful HTML slide deck with rich design (NOT basic python-pptx).
+
+    This produces magazine-quality HTML slides with:
+    - Scroll-snap navigation (arrow keys, scroll, space)
+    - Color-coded modules with icons
+    - Atmospheric backgrounds, card grids, flow diagrams
+    - Stats boxes, step lists, professional tables
+    - Print-to-PDF ready
+
+    Args:
+        slides_json: JSON string with slide array. Each slide has a "type" field:
+            - "title": Full-screen title with gradient background
+            - "section": Module divider with icon circle
+            - "steps": Numbered process steps with badges
+            - "cards": Grid of feature/info cards
+            - "table": Professional styled table
+            - "flow": Horizontal flow diagram with arrows
+            - "stats": KPI/metric boxes with big numbers
+            - "closing": End slide with CTA
+
+            Example: {"slides": [
+                {"type": "title", "title": "AccuBuild", "subtitle": "Overview"},
+                {"type": "section", "title": "Bidding", "module": "bid"},
+                {"type": "steps", "title": "How It Works", "module": "bid",
+                 "steps": [{"title": "Step 1", "desc": "Details"}]}
+            ]}
+        theme: Theme name: "accubuild" (blue), "midnight" (dark), "steel" (gray)
+        output_filename: Output HTML filename.
+
+    Returns: JSON with path, size, slide count.
+    """
+    try:
+        data = json.loads(slides_json)
+    except json.JSONDecodeError as e:
+        return json.dumps({"error": f"Invalid JSON: {e}"})
+
+    data["theme"] = theme
+    output_path = OUTPUT_DIR / output_filename
+    try:
+        result = generate_html_presentation(data, output_path)
+        return json.dumps({"status": "ok", "path": str(output_path), **result})
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+@mcp.tool()
+def list_themes() -> str:
+    """List available presentation themes."""
+    return json.dumps({
+        "themes": [
+            {"name": k, "display": v["name"], "primary": v["primary"]}
+            for k, v in THEMES.items()
+        ]
+    })
 
 
 if __name__ == "__main__":
