@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sanad AI — Agent Chat</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+:root {
+  --bg: #0a0a0f;
+  --bg-surface: #13131a;
+  --bg-elevated: #1a1a24;
+  --bg-hover: #22222e;
+  --border: #2a2a38;
+  --border-light: #1f1f2e;
+  --text: #e4e4e7;
+  --text-muted: #71717a;
+  --text-dim: #52525b;
+  --accent: #6366f1;
+  --accent-light: #818cf8;
+  --accent-bg: rgba(99,102,241,0.1);
+  --accent-border: rgba(99,102,241,0.3);
+  --green: #22c55e;
+  --green-bg: rgba(34,197,94,0.1);
+  --orange: #f59e0b;
+  --orange-bg: rgba(245,158,11,0.1);
+  --red: #ef4444;
+  --red-bg: rgba(239,68,68,0.1);
+  --customer-bubble: #1e293b;
+  --agent-bubble: #1a1a2e;
+  --radius: 12px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif;
+       background: var(--bg); color: var(--text); min-height: 100vh; display: flex; }
+a { color: var(--accent-light); text-decoration: none; }
+
+/* ── Layout ──────────────────────────────────────────── */
+.layout { display: flex; width: 100%; min-height: 100vh; }
+.sidebar { width: 340px; background: var(--bg-surface); border-right: 1px solid var(--border);
+           display: flex; flex-direction: column; flex-shrink: 0; }
+.chat-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+/* ── Sidebar ─────────────────────────────────────────── */
+.sidebar-header { padding: 20px; border-bottom: 1px solid var(--border); }
+.brand { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.brand-icon { width: 36px; height: 36px; background: var(--accent); border-radius: 10px;
+              display: flex; align-items: center; justify-content: center; font-size: 16px; color: #fff; }
+.brand-name { font-size: 15px; font-weight: 700; }
+.brand-sub { font-size: 11px; color: var(--text-muted); }
+
+/* Timer */
+.timer-bar { background: var(--bg-elevated); border-radius: 8px; padding: 12px 14px; margin-top: 12px; }
+.timer-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.timer-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.timer-value { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums;
+               font-family: 'SF Mono', 'Cascadia Code', monospace; }
+.timer-value.warning { color: var(--orange); }
+.timer-value.danger { color: var(--red); }
+.timer-progress { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.timer-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 1s linear; }
+.timer-fill.warning { background: var(--orange); }
+.timer-fill.danger { background: var(--red); }
+
+/* Agent Profile */
+.sidebar-section { padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.section-title { font-size: 10px; color: var(--text-dim); text-transform: uppercase;
+                 letter-spacing: 1px; font-weight: 600; margin-bottom: 10px; }
+.agent-card { display: flex; gap: 12px; align-items: flex-start; }
+.agent-avatar { width: 44px; height: 44px; background: var(--accent-bg); border: 2px solid var(--accent-border);
+                border-radius: 12px; display: flex; align-items: center; justify-content: center;
+                font-size: 18px; flex-shrink: 0; }
+.agent-info { flex: 1; min-width: 0; }
+.agent-name { font-size: 14px; font-weight: 600; }
+.agent-name .arabic { font-size: 12px; color: var(--text-muted); margin-left: 6px; }
+.agent-role { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.agent-status { display: inline-flex; align-items: center; gap: 5px; font-size: 11px;
+                color: var(--green); margin-top: 4px; }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+              animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+/* Email Context */
+.email-card { background: var(--bg-elevated); border-radius: 8px; padding: 12px; }
+.email-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.email-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; }
+.email-value { font-size: 12px; color: var(--text); }
+.email-subject { font-size: 13px; font-weight: 600; margin-top: 8px; padding-top: 8px;
+                 border-top: 1px solid var(--border); }
+.email-preview { font-size: 11px; color: var(--text-muted); margin-top: 6px; line-height: 1.5;
+                 display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* Company Info */
+.company-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
+.company-icon { width: 28px; height: 28px; background: var(--bg-elevated); border-radius: 6px;
+                display: flex; align-items: center; justify-content: center;
+                font-size: 12px; color: var(--text-muted); }
+.company-label { font-size: 11px; color: var(--text-muted); }
+.company-value { font-size: 12px; }
+
+/* ── Chat Area ───────────────────────────────────────── */
+.chat-header { padding: 14px 24px; border-bottom: 1px solid var(--border);
+               display: flex; align-items: center; justify-content: space-between;
+               background: var(--bg-surface); }
+.chat-header-left { display: flex; align-items: center; gap: 10px; }
+.chat-header-avatar { width: 32px; height: 32px; background: var(--accent-bg);
+                      border-radius: 8px; display: flex; align-items: center;
+                      justify-content: center; font-size: 14px; }
+.chat-header-name { font-size: 14px; font-weight: 600; }
+.chat-header-typing { font-size: 11px; color: var(--accent-light); }
+.chat-header-actions { display: flex; gap: 8px; }
+.chat-action-btn { background: var(--bg-elevated); border: 1px solid var(--border);
+                   border-radius: 8px; padding: 6px 10px; color: var(--text-muted);
+                   cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 5px; }
+.chat-action-btn:hover { background: var(--bg-hover); color: var(--text); }
+
+/* Messages */
+.messages { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex;
+            flex-direction: column; gap: 16px; }
+.message { display: flex; gap: 10px; max-width: 75%; }
+.message.agent { align-self: flex-start; }
+.message.customer { align-self: flex-end; flex-direction: row-reverse; }
+.msg-avatar { width: 28px; height: 28px; border-radius: 8px; display: flex;
+              align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+.message.agent .msg-avatar { background: var(--accent-bg); color: var(--accent-light); }
+.message.customer .msg-avatar { background: var(--green-bg); color: var(--green); }
+.msg-content { display: flex; flex-direction: column; gap: 4px; }
+.msg-bubble { padding: 10px 14px; border-radius: var(--radius); font-size: 13px;
+              line-height: 1.6; }
+.message.agent .msg-bubble { background: var(--agent-bubble); border: 1px solid var(--border);
+                              border-top-left-radius: 4px; }
+.message.customer .msg-bubble { background: var(--accent); color: #fff;
+                                 border-top-right-radius: 4px; }
+.msg-meta { font-size: 10px; color: var(--text-dim); padding: 0 4px; }
+.message.customer .msg-meta { text-align: right; }
+
+/* Typing indicator */
+.typing-indicator { display: flex; gap: 4px; padding: 12px 14px; }
+.typing-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted);
+              animation: typingBounce 1.4s infinite; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingBounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-4px); } }
+
+/* Input */
+.chat-input-area { padding: 16px 24px; border-top: 1px solid var(--border);
+                   background: var(--bg-surface); }
+.chat-input-wrapper { display: flex; align-items: flex-end; gap: 10px;
+                      background: var(--bg-elevated); border: 1px solid var(--border);
+                      border-radius: var(--radius); padding: 8px 12px; }
+.chat-input-wrapper:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,.15); }
+.chat-input { flex: 1; background: none; border: none; color: var(--text); font-size: 13px;
+              resize: none; outline: none; font-family: inherit; line-height: 1.5;
+              min-height: 20px; max-height: 120px; }
+.chat-input::placeholder { color: var(--text-dim); }
+.send-btn { width: 34px; height: 34px; border-radius: 8px; border: none;
+            background: var(--accent); color: #fff; cursor: pointer; display: flex;
+            align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0;
+            transition: all 0.15s; }
+.send-btn:hover { background: var(--accent-light); }
+.send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.attach-btn { background: none; border: none; color: var(--text-dim); cursor: pointer;
+              font-size: 16px; padding: 4px; }
+.attach-btn:hover { color: var(--text-muted); }
+
+/* Powered by */
+.powered-by { text-align: center; padding: 8px; font-size: 10px; color: var(--text-dim); }
+
+/* ── Expired State ───────────────────────────────────── */
+.expired-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+                   display: flex; align-items: center; justify-content: center; z-index: 100; }
+.expired-card { background: var(--bg-surface); border: 1px solid var(--border);
+                border-radius: 16px; padding: 40px; text-align: center; max-width: 420px; }
+.expired-icon { width: 64px; height: 64px; background: var(--red-bg); border-radius: 16px;
+                display: flex; align-items: center; justify-content: center;
+                font-size: 28px; color: var(--red); margin: 0 auto 20px; }
+.expired-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+.expired-text { font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 20px; }
+.expired-email { display: inline-flex; align-items: center; gap: 6px; background: var(--bg-elevated);
+                 border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px;
+                 font-size: 13px; color: var(--accent-light); }
+
+/* ── Security Badge ──────────────────────────────────── */
+.security-badge { display: flex; align-items: center; gap: 6px; font-size: 10px;
+                  color: var(--green); padding: 6px 10px; background: var(--green-bg);
+                  border-radius: 6px; margin-top: 12px; }
+
+/* ── Responsive ──────────────────────────────────────── */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .chat-area { width: 100%; }
+}
+
+/* ── Scrollbar ───────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════
+     STATE 1: ACTIVE CHAT SESSION
+     ════════════════════════════════════════════════════════ -->
+
+<div class="layout" id="active-state">
+
+  <!-- ── Sidebar ────────────────────────────────────── -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="brand">
+        <div class="brand-icon"><i class="fa-solid fa-brain"></i></div>
+        <div>
+          <div class="brand-name">Sanad AI</div>
+          <div class="brand-sub">Optiflow Systems</div>
+        </div>
+      </div>
+
+      <!-- Countdown Timer -->
+      <div class="timer-bar">
+        <div class="timer-row">
+          <span class="timer-label">Session expires in</span>
+          <span class="timer-value" id="timer">47:23</span>
+        </div>
+        <div class="timer-progress">
+          <div class="timer-fill" id="timer-fill" style="width: 78%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Agent Profile -->
+    <div class="sidebar-section">
+      <div class="section-title">Your Agent</div>
+      <div class="agent-card">
+        <div class="agent-avatar"><i class="fa-solid fa-briefcase"></i></div>
+        <div class="agent-info">
+          <div class="agent-name">Marcus <span class="arabic">مدير</span></div>
+          <div class="agent-role">Sales Manager</div>
+          <div class="agent-status"><span class="status-dot"></span> Online</div>
+        </div>
+      </div>
+      <div class="security-badge">
+        <i class="fa-solid fa-shield-halved"></i>
+        End-to-end encrypted session
+      </div>
+    </div>
+
+    <!-- Original Email Context -->
+    <div class="sidebar-section">
+      <div class="section-title">Original Email</div>
+      <div class="email-card">
+        <div class="email-row">
+          <span class="email-label">From</span>
+          <span class="email-value">Ahmed Al-Rashid</span>
+        </div>
+        <div class="email-row">
+          <span class="email-label">Date</span>
+          <span class="email-value">Mar 26, 2026 10:15 AM</span>
+        </div>
+        <div class="email-subject">ERP system for construction company — pricing</div>
+        <div class="email-preview">
+          Hello, we are a 50-person construction company in Riyadh. We need an ERP system
+          for project management and accounting. What are your prices and do you offer
+          a demo? We are currently using Excel for everything...
+        </div>
+      </div>
+    </div>
+
+    <!-- Company Info -->
+    <div class="sidebar-section">
+      <div class="section-title">About Optiflow Systems</div>
+      <div class="company-row">
+        <div class="company-icon"><i class="fa-solid fa-globe"></i></div>
+        <div><div class="company-label">Website</div><div class="company-value">optiflowsys.com</div></div>
+      </div>
+      <div class="company-row">
+        <div class="company-icon"><i class="fa-solid fa-building"></i></div>
+        <div><div class="company-label">Product</div><div class="company-value">AccuBuild — Construction ERP</div></div>
+      </div>
+      <div class="company-row">
+        <div class="company-icon"><i class="fa-solid fa-map-marker-alt"></i></div>
+        <div><div class="company-label">Region</div><div class="company-value">Egypt & MENA</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Chat Area ──────────────────────────────────── -->
+  <div class="chat-area">
+    <!-- Header -->
+    <div class="chat-header">
+      <div class="chat-header-left">
+        <div class="chat-header-avatar"><i class="fa-solid fa-briefcase"></i></div>
+        <div>
+          <div class="chat-header-name">Marcus — Sales Manager</div>
+          <div class="chat-header-typing" id="typing-status"></div>
+        </div>
+      </div>
+      <div class="chat-header-actions">
+        <button class="chat-action-btn" onclick="toggleLang()">
+          <i class="fa-solid fa-language"></i> <span id="lang-btn">العربية</span>
+        </button>
+        <button class="chat-action-btn" onclick="downloadTranscript()">
+          <i class="fa-solid fa-download"></i> Transcript
+        </button>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div class="messages" id="messages">
+      <!-- System message -->
+      <div style="text-align:center; padding: 8px;">
+        <span style="font-size:11px; color:var(--text-dim); background:var(--bg-elevated);
+                     padding:4px 12px; border-radius:12px;">
+          <i class="fa-solid fa-lock" style="margin-right:4px"></i>
+          Secure session started — Mar 26, 2026 10:32 AM
+        </span>
+      </div>
+
+      <!-- Agent greeting -->
+      <div class="message agent">
+        <div class="msg-avatar"><i class="fa-solid fa-briefcase"></i></div>
+        <div class="msg-content">
+          <div class="msg-bubble">
+            Hi Ahmed! I'm Marcus, your sales contact at Optiflow Systems. I received your email about needing an ERP system for your construction company in Riyadh.<br><br>
+            I'd love to help you find the right solution. AccuBuild is our construction-specific ERP built on Frappe/ERPNext. Let me ask a few questions to understand your needs better.
+          </div>
+          <div class="msg-meta">10:32 AM</div>
+        </div>
+      </div>
+
+      <!-- Agent follow-up -->
+      <div class="message agent">
+        <div class="msg-avatar"><i class="fa-solid fa-briefcase"></i></div>
+        <div class="msg-content">
+          <div class="msg-bubble">
+            First — you mentioned 50 employees. How many of them would actually use the ERP daily? And which departments need access — just accounting, or also project management, procurement, and site operations?
+          </div>
+          <div class="msg-meta">10:32 AM</div>
+        </div>
+      </div>
+
+      <!-- Customer reply -->
+      <div class="message customer">
+        <div class="msg-avatar"><i class="fa-solid fa-user"></i></div>
+        <div class="msg-content">
+          <div class="msg-bubble">
+            Hi Marcus! Thanks for the quick response. We'd need about 15-20 users daily. Mainly accounting (5), project managers (4), procurement team (3), and site engineers (5-6). We manage around 8 projects simultaneously.
+          </div>
+          <div class="msg-meta">10:34 AM</div>
+        </div>
+      </div>
+
+      <!-- Agent response -->
+      <div class="message agent">
+        <div class="msg-avatar"><i class="fa-solid fa-briefcase"></i></div>
+        <div class="msg-content">
+          <div class="msg-bubble">
+            That's a solid mid-size setup. AccuBuild handles exactly this profile — multi-project operations with cross-department visibility. A few more questions:<br><br>
+            1. Are you managing <strong>subcontractors</strong>? AccuBuild has dedicated subcontract management with retention tracking.<br>
+            2. Do you need <strong>BoQ (Bill of Quantities)</strong> management? We have full BoQ → BOM conversion with variation orders.<br>
+            3. What's your current accounting system? We need to plan the migration.
+          </div>
+          <div class="msg-meta">10:35 AM</div>
+        </div>
+      </div>
+
+      <!-- Customer reply -->
+      <div class="message customer">
+        <div class="msg-avatar"><i class="fa-solid fa-user"></i></div>
+        <div class="msg-content">
+          <div class="msg-bubble">
+            Yes we have subcontractors — about 12 active ones. We definitely need BoQ management, that's our biggest pain point right now with Excel. For accounting we use a local Saudi software but it doesn't integrate with anything.
+          </div>
+          <div class="msg-meta">10:37 AM</div>
+        </div>
+      </div>
+
+      <!-- Agent typing -->
+      <div class="message agent" id="typing-bubble">
+        <div class="msg-avatar"><i class="fa-solid fa-briefcase"></i></div>
+        <div class="msg-content">
+          <div class="msg-bubble">
+            <div class="typing-indicator">
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input Area -->
+    <div class="chat-input-area">
+      <div class="chat-input-wrapper">
+        <button class="attach-btn" title="Attach file"><i class="fa-solid fa-paperclip"></i></button>
+        <textarea class="chat-input" id="chat-input" placeholder="Type your message..." rows="1"
+                  onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"></textarea>
+        <button class="send-btn" id="send-btn" onclick="sendMessage()" title="Send">
+          <i class="fa-solid fa-paper-plane"></i>
+        </button>
+      </div>
+      <div class="powered-by">
+        Powered by <strong>Sanad AI</strong> — Your conversation is secure and encrypted
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     STATE 2: EXPIRED SESSION (scroll down to see)
+     ════════════════════════════════════════════════════════ -->
+
+<div class="expired-overlay" id="expired-state" style="display:none">
+  <div class="expired-card">
+    <div class="expired-icon"><i class="fa-solid fa-clock"></i></div>
+    <div class="expired-title">Session Expired</div>
+    <div class="expired-text">
+      This chat session has ended. Your conversation transcript has been saved
+      and your agent Marcus will follow up via email.<br><br>
+      To continue the conversation, email us:
+    </div>
+    <a href="mailto:sanad.ai@optiflowsys.com" class="expired-email">
+      <i class="fa-solid fa-envelope"></i> sanad.ai@optiflowsys.com
+    </a>
+  </div>
+</div>
+
+<script>
+// ── Timer ──────────────────────────────────────────────
+let totalSeconds = 47 * 60 + 23; // 47:23 remaining
+const totalSession = 60 * 60; // 60 min total
+
+function updateTimer() {
+  if (totalSeconds <= 0) {
+    document.getElementById('expired-state').style.display = 'flex';
+    return;
+  }
+  totalSeconds--;
+  const min = Math.floor(totalSeconds / 60);
+  const sec = totalSeconds % 60;
+  const timerEl = document.getElementById('timer');
+  const fillEl = document.getElementById('timer-fill');
+  const pct = (totalSeconds / totalSession) * 100;
+
+  timerEl.textContent = `${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  fillEl.style.width = pct + '%';
+
+  // Color changes
+  timerEl.className = 'timer-value';
+  fillEl.className = 'timer-fill';
+  if (totalSeconds < 300) { // < 5 min
+    timerEl.classList.add('danger');
+    fillEl.classList.add('danger');
+  } else if (totalSeconds < 900) { // < 15 min
+    timerEl.classList.add('warning');
+    fillEl.classList.add('warning');
+  }
+}
+setInterval(updateTimer, 1000);
+
+// ── Chat Interaction ────────────────────────────────────
+const messagesEl = document.getElementById('messages');
+const inputEl = document.getElementById('chat-input');
+const typingBubble = document.getElementById('typing-bubble');
+const typingStatus = document.getElementById('typing-status');
+let isArabic = false;
+
+function sendMessage() {
+  const text = inputEl.value.trim();
+  if (!text) return;
+
+  // Hide typing bubble temporarily
+  typingBubble.style.display = 'none';
+
+  // Add customer message
+  const now = new Date();
+  const time = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  const msgHtml = `
+    <div class="message customer">
+      <div class="msg-avatar"><i class="fa-solid fa-user"></i></div>
+      <div class="msg-content">
+        <div class="msg-bubble">${escapeHtml(text)}</div>
+        <div class="msg-meta">${time}</div>
+      </div>
+    </div>`;
+  typingBubble.insertAdjacentHTML('beforebegin', msgHtml);
+  inputEl.value = '';
+  autoResize();
+
+  // Show typing indicator after 500ms
+  setTimeout(() => {
+    typingBubble.style.display = 'flex';
+    typingStatus.textContent = 'Marcus is typing...';
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }, 500);
+
+  // Simulate agent response after 2-4s
+  const delay = 2000 + Math.random() * 2000;
+  setTimeout(() => {
+    typingBubble.style.display = 'none';
+    typingStatus.textContent = '';
+    const responses = [
+      "That's a great question. Let me check our pricing for a 15-20 user deployment with the modules you need. I'll also include our implementation timeline.",
+      "I understand. Many of our clients in Saudi Arabia made the same transition from local software. We have a dedicated data migration team that handles this.",
+      "Based on what you've described, I'd recommend our AccuBuild Professional tier. It includes WBS management, BoQ, procurement, and subcontract modules. Shall I prepare a detailed proposal?",
+      "Absolutely. We can schedule a live demo for your team. Our demo environment has sample construction projects so you can see real workflows.",
+    ];
+    const resp = responses[Math.floor(Math.random() * responses.length)];
+    const respHtml = `
+      <div class="message agent">
+        <div class="msg-avatar"><i class="fa-solid fa-briefcase"></i></div>
+        <div class="msg-content">
+          <div class="msg-bubble">${resp}</div>
+          <div class="msg-meta">${time}</div>
+        </div>
+      </div>`;
+    typingBubble.insertAdjacentHTML('beforebegin', respHtml);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }, delay);
+
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML.replace(/\n/g, '<br>');
+}
+
+function autoResize() {
+  inputEl.style.height = 'auto';
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+}
+inputEl.addEventListener('input', autoResize);
+
+function toggleLang() {
+  isArabic = !isArabic;
+  document.getElementById('lang-btn').textContent = isArabic ? 'English' : 'العربية';
+  inputEl.placeholder = isArabic ? 'اكتب رسالتك...' : 'Type your message...';
+  inputEl.dir = isArabic ? 'rtl' : 'ltr';
+}
+
+function downloadTranscript() {
+  alert('Transcript download — would generate PDF/text of full conversation');
+}
+
+// Scroll to bottom on load
+messagesEl.scrollTop = messagesEl.scrollHeight;
+
+// Demo: show expired state after clicking timer 3x
+let timerClicks = 0;
+document.querySelector('.timer-bar').addEventListener('click', () => {
+  timerClicks++;
+  if (timerClicks >= 3) {
+    document.getElementById('expired-state').style.display = 'flex';
+  }
+});
+</script>
+
+<!-- IMPLEMENTATION NOTES:
+  Architecture:
+  1. Server generates signed JWT token with: session_id, agent_id, issue_id, customer_email, expires_at
+  2. Token signed with HMAC-SHA256 (SECRET_KEY from Infisical)
+  3. Public route: GET /chat/:token — validates token, renders chat page
+  4. WebSocket: /ws/chat/:session_id — real-time message exchange
+  5. Agent side: reads chat messages via MCP tool, responds in real-time
+  6. On expiry: save transcript to Paperclip task + Sanad Brain memory
+
+  Security:
+  - HMAC signature prevents token forgery
+  - 60-min TTL enforced server-side
+  - Rate limit: 30 messages per session
+  - Content guard: same Brain guards (PII + injection) on all messages
+  - No auth required for customer — just the token
+  - IP binding optional (lock to first IP that uses token)
+  - Agent-scoped: token only talks to assigned agent
+
+  Tech:
+  - Frontend: standalone HTML (no React dependency) — can be embedded or standalone
+  - Backend: Express route in Paperclip server + WebSocket handler
+  - Storage: chat_sessions table in Postgres (session_id, messages JSONB, created_at, expires_at)
+  - Cleanup: cron deletes expired sessions after 24h (transcript already saved)
+-->
+</body>
+</html>

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import type { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction, RequestHandler } from "express";
 import type { Db } from "@paperclipai/db";
 import { issueComments, agents } from "@paperclipai/db";
 import { eq, asc } from "drizzle-orm";
@@ -11,44 +11,54 @@ import {
   type CreateChatSessionInput,
 } from "../services/chat-sessions.js";
 
-interface ChatRequest extends Request {
-  chatSession?: Awaited<ReturnType<typeof validateChatToken>>;
-}
+type ChatSession = NonNullable<Awaited<ReturnType<typeof validateChatToken>>>;
 
-async function requireToken(db: Db) {
-  return async (req: ChatRequest, res: Response, next: NextFunction) => {
-    const token = req.params.token || (req.headers["x-chat-token"] as string);
+function makeTokenMiddleware(db: Db): RequestHandler {
+  return (async (req: Request, res: Response, next: NextFunction) => {
+    const paramToken = String(req.params.token ?? "");
+    const headerRaw = req.headers["x-chat-token"];
+    const hdrToken = typeof headerRaw === "string" ? headerRaw : "";
+    const token = paramToken || hdrToken;
     if (!token) { res.status(401).json({ error: "Missing token" }); return; }
 
     const session = await validateChatToken(db, token);
     if (!session) { res.status(403).json({ error: "Invalid or expired session" }); return; }
 
-    req.chatSession = session;
+    (req as any)._chatSession = session;
     next();
-  };
+  }) as RequestHandler;
+}
+
+function getSession(req: Request): ChatSession {
+  return (req as any)._chatSession;
 }
 
 export function publicChatRoutes(db: Db) {
   const router = Router();
-  const auth = requireToken(db);
+  const auth = makeTokenMiddleware(db);
 
-  // Create session (called by watcher or internal service — not public)
-  router.post("/chat/sessions", async (req: Request, res: Response) => {
-    const { companyId, agentId, issueId, customerEmail, customerName, ttlMinutes, maxMessages } = req.body;
+  // Create session (internal — called by watcher)
+  router.post("/chat/sessions", (async (req: Request, res: Response) => {
+    const { companyId, agentId, issueId, customerEmail, customerName, ttlMinutes, maxMessages } = req.body as Record<string, unknown>;
     if (!companyId || !agentId || !issueId || !customerEmail) {
       res.status(400).json({ error: "companyId, agentId, issueId, customerEmail required" });
       return;
     }
     const result = await createChatSession(db, {
-      companyId, agentId, issueId, customerEmail,
-      customerName, ttlMinutes, maxMessages,
-    } as CreateChatSessionInput);
+      companyId: companyId as string,
+      agentId: agentId as string,
+      issueId: issueId as string,
+      customerEmail: customerEmail as string,
+      customerName: customerName as string | undefined,
+      ttlMinutes: ttlMinutes as number | undefined,
+      maxMessages: maxMessages as number | undefined,
+    });
     res.status(201).json(result);
-  });
+  }) as RequestHandler);
 
   // Get session info + agent details
-  router.get("/chat/:token", auth, async (req: ChatRequest, res: Response) => {
-    const session = req.chatSession!;
+  router.get("/chat/:token", auth, (async (req: Request, res: Response) => {
+    const session = getSession(req);
     const [agent] = await db.select().from(agents).where(eq(agents.id, session.agentId)).limit(1);
 
     res.json({
@@ -66,11 +76,11 @@ export function publicChatRoutes(db: Db) {
       messageCount: session.messageCount,
       maxMessages: session.maxMessages,
     });
-  });
+  }) as RequestHandler);
 
   // List messages
-  router.get("/chat/:token/messages", auth, async (req: ChatRequest, res: Response) => {
-    const session = req.chatSession!;
+  router.get("/chat/:token/messages", auth, (async (req: Request, res: Response) => {
+    const session = getSession(req);
     const comments = await db
       .select()
       .from(issueComments)
@@ -86,12 +96,12 @@ export function publicChatRoutes(db: Db) {
     }));
 
     res.json({ messages });
-  });
+  }) as RequestHandler);
 
   // Send message (customer)
-  router.post("/chat/:token/messages", auth, async (req: ChatRequest, res: Response) => {
-    const session = req.chatSession!;
-    const { body } = req.body;
+  router.post("/chat/:token/messages", auth, (async (req: Request, res: Response) => {
+    const session = getSession(req);
+    const { body } = req.body as { body?: string };
 
     if (!body || typeof body !== "string" || !body.trim()) {
       res.status(400).json({ error: "Message body required" });
@@ -119,7 +129,7 @@ export function publicChatRoutes(db: Db) {
           sessionId: session.id,
           customerEmail: session.customerEmail,
         },
-      })
+      } as any)
       .returning();
 
     await incrementMessageCount(db, session.id);
@@ -130,13 +140,13 @@ export function publicChatRoutes(db: Db) {
       body: comment.body,
       createdAt: comment.createdAt,
     });
-  });
+  }) as RequestHandler);
 
   // Close session
-  router.post("/chat/:token/close", auth, async (req: ChatRequest, res: Response) => {
-    await closeChatSession(db, req.chatSession!.id);
+  router.post("/chat/:token/close", auth, (async (req: Request, res: Response) => {
+    await closeChatSession(db, getSession(req).id);
     res.json({ ok: true });
-  });
+  }) as RequestHandler);
 
   return router;
 }
