@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Knowledge Base — Flow Prototype</title>
+<style>
+  :root {
+    --bg: #0a0a0b; --surface: #141416; --surface2: #1c1c20;
+    --border: #2a2a2e; --text: #e4e4e7; --muted: #71717a;
+    --primary: #6366f1; --primary-hover: #818cf8;
+    --green: #22c55e; --yellow: #eab308; --red: #ef4444;
+    --blue: #3b82f6; --orange: #f97316;
+    --radius: 8px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* Layout */
+  .app { display: flex; height: 100vh; }
+  .sidebar { width: 240px; background: var(--surface); border-right: 1px solid var(--border); padding: 16px 0; flex-shrink: 0; }
+  .sidebar-item { padding: 8px 16px; font-size: 13px; color: var(--muted); cursor: pointer; display: flex; align-items: center; gap: 8px; }
+  .sidebar-item:hover { background: var(--surface2); color: var(--text); }
+  .sidebar-item.active { background: var(--primary); color: white; border-radius: 0; }
+  .sidebar-label { padding: 12px 16px 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+  .main { flex: 1; overflow-y: auto; }
+
+  /* Header */
+  .page-header { padding: 20px 28px 0; }
+  .breadcrumb { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .breadcrumb a { color: var(--primary); text-decoration: none; }
+  .page-title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .page-desc { font-size: 13px; color: var(--muted); }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); padding: 0 28px; margin-top: 16px; }
+  .tab { padding: 10px 16px; font-size: 13px; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+  /* Content */
+  .content { padding: 24px 28px; }
+
+  /* Knowledge Header */
+  .knowledge-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .knowledge-info h3 { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .knowledge-info p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .brain-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; background: rgba(99,102,241,0.15); color: var(--primary); }
+  .btn-group { display: flex; gap: 8px; }
+  .btn { padding: 6px 14px; font-size: 12px; border-radius: var(--radius); cursor: pointer; border: 1px solid var(--border); background: var(--surface2); color: var(--text); display: flex; align-items: center; gap: 6px; }
+  .btn:hover { border-color: var(--primary); }
+  .btn-primary { background: var(--primary); border-color: var(--primary); color: white; }
+  .btn-primary:hover { background: var(--primary-hover); }
+
+  /* Search */
+  .search-bar { display: flex; gap: 8px; margin-bottom: 20px; }
+  .search-input { flex: 1; padding: 8px 12px 8px 32px; font-size: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); position: relative; }
+  .search-wrapper { flex: 1; position: relative; }
+  .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 12px; }
+  .ai-toggle { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); padding: 6px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); cursor: pointer; }
+  .ai-toggle.active { border-color: var(--primary); color: var(--primary); background: rgba(99,102,241,0.1); }
+
+  /* Source badges */
+  .source-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .source-badge { font-size: 10px; padding: 3px 10px; border-radius: 12px; border: 1px solid var(--border); color: var(--muted); display: flex; align-items: center; gap: 4px; }
+  .source-badge .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .dot-green { background: var(--green); }
+  .dot-yellow { background: var(--yellow); }
+  .dot-blue { background: var(--blue); }
+
+  /* Stats row */
+  .stats-row { display: flex; gap: 16px; margin-bottom: 20px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; flex: 1; }
+  .stat-value { font-size: 20px; font-weight: 700; }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* Split panel */
+  .split-panel { display: flex; gap: 16px; min-height: 450px; }
+  .list-panel { width: 320px; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; flex-shrink: 0; }
+  .list-header { padding: 10px 12px; background: var(--surface); border-bottom: 1px solid var(--border); font-size: 11px; color: var(--muted); display: flex; justify-content: space-between; }
+  .list-items { max-height: 420px; overflow-y: auto; }
+  .list-item { padding: 10px 12px; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .list-item:hover { background: var(--surface2); }
+  .list-item.active { background: rgba(99,102,241,0.1); border-left: 2px solid var(--primary); }
+  .list-item-title { font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+  .list-item-meta { font-size: 10px; color: var(--muted); margin-top: 3px; display: flex; gap: 8px; padding-left: 18px; }
+  .type-icon { font-size: 11px; }
+
+  /* Preview panel */
+  .preview-panel { flex: 1; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .preview-header { padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .preview-title { font-size: 13px; font-weight: 600; }
+  .preview-type { font-size: 10px; padding: 2px 8px; border-radius: 10px; background: var(--surface2); color: var(--muted); }
+  .preview-body { padding: 16px; font-size: 12px; line-height: 1.7; color: var(--text); white-space: pre-wrap; }
+  .preview-footer { padding: 10px 16px; border-top: 1px solid var(--border); font-size: 10px; color: var(--muted); display: flex; gap: 16px; }
+
+  /* Empty state */
+  .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; text-align: center; }
+  .empty-icon { font-size: 40px; opacity: 0.15; margin-bottom: 12px; }
+  .empty-title { font-size: 14px; font-weight: 500; color: var(--muted); }
+  .empty-desc { font-size: 12px; color: var(--muted); opacity: 0.6; margin-top: 6px; max-width: 360px; }
+
+  /* Sheet / Drawer */
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: none; }
+  .overlay.show { display: block; }
+  .sheet { position: fixed; top: 0; right: -500px; width: 480px; height: 100vh; background: var(--surface); border-left: 1px solid var(--border); z-index: 101; transition: right 0.3s ease; display: flex; flex-direction: column; }
+  .sheet.show { right: 0; }
+  .sheet-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .sheet-title { font-size: 15px; font-weight: 600; }
+  .sheet-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; }
+  .sheet-body { flex: 1; overflow-y: auto; padding: 20px; }
+  .sheet-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+
+  /* Form */
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 12px; font-weight: 600; margin-bottom: 6px; display: block; }
+  .form-input { width: 100%; padding: 8px 12px; font-size: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); }
+  .form-textarea { width: 100%; min-height: 200px; padding: 10px 12px; font-size: 12px; font-family: 'SF Mono', monospace; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); resize: vertical; }
+  .form-hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* Mode selector */
+  .mode-selector { display: flex; gap: 0; margin-bottom: 20px; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .mode-btn { flex: 1; padding: 10px; font-size: 12px; text-align: center; background: var(--surface2); color: var(--muted); cursor: pointer; border: none; border-right: 1px solid var(--border); }
+  .mode-btn:last-child { border-right: none; }
+  .mode-btn.active { background: var(--primary); color: white; }
+  .mode-btn:hover:not(.active) { background: var(--bg); color: var(--text); }
+
+  /* Upload zone */
+  .upload-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 40px 20px; text-align: center; cursor: pointer; }
+  .upload-zone:hover { border-color: var(--primary); background: rgba(99,102,241,0.05); }
+  .upload-icon { font-size: 28px; opacity: 0.3; margin-bottom: 8px; }
+  .upload-text { font-size: 13px; color: var(--muted); }
+  .upload-hint { font-size: 11px; color: var(--muted); opacity: 0.6; margin-top: 4px; }
+
+  /* Outline config */
+  .outline-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
+  .outline-card-header { display: flex; justify-content: space-between; align-items: center; }
+  .outline-card-title { font-size: 12px; font-weight: 600; }
+  .outline-status { font-size: 10px; padding: 2px 8px; border-radius: 10px; }
+  .status-synced { background: rgba(34,197,94,0.15); color: var(--green); }
+  .status-pending { background: rgba(234,179,8,0.15); color: var(--yellow); }
+  .outline-card-meta { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .sync-btn { font-size: 11px; padding: 4px 10px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface2); color: var(--text); cursor: pointer; margin-top: 8px; }
+  .sync-btn:hover { border-color: var(--primary); }
+
+  /* Flow diagram */
+  .flow-section { margin-top: 24px; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+  .flow-title { font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+  .flow-steps { display: flex; align-items: center; gap: 0; justify-content: center; flex-wrap: wrap; }
+  .flow-step { text-align: center; padding: 8px 14px; }
+  .flow-step-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px; font-size: 16px; }
+  .flow-step-label { font-size: 10px; color: var(--muted); }
+  .flow-arrow { color: var(--muted); font-size: 14px; }
+  .step-blue .flow-step-icon { background: rgba(59,130,246,0.15); }
+  .step-purple .flow-step-icon { background: rgba(99,102,241,0.15); }
+  .step-green .flow-step-icon { background: rgba(34,197,94,0.15); }
+  .step-orange .flow-step-icon { background: rgba(249,115,22,0.15); }
+
+  /* View selector */
+  .view-tabs { display: flex; gap: 4px; }
+  .view-tab { font-size: 11px; padding: 4px 10px; border-radius: var(--radius); cursor: pointer; color: var(--muted); }
+  .view-tab:hover { background: var(--surface2); }
+  .view-tab.active { background: var(--primary); color: white; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-label">Sanad AI EOI</div>
+    <div class="sidebar-item">📊 Dashboard</div>
+    <div class="sidebar-item">👥 Agents</div>
+    <div class="sidebar-item active">📁 Projects</div>
+    <div class="sidebar-item">📋 Issues</div>
+    <div class="sidebar-item">🧠 Brain</div>
+    <div class="sidebar-item">🔧 Toolkit</div>
+    <div class="sidebar-item">📅 Scheduled Jobs</div>
+    <div class="sidebar-label" style="margin-top:12px">Quick Access</div>
+    <div class="sidebar-item" style="font-size:11px; opacity:0.7">AccuBuild</div>
+    <div class="sidebar-item" style="font-size:11px; opacity:0.7">Company Bootstrap</div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="page-header">
+      <div class="breadcrumb"><a href="#">Projects</a> / <a href="#">AccuBuild</a> / Knowledge</div>
+      <div class="page-title">AccuBuild</div>
+      <div class="page-desc">Construction management ERP on Frappe/ERPNext</div>
+    </div>
+
+    <!-- Project Tabs -->
+    <div class="tabs">
+      <div class="tab">Overview</div>
+      <div class="tab">Issues</div>
+      <div class="tab">Configuration</div>
+      <div class="tab">Budget</div>
+      <div class="tab">Graph</div>
+      <div class="tab">Access</div>
+      <div class="tab active">Knowledge</div>
+    </div>
+
+    <!-- Knowledge Content -->
+    <div class="content" id="mainContent">
+      <!-- Knowledge Header -->
+      <div class="knowledge-header">
+        <div class="knowledge-info">
+          <h3>🧠 Knowledge Base <span class="brain-badge">Powered by Sanad Brain</span></h3>
+          <p>Agents read this knowledge when working on project tasks. Add docs, wiki links, notes — anything agents need.</p>
+        </div>
+        <div class="btn-group">
+          <button class="btn" onclick="openSheet('upload')">📤 Upload</button>
+          <button class="btn" onclick="openSheet('link')">🔗 Add Link</button>
+          <button class="btn" onclick="openSheet('outline')">📖 Outline Wiki</button>
+          <button class="btn btn-primary" onclick="openSheet('text')">+ Add Knowledge</button>
+        </div>
+      </div>
+
+      <!-- Search -->
+      <div class="search-bar">
+        <div class="search-wrapper">
+          <span class="search-icon">🔍</span>
+          <input class="search-input" style="padding-left:32px" placeholder="Search project knowledge... (semantic search via Sanad Brain)" />
+        </div>
+        <div class="ai-toggle active" onclick="this.classList.toggle('active')">
+          🤖 AI Tutor
+        </div>
+        <button class="btn" style="font-size:11px">Search</button>
+      </div>
+
+      <!-- Source badges -->
+      <div class="source-badges">
+        <span class="source-badge"><span class="dot dot-green"></span> Brain Memories (7)</span>
+        <span class="source-badge"><span class="dot dot-blue"></span> Outline Wiki (42 docs)</span>
+        <span class="source-badge"><span class="dot dot-green"></span> Code Graph (149 chunks)</span>
+        <span class="source-badge"><span class="dot dot-yellow"></span> Uploaded Docs (3)</span>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-value">201</div>
+          <div class="stat-label">Total Knowledge Items</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">4</div>
+          <div class="stat-label">Active Sources</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">847</div>
+          <div class="stat-label">Agent Lookups (30d)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">92%</div>
+          <div class="stat-label">Query Hit Rate</div>
+        </div>
+      </div>
+
+      <!-- Split panel: list + preview -->
+      <div class="split-panel">
+        <div class="list-panel">
+          <div class="list-header">
+            <span>Knowledge Items</span>
+            <div class="view-tabs">
+              <span class="view-tab active">All</span>
+              <span class="view-tab">Brain</span>
+              <span class="view-tab">Wiki</span>
+              <span class="view-tab">Docs</span>
+            </div>
+          </div>
+          <div class="list-items">
+            <div class="list-item active" onclick="selectItem(this, 0)">
+              <div class="list-item-title"><span class="type-icon">🧠</span> AccuBuild Overview</div>
+              <div class="list-item-meta"><span>fact</span><span>92%</span></div>
+            </div>
+            <div class="list-item" onclick="selectItem(this, 1)">
+              <div class="list-item-title"><span class="type-icon">🧠</span> Tech Stack</div>
+              <div class="list-item-meta"><span>fact</span><span>88%</span></div>
+            </div>
+            <div class="list-item" onclick="selectItem(this, 2)">
+              <div class="list-item-title"><span class="type-icon">🧠</span> Key Modules</div>
+              <div class="list-item-meta"><span>fact</span><span>85%</span></div>
+            </div>
+            <div class="list-item" onclick="selectItem(this, 3)">
+              <div class="list-item-title"><span class="type-icon">📖</span> Bidding Module Guide</div>
+              <div class="list-item-meta"><span>outline</span><span>Synced 2h ago</span></div>
+            </div>
+            <div class="list-item" onclick="selectItem(this, 4)">
+              <div class="list-item-title"><span class="type-icon">📖</span> Estimation Workflow</div>
+              <div class="list-item-meta"><span>outline</span><span>Synced 2h ago</span></div>
+            </div>
+            <div class="list-item" onclick="selectItem(this, 5)">
+              <div class="list-item-title"><span class="type-icon">📄</span> AccuBuild SDD (docx)</div>
+              <div class="list-item-meta"><span>document</span><span>22 KB</span></div>
+            </div>
+            <div class="list-item" onclick="selectItem(this, 6)">
+              <div class="list-item-title"><span class="type-icon">🧠</span> Architecture</div>
+              <div class="list-item-meta"><span>fact</span><span>79%</span></div>
+            </div>
+            <div class="list-item" onclick="selectItem(this, 7)">
+              <div class="list-item-title"><span class="type-icon">🧠</span> Company Law</div>
+              <div class="list-item-meta"><span>fact</span><span>81%</span></div>
+            </div>
+            <div class="list-item" onclick="selectItem(this, 8)">
+              <div class="list-item-title"><span class="type-icon">📖</span> Project Management Guide</div>
+              <div class="list-item-meta"><span>outline</span><span>Synced 2h ago</span></div>
+            </div>
+            <div class="list-item" onclick="selectItem(this, 9)">
+              <div class="list-item-title"><span class="type-icon">🔗</span> Code Graph — accubuild_core</div>
+              <div class="list-item-meta"><span>codegraph</span><span>149 chunks</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="preview-panel">
+          <div class="preview-header">
+            <span class="preview-title" id="previewTitle">AccuBuild Overview</span>
+            <span class="preview-type" id="previewType">fact · brain memory</span>
+          </div>
+          <div class="preview-body" id="previewBody">AccuBuild is a construction management ERP built on Frappe/ERPNext for Saudi Arabia construction companies.
+
+Modules:
+• Estimation — BOQ, productivity rates, material pricing
+• Project Management — WBS, scheduling, progress tracking
+• Bidding — tender management, bid comparison
+• Subcontractor Management — contracts, payments, retention
+• Financial — budgets, cost control, change orders
+
+Target market: Construction companies in Saudi Arabia and the Middle East. Multi-tenant SaaS delivered via Frappe Press.
+
+Each client gets an isolated site with their own data. Custom doctypes extend ERPNext with construction-specific fields like BOQ items, productivity rates, and bid comparisons.</div>
+          <div class="preview-footer">
+            <span>Created: Mar 26, 2026</span>
+            <span>Scope: company</span>
+            <span>Source: Board</span>
+            <span>Used by: TechLead, BackendEng, PM</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Flow diagram -->
+      <div class="flow-section">
+        <div class="flow-title">How Knowledge Flows to Agents</div>
+        <div class="flow-steps">
+          <div class="flow-step step-blue">
+            <div class="flow-step-icon">📥</div>
+            <div class="flow-step-label">You add<br>knowledge</div>
+          </div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-step step-purple">
+            <div class="flow-step-icon">🧠</div>
+            <div class="flow-step-label">Brain indexes<br>& embeds</div>
+          </div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-step step-orange">
+            <div class="flow-step-icon">🏷️</div>
+            <div class="flow-step-label">Tagged with<br>project ID</div>
+          </div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-step step-green">
+            <div class="flow-step-icon">🤖</div>
+            <div class="flow-step-label">Agent gets task<br>in this project</div>
+          </div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-step step-purple">
+            <div class="flow-step-icon">🔍</div>
+            <div class="flow-step-label">Brain recalls<br>project knowledge</div>
+          </div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-step step-green">
+            <div class="flow-step-icon">✅</div>
+            <div class="flow-step-label">Agent uses it<br>in response</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Overlay -->
+<div class="overlay" id="overlay" onclick="closeSheet()"></div>
+
+<!-- Add Knowledge Sheet -->
+<div class="sheet" id="sheet">
+  <div class="sheet-header">
+    <span class="sheet-title" id="sheetTitle">Add Knowledge</span>
+    <button class="sheet-close" onclick="closeSheet()">✕</button>
+  </div>
+  <div class="sheet-body" id="sheetBody">
+    <!-- Filled dynamically -->
+  </div>
+  <div class="sheet-footer" id="sheetFooter">
+    <button class="btn" onclick="closeSheet()">Cancel</button>
+    <button class="btn btn-primary" id="sheetAction">Save to Brain</button>
+  </div>
+</div>
+
+<script>
+const items = [
+  { title: 'AccuBuild Overview', type: 'fact · brain memory', body: `AccuBuild is a construction management ERP built on Frappe/ERPNext for Saudi Arabia construction companies.\n\nModules:\n• Estimation — BOQ, productivity rates, material pricing\n• Project Management — WBS, scheduling, progress tracking\n• Bidding — tender management, bid comparison\n• Subcontractor Management — contracts, payments, retention\n• Financial — budgets, cost control, change orders\n\nTarget market: Construction companies in Saudi Arabia and the Middle East.`, footer: 'Created: Mar 26, 2026 · Scope: company · Source: Board' },
+  { title: 'Tech Stack', type: 'fact · brain memory', body: `Frappe v15, ERPNext v15, Python 3.10+, MariaDB\nVanilla JS + Tailwind CSS frontend\n\nCustom apps:\n• accubuild_core — Main app with all construction doctypes\n• sanad_bi_ai — AI analytics and reporting\n• theme_switcher — Multi-theme support\n\nFrontend libraries: DevExtreme (TreeList, DataGrid), Font Awesome, marked.js + highlight.js + DOMPurify`, footer: 'Created: Mar 26, 2026 · Scope: company' },
+  { title: 'Key Modules', type: 'fact · brain memory', body: `Estimation:\n  BOQ (Bill of Quantities), productivity rates, material pricing\n  DevExtreme TreeList for hierarchical data\n\nProject Management:\n  WBS (Work Breakdown Structure), scheduling, progress tracking\n  Gantt charts, milestone tracking\n\nBidding:\n  Tender management, bid comparison, bid evaluation\n  Automated scoring and ranking\n\nSubcontractor Management:\n  Contracts, payments, retention percentages\n  Progress claims, variation orders\n\nFinancial:\n  Budgets, cost control, change orders\n  Cash flow forecasting, profit/loss per project`, footer: 'Created: Mar 26, 2026 · Scope: company' },
+  { title: 'Bidding Module Guide', type: 'outline · wiki.mvpstorm.com', body: `# Bidding Module\n\nThe bidding module handles the complete lifecycle of construction tenders:\n\n1. Tender Registration — Create new tender from client invitation\n2. Site Visit — Schedule and document site visits\n3. BOQ Preparation — Build bill of quantities from estimation templates\n4. Pricing — Apply rates, markups, and overheads\n5. Submission — Generate bid document, track submission\n6. Evaluation — Compare competitor bids, analyze win/loss\n\nKey DocTypes:\n• Tender\n• Bid Comparison\n• Tender Item\n• Bid Evaluation Matrix\n\nSource: wiki.mvpstorm.com/doc/bidding-CCTT3lHn4a`, footer: 'Synced: 2h ago · Collection: AccuBuild Docs · 12 chunks' },
+  { title: 'Estimation Workflow', type: 'outline · wiki.mvpstorm.com', body: `# Estimation Workflow\n\nEstimation in AccuBuild follows a bottom-up approach:\n\n1. Import BOQ from Excel or create manually\n2. Assign estimation templates to line items\n3. Templates contain productivity rates and resource needs\n4. System calculates labor, material, equipment costs\n5. Apply overheads, profit margins, contingencies\n6. Generate cost summary and pricing sheet\n\nProductivity rates are maintained per-company and can vary by:\n• Region (Saudi regions have different labor costs)\n• Season (summer vs winter productivity)\n• Project type (residential vs commercial)`, footer: 'Synced: 2h ago · Collection: AccuBuild Docs · 8 chunks' },
+  { title: 'AccuBuild SDD (docx)', type: 'document · uploaded', body: `[Document Preview]\n\nAccuBuild — System Design Document\nVersion 1.0 | March 2026\n\nTable of Contents:\n1. Executive Summary\n2. System Architecture\n3. Module Specifications\n   3.1 Estimation Module\n   3.2 Project Management Module\n   3.3 Bidding Module\n   3.4 Subcontractor Module\n   3.5 Financial Module\n   3.6 Reporting Module\n4. Data Model\n5. Integration Points\n6. Security Model\n7. Deployment Architecture\n\nFile: accubuild-summary.docx (22 KB)\nUploaded by: TechLead via task OPT-45`, footer: 'Uploaded: Mar 26, 2026 · 22 KB · 15 chunks indexed' },
+  { title: 'Architecture', type: 'fact · brain memory', body: `Multi-tenant SaaS on Frappe Press.\nEach client gets isolated site.\nDevExtreme TreeList for hierarchical BOQ/WBS data.\nShared controllers for cross-doctype logic.\n\nDeployment:\n• Frappe Press manages site provisioning\n• Each site has its own MariaDB database\n• Assets served via CDN\n• Background jobs via Redis Queue`, footer: 'Created: Mar 26, 2026 · Scope: company' },
+  { title: 'Company Law', type: 'fact · brain memory', body: `7 principles governing all agent behavior on AccuBuild:\n\n1. Quality over speed — never ship broken code\n2. Arabic + English bilingual — all user-facing text\n3. Saudi construction domain expertise — know the industry\n4. ERPNext/Frappe technical depth — framework mastery\n5. Upgrade-safe customizations — never modify core\n6. Test before ship — automated tests mandatory\n7. Document everything — wiki, DEVLOG, commit messages`, footer: 'Created: Mar 26, 2026 · Scope: company · Law version: 1.0' },
+  { title: 'Project Management Guide', type: 'outline · wiki.mvpstorm.com', body: `# Project Management Module\n\nHandles project execution from award to completion:\n\n• WBS — hierarchical work breakdown structure\n• Scheduling — task dependencies, critical path\n• Progress — percentage complete, earned value\n• Resources — labor allocation, equipment tracking\n• Documents — drawings, submittals, RFIs\n\nKey integrations:\n• Links to Estimation for budget baseline\n• Links to Financial for cost tracking\n• Links to Subcontractor for progress claims`, footer: 'Synced: 2h ago · Collection: AccuBuild Docs · 10 chunks' },
+  { title: 'Code Graph — accubuild_core', type: 'codegraph · indexed', body: `[Code Graph Summary]\n\n149 nodes indexed from accubuild_core:\n\nModules: 8\n  estimation, project_management, bidding, subcontractor,\n  financial, reporting, setup, utils\n\nDocTypes: 34\n  Tender, BOQ, Estimation Template, Productivity Rate,\n  Project, WBS Item, Cost Center, Budget Line...\n\nControllers: 12\n  SharedController, EstimationController, BiddingController...\n\nWhitelisted Methods: 28\n  get_boq_tree, calculate_estimation, submit_bid...\n\nLast synced: Mar 25, 2026`, footer: 'Source: accubuild_core repo · 149 chunks · Auto-synced daily' },
+];
+
+function selectItem(el, idx) {
+  document.querySelectorAll('.list-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  const item = items[idx];
+  document.getElementById('previewTitle').textContent = item.title;
+  document.getElementById('previewType').textContent = item.type;
+  document.getElementById('previewBody').textContent = item.body;
+  document.querySelector('.preview-footer').innerHTML = `<span>${item.footer}</span>`;
+}
+
+function openSheet(mode) {
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('sheet').classList.add('show');
+  const body = document.getElementById('sheetBody');
+  const title = document.getElementById('sheetTitle');
+  const action = document.getElementById('sheetAction');
+
+  if (mode === 'text') {
+    title.textContent = 'Add Knowledge';
+    action.textContent = 'Save to Brain';
+    body.innerHTML = `
+      <div class="form-group">
+        <label class="form-label">Title</label>
+        <input class="form-input" placeholder="Architecture Guide, API Docs, Lessons Learned..." />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type</label>
+        <select class="form-input">
+          <option>fact</option><option>decision</option><option>lesson</option>
+          <option>pattern</option><option>event</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Content (Markdown)</label>
+        <textarea class="form-textarea" placeholder="Write knowledge content in markdown..."></textarea>
+      </div>
+      <div class="form-hint">💡 Content is automatically tagged with this project and indexed by Brain for semantic search.</div>
+    `;
+  } else if (mode === 'link') {
+    title.textContent = 'Add Link';
+    action.textContent = 'Add Link';
+    body.innerHTML = `
+      <div class="form-group">
+        <label class="form-label">Title</label>
+        <input class="form-input" placeholder="Outline Wiki — Bidding Module" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">URL</label>
+        <input class="form-input" placeholder="https://wiki.mvpstorm.com/doc/bidding-CCTT3lHn4a" />
+        <div class="form-hint">Outline wiki, GitHub, any URL. Agents reference this for project context.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes (optional)</label>
+        <textarea class="form-textarea" style="min-height:100px" placeholder="What's in this link? Why is it important?"></textarea>
+      </div>
+    `;
+  } else if (mode === 'upload') {
+    title.textContent = 'Upload Document';
+    action.textContent = 'Upload to Brain';
+    body.innerHTML = `
+      <p style="font-size:12px; color: var(--muted); margin-bottom:16px">
+        Upload a document to Sanad Brain. Brain will chunk and index the content for semantic search by agents.
+      </p>
+      <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+        <div class="upload-icon">📄</div>
+        <div class="upload-text">Click to upload or drag & drop</div>
+        <div class="upload-hint">PDF, DOCX, TXT, MD, CSV, JSON — max 50MB</div>
+      </div>
+      <input type="file" id="fileInput" style="display:none" accept=".pdf,.docx,.txt,.md,.csv,.json" />
+      <div style="margin-top:16px; padding:12px; background: var(--bg); border-radius: var(--radius); font-size: 11px; color: var(--muted);">
+        <strong style="color: var(--text)">How it works:</strong><br>
+        1. File is parsed (PDF → text, DOCX → text, etc.)<br>
+        2. Content is split into chunks (~500 tokens each)<br>
+        3. Each chunk is embedded and stored in Qdrant<br>
+        4. Agents find relevant chunks via semantic search
+      </div>
+    `;
+  } else if (mode === 'outline') {
+    title.textContent = 'Outline Wiki Sources';
+    action.textContent = 'Done';
+    body.innerHTML = `
+      <p style="font-size:12px; color: var(--muted); margin-bottom:16px">
+        Connect your Outline wiki to automatically sync documents into this project's knowledge base.
+      </p>
+
+      <div class="outline-card">
+        <div class="outline-card-header">
+          <span class="outline-card-title">📖 wiki.mvpstorm.com</span>
+          <span class="outline-status status-synced">Synced</span>
+        </div>
+        <div class="outline-card-meta">42 documents · 387 chunks · Last sync: 2h ago</div>
+        <button class="sync-btn">🔄 Sync Now</button>
+      </div>
+
+      <div style="border:1px dashed var(--border); border-radius: var(--radius); padding:16px; text-align:center; cursor:pointer" onclick="this.innerHTML=addOutlineForm()">
+        <span style="font-size:12px; color:var(--muted)">+ Connect Another Outline Instance</span>
+      </div>
+
+      <div style="margin-top:20px; padding:12px; background: var(--bg); border-radius: var(--radius); font-size:11px; color: var(--muted);">
+        <strong style="color: var(--text)">How Outline Sync Works:</strong><br><br>
+        1. Brain calls Outline's REST API to list all documents<br>
+        2. Each document's markdown content is extracted<br>
+        3. Content is chunked and embedded into Qdrant<br>
+        4. Agents search across all wiki content semantically<br>
+        5. Re-sync pulls new/updated documents only<br><br>
+        <strong style="color: var(--text)">Collections:</strong> You can filter by collection (e.g., only "AccuBuild Docs") or sync all.
+      </div>
+    `;
+  }
+}
+
+function closeSheet() {
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('sheet').classList.remove('show');
+}
+
+function addOutlineForm() {
+  return `
+    <div style="text-align:left; padding:4px">
+      <div class="form-group">
+        <label class="form-label">Outline URL</label>
+        <input class="form-input" placeholder="https://your-wiki.getoutline.com" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">API Token</label>
+        <input class="form-input" type="password" placeholder="ol_api_..." />
+        <div class="form-hint">Settings → API → Create new token</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Collection Filter (optional)</label>
+        <input class="form-input" placeholder="Leave empty to sync all collections" />
+      </div>
+      <button class="btn btn-primary" style="width:100%; justify-content:center; margin-top:8px">Connect & Sync</button>
+    </div>
+  `;
+}
+</script>
+</body>
+</html>
