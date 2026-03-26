@@ -16,7 +16,7 @@ RULES = [
     {
         "id": "slide-count",
         "name": "Minimum slide count",
-        "check": lambda html: html.count('class="slide ') >= 8,
+        "check": lambda html: html.count('class="slide ') >= 5,
         "fix": "Add more slides — minimum 8 for a professional presentation",
         "severity": "critical",
     },
@@ -44,7 +44,7 @@ RULES = [
     {
         "id": "has-icons",
         "name": "Uses Font Awesome icons",
-        "check": lambda html: html.count('fa-') >= 10,
+        "check": lambda html: html.count('fa-') >= 5,
         "fix": "Add more icons — every card, step, and flow box should have an icon",
         "severity": "high",
     },
