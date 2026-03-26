@@ -977,6 +977,8 @@ export function IssueDetail() {
                 {attachment.contentType} · {(attachment.byteSize / 1024).toFixed(1)} KB
                 {" · "}
                 <a href={attachment.contentPath} download={attachment.originalFilename ?? undefined} className="text-primary hover:underline">Download</a>
+                {" · "}
+                <a href={attachment.contentPath} target="_blank" rel="noreferrer" className="text-primary hover:underline">Preview</a>
               </p>
               {isImageAttachment(attachment) && (
                 <a href={attachment.contentPath} target="_blank" rel="noreferrer">
