@@ -1,0 +1,200 @@
+#!/usr/bin/env python3
+"""Document Generator MCP Server.
+
+Generates professional .docx and .pptx files from branded templates + structured content.
+Any Sanad AI agent can call this to produce client-ready documents.
+
+Tools:
+  generate_docx   — Fill a branded .docx template with structured content
+  generate_pptx   — Fill a branded .pptx template with slides content + diagrams
+  render_diagram  — Convert Mermaid code to PNG image
+  list_templates  — List available branded templates by company
+"""
+
+import json
+import os
+import sys
+from pathlib import Path
+
+from mcp.server.fastmcp import FastMCP
+
+from generators.docx_generator import generate_docx
+from generators.pptx_generator import generate_pptx
+from generators.diagram_renderer import render_mermaid
+
+TEMPLATES_DIR = Path(__file__).parent / "templates"
+OUTPUT_DIR = Path(os.environ.get("DOC_OUTPUT_DIR", "/tmp/doc-generator"))
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+mcp = FastMCP(
+    "document-generator",
+    version="0.1.0",
+    description="Generate professional .docx and .pptx from branded templates",
+)
+
+
+@mcp.tool()
+def list_templates(company: str = "") -> str:
+    """List available branded templates. Optionally filter by company name."""
+    results = []
+    search_dir = TEMPLATES_DIR / company if company else TEMPLATES_DIR
+    if not search_dir.exists():
+        return json.dumps({"error": f"No templates found for '{company}'"})
+
+    for path in sorted(search_dir.rglob("*.pptx")):
+        rel = path.relative_to(TEMPLATES_DIR)
+        results.append({"path": str(rel), "type": "pptx", "company": rel.parts[0]})
+    for path in sorted(search_dir.rglob("*.docx")):
+        rel = path.relative_to(TEMPLATES_DIR)
+        results.append({"path": str(rel), "type": "docx", "company": rel.parts[0]})
+
+    if not results:
+        return json.dumps({"templates": [], "note": "No templates yet. Create .pptx/.docx templates in the templates/ folder."})
+    return json.dumps({"templates": results})
+
+
+@mcp.tool()
+def generate_document_docx(
+    template: str,
+    content: str,
+    output_filename: str = "output.docx",
+) -> str:
+    """Generate a .docx document from a branded template and structured JSON content.
+
+    Args:
+        template: Template path relative to templates/ (e.g. "accubuild/report.docx")
+                  OR "blank" to create from scratch with default styling.
+        content: JSON string with document structure:
+            {
+                "title": "Document Title",
+                "subtitle": "Subtitle text",
+                "metadata": {"author": "...", "date": "...", "version": "..."},
+                "sections": [
+                    {
+                        "heading": "Section Title",
+                        "level": 1,
+                        "paragraphs": ["Text paragraph 1", "Text paragraph 2"],
+                        "bullets": ["Bullet 1", "Bullet 2"],
+                        "table": {"headers": ["Col1", "Col2"], "rows": [["a", "b"]]},
+                        "image": "path/to/image.png"
+                    }
+                ]
+            }
+        output_filename: Name for the output file.
+    """
+    try:
+        data = json.loads(content)
+    except json.JSONDecodeError as e:
+        return json.dumps({"error": f"Invalid JSON content: {e}"})
+
+    template_path = None
+    if template != "blank":
+        template_path = TEMPLATES_DIR / template
+        if not template_path.exists():
+            return json.dumps({"error": f"Template not found: {template}"})
+
+    output_path = OUTPUT_DIR / output_filename
+    try:
+        result = generate_docx(template_path, data, output_path)
+        return json.dumps({"status": "ok", "path": str(output_path), "size": output_path.stat().st_size, **result})
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+@mcp.tool()
+def generate_document_pptx(
+    template: str,
+    slides: str,
+    output_filename: str = "output.pptx",
+) -> str:
+    """Generate a .pptx presentation from a branded template and slide content.
+
+    Args:
+        template: Template path relative to templates/ (e.g. "accubuild/proposal.pptx")
+                  OR "blank" to create with default styling using brand colors.
+        slides: JSON string with slide array:
+            {
+                "brand": {"primary": "#007bff", "accent": "#28a745", "text": "#333333"},
+                "slides": [
+                    {
+                        "layout": "title",
+                        "title": "Presentation Title",
+                        "subtitle": "By Company Name"
+                    },
+                    {
+                        "layout": "section",
+                        "title": "Section Divider"
+                    },
+                    {
+                        "layout": "content",
+                        "title": "Slide Title",
+                        "bullets": ["Point 1", "Point 2"],
+                        "notes": "Speaker notes here"
+                    },
+                    {
+                        "layout": "table",
+                        "title": "Comparison",
+                        "table": {"headers": ["A", "B"], "rows": [["1", "2"]]}
+                    },
+                    {
+                        "layout": "diagram",
+                        "title": "Flow",
+                        "mermaid": "graph LR\\n  A-->B",
+                        "caption": "System flow diagram"
+                    },
+                    {
+                        "layout": "image",
+                        "title": "Screenshot",
+                        "image": "/path/to/image.png",
+                        "caption": "Description"
+                    }
+                ]
+            }
+        output_filename: Name for the output file.
+    """
+    try:
+        data = json.loads(slides)
+    except json.JSONDecodeError as e:
+        return json.dumps({"error": f"Invalid JSON slides: {e}"})
+
+    template_path = None
+    if template != "blank":
+        template_path = TEMPLATES_DIR / template
+        if not template_path.exists():
+            return json.dumps({"error": f"Template not found: {template}"})
+
+    output_path = OUTPUT_DIR / output_filename
+    try:
+        result = generate_pptx(template_path, data, output_path)
+        return json.dumps({"status": "ok", "path": str(output_path), "size": output_path.stat().st_size, **result})
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+@mcp.tool()
+def render_diagram(
+    mermaid_code: str,
+    output_filename: str = "diagram.png",
+    width: int = 1200,
+    height: int = 800,
+    theme: str = "default",
+) -> str:
+    """Render a Mermaid diagram to PNG image.
+
+    Args:
+        mermaid_code: Mermaid diagram source code (e.g. "graph LR\\n  A-->B")
+        output_filename: Output PNG filename.
+        width: Image width in pixels.
+        height: Image height in pixels.
+        theme: Mermaid theme (default, dark, forest, neutral).
+    """
+    output_path = OUTPUT_DIR / output_filename
+    try:
+        result = render_mermaid(mermaid_code, output_path, width, height, theme)
+        return json.dumps({"status": "ok", "path": str(output_path), **result})
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+if __name__ == "__main__":
+    mcp.run(transport="stdio")
