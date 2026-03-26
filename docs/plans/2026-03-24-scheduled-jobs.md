@@ -1164,8 +1164,8 @@ Find the sidebar navigation file. Add "Scheduled Jobs" item with clock icon, lin
 **Step 3: Build and deploy**
 ```bash
 cd /home/eslam/data/projects/paperclip/ui && pnpm build
-scp -r dist/* paperclip-server:/app/ui/dist/
-docker restart paperclip-server-1
+scp -r dist/* sanad-ai-eoi-server:/app/ui/dist/
+docker restart sanad-ai-eoi-server-1
 ```
 
 **Step 4: Commit**

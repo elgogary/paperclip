@@ -10,7 +10,7 @@ Sanad AI EOI stores uploaded files (issue attachments, images) using a configura
 Files are stored at:
 
 ```
-~/.paperclip/instances/default/data/storage
+~/.sanad-ai-eoi/instances/default/data/storage
 ```
 
 No configuration required. Suitable for local development and single-machine deployments.
@@ -35,5 +35,5 @@ pnpm sanadai configure --section storage
 Storage configuration is stored in the instance config file:
 
 ```
-~/.paperclip/instances/default/config.json
+~/.sanad-ai-eoi/instances/default/config.json
 ```

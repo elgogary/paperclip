@@ -14,7 +14,7 @@ This guide deploys the full Sanad AI EOI stack: server, PostgreSQL, MinIO (S3 st
 ## 1. Clone and Configure
 
 ```bash
-git clone https://github.com/elgogary/paperclip.git sanad-ai-eoi
+git clone https://github.com/elgogary/sanad-ai-eoi.git sanad-ai-eoi
 cd sanad-ai-eoi
 git checkout feature/multimodal-attachments
 cp .env.example .env
@@ -88,14 +88,14 @@ Migrations run automatically on startup. To apply manually after an update:
 
 ```bash
 docker compose up -d server
-docker logs paperclip-server-1 | grep -i migrat
+docker logs sanad-ai-eoi-server-1 | grep -i migrat
 ```
 
 ## Update to Latest
 
 ```bash
 git pull origin feature/multimodal-attachments
-docker build --no-cache -t paperclip-server .
+docker build --no-cache -t sanad-ai-eoi-server .
 docker compose up -d server
 ```
 

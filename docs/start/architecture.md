@@ -27,7 +27,7 @@ Sanad AI EOI is a multi-service system. The core server is extended with Sanad B
 ┌────────▼─┐ ┌──────▼──┐ ┌────▼───────┐ ┌─────▼────────────┐
 │PostgreSQL│ │  MinIO   │ │   Media    │ │  Sanad Brain     │
 │(Drizzle) │ │  (S3)    │ │  Worker    │ │  (FastAPI)       │
-│44 migs   │ │paperclip │ │ ├─ ffmpeg  │ │  ├─ Memory API   │
+│44 migs   │ │sanad-eoi │ │ ├─ ffmpeg  │ │  ├─ Memory API   │
 │          │ │-files    │ │ └─ LibreOff│ │  ├─ Knowledge    │
 └──────────┘ └──────────┘ └───────────┘ │  ├─ Dream Engine │
                                          │  └─ Tool Loader  │
@@ -65,7 +65,7 @@ Sanad AI EOI is a multi-service system. The core server is extended with Sanad B
 ## Repository Structure
 
 ```
-paperclip/
+sanad-ai-eoi/
 ├── ui/src/
 │   ├── pages/           # Toolkit, Skills, Brain, Chat, Docs, ScheduledJobs…
 │   ├── components/      # React components (AttachmentCard, JobDialog…)

@@ -77,7 +77,7 @@ curl http://localhost:3100/api/companies
 To wipe local data and start fresh:
 
 ```sh
-rm -rf ~/.paperclip/instances/default/db
+rm -rf ~/.sanad-ai-eoi/instances/default/db
 pnpm dev
 ```
 
@@ -85,11 +85,11 @@ pnpm dev
 
 | Data | Path |
 |------|------|
-| Config | `~/.paperclip/instances/default/config.json` |
-| Database | `~/.paperclip/instances/default/db` |
-| Storage | `~/.paperclip/instances/default/data/storage` |
-| Secrets key | `~/.paperclip/instances/default/secrets/master.key` |
-| Logs | `~/.paperclip/instances/default/logs` |
+| Config | `~/.sanad-ai-eoi/instances/default/config.json` |
+| Database | `~/.sanad-ai-eoi/instances/default/db` |
+| Storage | `~/.sanad-ai-eoi/instances/default/data/storage` |
+| Secrets key | `~/.sanad-ai-eoi/instances/default/secrets/master.key` |
+| Logs | `~/.sanad-ai-eoi/instances/default/logs` |
 
 Override with environment variables:
 

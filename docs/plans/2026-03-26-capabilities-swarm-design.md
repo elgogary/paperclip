@@ -12,7 +12,7 @@ A unified capability marketplace + autonomous learning system for Sanad AI EOI a
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  LAYER 3: SWARM DIRECTOR (Paperclip Agent)          │
+│  LAYER 3: SWARM DIRECTOR (Sanad AI EOI Agent)          │
 │  Mentoring, knowledge graph, proactive recs,        │
 │  cross-agent knowledge transfer                     │
 ├─────────────────────────────────────────────────────┤
@@ -20,7 +20,7 @@ A unified capability marketplace + autonomous learning system for Sanad AI EOI a
 │  swarm_discover, swarm_analyze, swarm_pull,         │
 │  swarm_evaluate, swarm_feedback                     │
 ├─────────────────────────────────────────────────────┤
-│  LAYER 1: SWARM INFRASTRUCTURE (Paperclip Server)   │
+│  LAYER 1: SWARM INFRASTRUCTURE (Sanad AI EOI Server)   │
 │  Registry, source adapters, pull pipeline,          │
 │  trust engine, install flow, UI                     │
 └─────────────────────────────────────────────────────┘
@@ -106,8 +106,8 @@ Rules are per-company, per-role, per-capability-type.
 - **Name:** Swarm Director
 - **Role:** Capability Curator & Agent Mentor
 - **Reports to:** CEO (in the org chart)
-- **Lives in:** Paperclip as a regular agent
-- **Tools:** Brain MCP discovery tools + Paperclip API
+- **Lives in:** Sanad AI EOI as a regular agent
+- **Tools:** Brain MCP discovery tools + Sanad AI EOI API
 
 ### Responsibilities
 1. **Reactive**: Process feedback from agents, update knowledge graph
@@ -258,7 +258,7 @@ Company Budget ($5,000/mo)
 
 ## Implementation Phases
 
-### Phase 1: Swarm Infrastructure (Paperclip Server)
+### Phase 1: Swarm Infrastructure (Sanad AI EOI Server)
 - [ ] DB tables: swarm_sources, swarm_capabilities, swarm_installs, swarm_transactions
 - [ ] Source adapters: local filesystem, mcpservers.org scraper, mcpserverhub.com scraper
 - [ ] Pull pipeline: fetch → parse → validate → store
@@ -269,7 +269,7 @@ Company Budget ($5,000/mo)
 - [ ] Pricing: free/paid/premium tags on capabilities
 - [ ] Budget bar on catalog page
 
-### Phase 2: Swarm Economics Engine (Paperclip Server)
+### Phase 2: Swarm Economics Engine (Sanad AI EOI Server)
 - [ ] SwarmTransaction ledger (tokens, time, money, value)
 - [ ] Agent budget allocation system (tokens + money per agent)
 - [ ] CapabilityMarketData: quality-adjusted pricing
@@ -287,7 +287,7 @@ Company Budget ($5,000/mo)
 - [ ] Integration with Sanad Brain memory for knowledge graph
 
 ### Phase 4: Swarm Director Agent
-- [ ] Agent config in Paperclip (role, permissions, heartbeat)
+- [ ] Agent config in Sanad AI EOI (role, permissions, heartbeat)
 - [ ] Feedback processing loop (receive, aggregate, act)
 - [ ] Capability Knowledge Graph (agent x capability x proficiency)
 - [ ] Mentor/student evaluation protocol
@@ -453,7 +453,7 @@ Measured time saved: 33 min/task
 Value per use: 33 min × ($50/hr agent rate) = $27.50
 ```
 
-- Track actual task completion times from Paperclip issue timestamps
+- Track actual task completion times from Sanad AI EOI issue timestamps
 - Compare same-type tasks before vs after capability acquisition
 - Director cross-validates by comparing agents who have the capability vs those who don't
 - First 30 days: value marked as "estimated." After 30 days: based on real data.
@@ -493,7 +493,7 @@ Runtime:
 Server restart:
   - Process registry in Postgres survives restart
   - On boot: iterate process_registry, restart all "active" MCP containers
-  - Startup order: DB → MCP containers → Paperclip server → agents
+  - Startup order: DB → MCP containers → Sanad AI EOI server → agents
 ```
 
 ### AI Analysis Validation
@@ -546,7 +546,7 @@ Director tiebreaker:
 ## Key Design Decisions
 
 1. **Infrastructure first** — Can't mentor without capabilities to manage
-2. **Hybrid architecture** — Director is a Paperclip agent, discovery tools live in Brain MCP
+2. **Hybrid architecture** — Director is a Sanad AI EOI agent, discovery tools live in Brain MCP
 3. **Trust + Autonomy** — Agents can install with audit trail, board can revoke. Configurable rules.
 4. **Pull-Understand-Clone** — AI analyzes external capabilities and adapts them to our system
 5. **Companion generation** — When pulling an MCP server, AI auto-generates connector + companion skill

@@ -10,7 +10,7 @@ Sanad AI EOI encrypts secrets at rest using a local master key. Agent environmen
 Secrets are encrypted with a local master key stored at:
 
 ```
-~/.paperclip/instances/default/secrets/master.key
+~/.sanad-ai-eoi/instances/default/secrets/master.key
 ```
 
 This key is auto-created during onboarding. The key never leaves your machine.

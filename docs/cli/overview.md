@@ -17,7 +17,7 @@ All commands support:
 
 | Flag | Description |
 |------|-------------|
-| `--data-dir <path>` | Local Sanad AI EOI data root (isolates from `~/.paperclip`) |
+| `--data-dir <path>` | Local Sanad AI EOI data root (isolates from `~/.sanad-ai-eoi`) |
 | `--api-base <url>` | API base URL |
 | `--api-key <token>` | API authentication token |
 | `--context <path>` | Context file path |
@@ -29,7 +29,7 @@ Company-scoped commands also accept `--company-id <id>`.
 For clean local instances, pass `--data-dir` on the command you run:
 
 ```sh
-pnpm sanadai run --data-dir ./tmp/paperclip-dev
+pnpm sanadai run --data-dir ./tmp/sanad-ai-eoi-dev
 ```
 
 ## Context Profiles
@@ -57,7 +57,7 @@ pnpm sanadai context set --api-key-env-var-name PAPERCLIP_API_KEY
 export PAPERCLIP_API_KEY=...
 ```
 
-Context is stored at `~/.paperclip/context.json`.
+Context is stored at `~/.sanad-ai-eoi/context.json`.
 
 ## Command Categories
 

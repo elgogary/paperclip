@@ -97,11 +97,11 @@ pnpm sanadai allowed-hostname my-tailscale-host
 
 | Data | Default Path |
 |------|-------------|
-| Config | `~/.paperclip/instances/default/config.json` |
-| Database | `~/.paperclip/instances/default/db` |
-| Logs | `~/.paperclip/instances/default/logs` |
-| Storage | `~/.paperclip/instances/default/data/storage` |
-| Secrets key | `~/.paperclip/instances/default/secrets/master.key` |
+| Config | `~/.sanad-ai-eoi/instances/default/config.json` |
+| Database | `~/.sanad-ai-eoi/instances/default/db` |
+| Logs | `~/.sanad-ai-eoi/instances/default/logs` |
+| Storage | `~/.sanad-ai-eoi/instances/default/data/storage` |
+| Secrets key | `~/.sanad-ai-eoi/instances/default/secrets/master.key` |
 
 Override with:
 
@@ -112,6 +112,6 @@ PAPERCLIP_HOME=/custom/home PAPERCLIP_INSTANCE_ID=dev pnpm sanadai run
 Or pass `--data-dir` directly on any command:
 
 ```sh
-pnpm sanadai run --data-dir ./tmp/paperclip-dev
-pnpm sanadai doctor --data-dir ./tmp/paperclip-dev
+pnpm sanadai run --data-dir ./tmp/sanad-ai-eoi-dev
+pnpm sanadai doctor --data-dir ./tmp/sanad-ai-eoi-dev
 ```

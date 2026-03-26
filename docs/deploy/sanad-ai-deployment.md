@@ -26,8 +26,8 @@ docker compose up -d
 Services:
 - `db` — PostgreSQL 16 on internal network
 - `minio` — MinIO S3-compatible storage (`:9000` internal, `:9001` console)
-- `media-worker` — `paperclip-media-worker` container (ffmpeg + LibreOffice)
-- `server` — `paperclip-server:latest` image built from this repo
+- `media-worker` — `sanad-ai-eoi-media-worker` container (ffmpeg + LibreOffice)
+- `server` — `sanad-ai-eoi-server:latest` image built from this repo
 
 ## Production `.env`
 
@@ -55,7 +55,7 @@ cd /home/eslam/data/projects/paperclip
 git pull origin feature/multimodal-attachments
 
 # Build server image (takes ~3-5 min with cache)
-docker build -t paperclip-server .
+docker build -t sanad-ai-eoi-server .
 
 # Restart server only (db + minio + media-worker stay running)
 docker compose up -d server
@@ -64,7 +64,7 @@ docker compose up -d server
 Full rebuild (clears Docker cache — use after major changes):
 
 ```bash
-docker build --no-cache -t paperclip-server .
+docker build --no-cache -t sanad-ai-eoi-server .
 docker compose up -d server
 ```
 
@@ -73,7 +73,7 @@ docker compose up -d server
 | Volume | Mount | Purpose |
 |--------|-------|---------|
 | `pgdata` | `/var/lib/postgresql/data` | PostgreSQL data |
-| `paperclip-data` | `/paperclip` | App config, DB backups |
+| `sanad-ai-eoi-data` | `/paperclip` | App config, DB backups |
 | `minio-data` | `/data` | All uploaded files |
 | `/home/eslam/optiflow` | `/workspace` (server) | Agent workspace |
 | `/home/eslam/data/projects/sanad-brain-mcp` | mounted ro | Brain MCP server |
@@ -81,7 +81,7 @@ docker compose up -d server
 ## MinIO Bucket Setup (First Deploy Only)
 
 ```bash
-docker run --rm --network paperclip_paperclip-internal \
+docker run --rm --network sanad-ai-eoi_sanad-ai-eoi-internal \
   --entrypoint /bin/sh minio/mc:latest -c \
   "mc alias set local http://minio:9000 paperclip-minio paperclip-minio-secret-2026 && \
    mc mb local/paperclip-files"
@@ -89,7 +89,7 @@ docker run --rm --network paperclip_paperclip-internal \
 
 Verify bucket exists:
 ```bash
-docker run --rm --network paperclip_paperclip-internal \
+docker run --rm --network sanad-ai-eoi_sanad-ai-eoi-internal \
   --entrypoint /bin/sh minio/mc:latest -c \
   "mc alias set local http://minio:9000 paperclip-minio paperclip-minio-secret-2026 && \
    mc ls local"
@@ -100,7 +100,7 @@ docker run --rm --network paperclip_paperclip-internal \
 Migrations run automatically on server startup. To check:
 
 ```bash
-docker logs paperclip-server-1 2>&1 | grep -i migrat
+docker logs sanad-ai-eoi-server-1 2>&1 | grep -i migrat
 ```
 
 Expected: `Migrations already applied` or `Applied N migrations`.
@@ -112,7 +112,7 @@ Expected: `Migrations already applied` or `Applied N migrations`.
 curl http://100.109.59.30:3100/api/health
 
 # Media worker (from inside Docker network)
-docker exec paperclip-media-worker curl -f http://localhost:3200/health
+docker exec sanad-ai-eoi-media-worker curl -f http://localhost:3200/health
 
 # All container status
 docker compose ps
@@ -143,16 +143,16 @@ curl -H "X-Api-Key: c246f4294bf4a99ccfb2883f68352a9889789076414b7cf93cbd3fb01f73
 
 **Server won't start — media-worker not healthy**
 ```bash
-docker logs paperclip-media-worker --tail 20
+docker logs sanad-ai-eoi-media-worker --tail 20
 # Verify: curl from inside container
-docker exec paperclip-media-worker curl -f http://localhost:3200/health
+docker exec sanad-ai-eoi-media-worker curl -f http://localhost:3200/health
 ```
 
 **MinIO connection errors**
 ```bash
-docker logs paperclip-server-1 | grep -i minio
+docker logs sanad-ai-eoi-server-1 | grep -i minio
 # Check bucket exists
-docker run --rm --network paperclip_paperclip-internal --entrypoint /bin/sh minio/mc:latest -c \
+docker run --rm --network sanad-ai-eoi_sanad-ai-eoi-internal --entrypoint /bin/sh minio/mc:latest -c \
   "mc alias set l http://minio:9000 paperclip-minio paperclip-minio-secret-2026 && mc ls l"
 ```
 
@@ -160,11 +160,11 @@ docker run --rm --network paperclip_paperclip-internal --entrypoint /bin/sh mini
 ```bash
 # Always build from the project directory
 cd /home/eslam/data/projects/paperclip
-docker build -t paperclip-server .
+docker build -t sanad-ai-eoi-server .
 ```
 
 **TypeScript errors during build**
 Check the build output:
 ```bash
-docker build -t paperclip-server . 2>&1 | grep "error TS"
+docker build -t sanad-ai-eoi-server . 2>&1 | grep "error TS"
 ```

@@ -12,7 +12,7 @@ All environment variables that Sanad AI EOI uses for server configuration.
 | `PORT` | `3100` | Server port |
 | `HOST` | `127.0.0.1` | Server host binding |
 | `DATABASE_URL` | (embedded) | PostgreSQL connection string |
-| `PAPERCLIP_HOME` | `~/.paperclip` | Base directory for all Sanad AI EOI data |
+| `PAPERCLIP_HOME` | `~/.sanad-ai-eoi` | Base directory for all Sanad AI EOI data |
 | `PAPERCLIP_INSTANCE_ID` | `default` | Instance identifier (for multiple local instances) |
 | `PAPERCLIP_DEPLOYMENT_MODE` | `local_trusted` | Runtime mode override |
 
@@ -21,7 +21,7 @@ All environment variables that Sanad AI EOI uses for server configuration.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PAPERCLIP_SECRETS_MASTER_KEY` | (from file) | 32-byte encryption key (base64/hex/raw) |
-| `PAPERCLIP_SECRETS_MASTER_KEY_FILE` | `~/.paperclip/.../secrets/master.key` | Path to key file |
+| `PAPERCLIP_SECRETS_MASTER_KEY_FILE` | `~/.sanad-ai-eoi/.../secrets/master.key` | Path to key file |
 | `PAPERCLIP_SECRETS_STRICT_MODE` | `false` | Require secret refs for sensitive env vars |
 
 ## Agent Runtime (Injected into agent processes)
