@@ -202,6 +202,23 @@
   /* ── Config preview ── */
   .config-block { background: var(--bg); border-radius: 6px; padding: 12px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; line-height: 1.6; color: var(--cyan); overflow-x: auto; white-space: pre; }
 
+  /* ── Pricing ── */
+  .price-tag { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; margin-left: auto; }
+  .price-free { color: var(--green); }
+  .price-paid { color: var(--yellow); }
+  .price-premium { color: var(--orange); }
+
+  .budget-bar { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 16px; }
+  .budget-meter { flex: 1; height: 8px; background: oklch(0.22 0 0); border-radius: 4px; overflow: hidden; }
+  .budget-meter-fill { height: 100%; border-radius: 4px; transition: width .3s; }
+  .budget-label { font-size: 11px; color: var(--muted-fg); }
+  .budget-value { font-size: 15px; font-weight: 700; }
+  .budget-section { display: flex; flex-direction: column; gap: 2px; min-width: 100px; }
+
+  .cost-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid oklch(0.22 0 0); font-size: 13px; }
+  .cost-row:last-child { border-bottom: none; }
+  .cost-total { font-weight: 700; font-size: 14px; border-top: 1px solid var(--border); padding-top: 10px; margin-top: 4px; }
+
   .proto-label { position: fixed; top: 8px; right: 8px; background: var(--red); color: #fff; padding: 3px 10px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; z-index: 999; letter-spacing: .05em; }
 </style>
 </head>
@@ -263,12 +280,35 @@
         <button class="btn btn-primary" onclick="openInstallFlow()">+ Pull Capability</button>
       </div>
 
+      <!-- Swarm Budget -->
+      <div class="budget-bar">
+        <div class="budget-section">
+          <div class="budget-label">Swarm Budget</div>
+          <div class="budget-value">$847 <span style="font-size:11px;font-weight:400;color:var(--muted-fg)">/ $1,200 mo</span></div>
+        </div>
+        <div style="flex:1">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+            <span class="budget-label">$353 remaining this month</span>
+            <span class="budget-label">71% used</span>
+          </div>
+          <div class="budget-meter">
+            <div class="budget-meter-fill" style="width:71%;background:linear-gradient(90deg,var(--green),var(--yellow))"></div>
+          </div>
+          <div style="display:flex;gap:14px;margin-top:6px">
+            <span class="budget-label">&#x1F4B0; Discovery: <strong style="color:var(--fg)">$127</strong></span>
+            <span class="budget-label">&#x1F4E6; Paid caps: <strong style="color:var(--fg)">$580</strong></span>
+            <span class="budget-label">&#x1F9E0; AI analysis: <strong style="color:var(--fg)">$140</strong></span>
+          </div>
+        </div>
+        <button class="btn btn-cancel btn-sm" style="flex-shrink:0">Manage Budget</button>
+      </div>
+
       <!-- Stats -->
       <div class="stats-row">
-        <div class="stat-card"><div class="stat-value" style="color:var(--purple)">142</div><div class="stat-label">Skills</div></div>
-        <div class="stat-card"><div class="stat-value" style="color:var(--blue)">58</div><div class="stat-label">MCP Servers</div></div>
-        <div class="stat-card"><div class="stat-value" style="color:var(--green)">31</div><div class="stat-label">Connectors</div></div>
-        <div class="stat-card"><div class="stat-value" style="color:var(--orange)">16</div><div class="stat-label">Plugins</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:var(--purple)">142</div><div class="stat-label">Skills <span style="color:var(--green);font-size:10px">128 free</span></div></div>
+        <div class="stat-card"><div class="stat-value" style="color:var(--blue)">58</div><div class="stat-label">MCP Servers <span style="color:var(--yellow);font-size:10px">12 paid</span></div></div>
+        <div class="stat-card"><div class="stat-value" style="color:var(--green)">31</div><div class="stat-label">Connectors <span style="color:var(--yellow);font-size:10px">8 paid</span></div></div>
+        <div class="stat-card"><div class="stat-value" style="color:var(--orange)">16</div><div class="stat-label">Plugins <span style="color:var(--yellow);font-size:10px">5 paid</span></div></div>
       </div>
 
       <!-- Search + filters -->
@@ -285,13 +325,15 @@
         <span class="chip" onclick="filterType(this,'plugin')">Plugins</span>
         <span style="width:1px;background:var(--border);margin:0 4px"></span>
         <span class="chip" onclick="filterType(this,'installed')">Installed (23)</span>
+        <span class="chip" onclick="filterType(this,'free')">&#x1F7E2; Free</span>
+        <span class="chip" onclick="filterType(this,'paid')">&#x1F7E1; Paid</span>
         <span class="chip" onclick="filterType(this,'trusted')">Trusted</span>
         <span class="chip" onclick="filterType(this,'verified')">Verified</span>
       </div>
 
       <!-- Capability cards -->
       <div class="cap-grid">
-        <!-- MCP Server — Installed -->
+        <!-- MCP Server — Installed, Free -->
         <div class="cap-card" onclick="openDetail('filesystem')">
           <span class="installed-badge">&#x2713; Installed</span>
           <div class="cap-card-header">
@@ -305,10 +347,11 @@
           <div class="cap-footer">
             <span class="type-badge type-mcp">MCP Server</span>
             <span class="trust-badge trust-verified">&#x2714; Verified</span>
+            <span class="price-tag price-free">Free</span>
           </div>
         </div>
 
-        <!-- Skill — Installed -->
+        <!-- Skill — Installed, Free -->
         <div class="cap-card" onclick="openDetail('code-review')">
           <span class="installed-badge">&#x2713; Installed</span>
           <div class="cap-card-header">
@@ -322,10 +365,11 @@
           <div class="cap-footer">
             <span class="type-badge type-skill">Skill</span>
             <span class="trust-badge trust-trusted">&#x1F512; Trusted</span>
+            <span class="price-tag price-free">Free</span>
           </div>
         </div>
 
-        <!-- MCP Server — Not installed -->
+        <!-- MCP Server — Not installed, Paid -->
         <div class="cap-card" onclick="openDetail('slack')">
           <div class="cap-card-header">
             <div class="cap-icon mcp">&#x1F4AC;</div>
@@ -338,15 +382,16 @@
           <div class="cap-footer">
             <span class="type-badge type-mcp">MCP Server</span>
             <span class="trust-badge trust-community">&#x1F465; Community</span>
+            <span class="price-tag price-paid">$12/mo</span>
           </div>
         </div>
 
-        <!-- Connector -->
+        <!-- Connector — Premium -->
         <div class="cap-card" onclick="openDetail('github')">
           <div class="cap-card-header">
             <div class="cap-icon connector">&#x1F4BB;</div>
             <div>
-              <div class="cap-name">GitHub Connector</div>
+              <div class="cap-name">GitHub Connector Pro</div>
               <div class="cap-source">github.com/paperclip &middot; Official</div>
             </div>
           </div>
@@ -354,10 +399,11 @@
           <div class="cap-footer">
             <span class="type-badge type-connector">Connector</span>
             <span class="trust-badge trust-verified">&#x2714; Verified</span>
+            <span class="price-tag price-premium">$45/mo</span>
           </div>
         </div>
 
-        <!-- Plugin -->
+        <!-- Plugin — Paid -->
         <div class="cap-card" onclick="openDetail('kanban')">
           <div class="cap-card-header">
             <div class="cap-icon plugin">&#x1F4CB;</div>
@@ -370,10 +416,11 @@
           <div class="cap-footer">
             <span class="type-badge type-plugin">Plugin</span>
             <span class="trust-badge trust-community">&#x1F465; Community</span>
+            <span class="price-tag price-paid">$25/mo</span>
           </div>
         </div>
 
-        <!-- Skill — Unknown trust -->
+        <!-- Skill — Unknown trust, Free -->
         <div class="cap-card" onclick="openDetail('custom')">
           <div class="cap-card-header">
             <div class="cap-icon skill">&#x1F9EA;</div>
@@ -386,19 +433,21 @@
           <div class="cap-footer">
             <span class="type-badge type-skill">Skill</span>
             <span class="trust-badge trust-unknown">&#x26A0; Unknown</span>
+            <span class="price-tag price-free">Free</span>
           </div>
         </div>
 
-        <!-- More cards for density -->
+        <!-- MCP — Free -->
         <div class="cap-card">
           <div class="cap-card-header">
             <div class="cap-icon mcp">&#x1F5C4;</div>
             <div><div class="cap-name">PostgreSQL MCP</div><div class="cap-source">mcpservers.org &middot; Official</div></div>
           </div>
           <div class="cap-desc">Read-only PostgreSQL access with schema inspection, query execution, and explain plans.</div>
-          <div class="cap-footer"><span class="type-badge type-mcp">MCP Server</span><span class="trust-badge trust-verified">&#x2714; Verified</span></div>
+          <div class="cap-footer"><span class="type-badge type-mcp">MCP Server</span><span class="trust-badge trust-verified">&#x2714; Verified</span><span class="price-tag price-free">Free</span></div>
         </div>
 
+        <!-- Connector — Installed, Paid -->
         <div class="cap-card">
           <span class="installed-badge">&#x2713; Installed</span>
           <div class="cap-card-header">
@@ -406,16 +455,17 @@
             <div><div class="cap-name">Gmail Connector</div><div class="cap-source">Private &middot; internal</div></div>
           </div>
           <div class="cap-desc">Read, send, label, and manage Gmail across multiple accounts with unified tooling.</div>
-          <div class="cap-footer"><span class="type-badge type-connector">Connector</span><span class="trust-badge trust-trusted">&#x1F512; Trusted</span></div>
+          <div class="cap-footer"><span class="type-badge type-connector">Connector</span><span class="trust-badge trust-trusted">&#x1F512; Trusted</span><span class="price-tag price-paid">$8/mo</span></div>
         </div>
 
+        <!-- Skill — Community, Free -->
         <div class="cap-card">
           <div class="cap-card-header">
             <div class="cap-icon skill">&#x1F4DD;</div>
             <div><div class="cap-name">bug-fix</div><div class="cap-source">github.com/skills-lib &middot; Community</div></div>
           </div>
           <div class="cap-desc">Investigate, diagnose, and plan a high-quality bug fix by grounding in framework patterns first.</div>
-          <div class="cap-footer"><span class="type-badge type-skill">Skill</span><span class="trust-badge trust-community">&#x1F465; Community</span></div>
+          <div class="cap-footer"><span class="type-badge type-skill">Skill</span><span class="trust-badge trust-community">&#x1F465; Community</span><span class="price-tag price-free">Free</span></div>
         </div>
       </div>
     </div>
@@ -516,6 +566,7 @@
             <th>Source</th>
             <th>Requested By</th>
             <th>Reason</th>
+            <th>Cost</th>
             <th>Trust</th>
             <th>Actions</th>
           </tr>
@@ -532,6 +583,7 @@
               </div>
             </td>
             <td style="font-size:12px;color:var(--muted-fg);max-width:200px">"Need web search capability for research tasks"</td>
+            <td><span class="price-tag price-paid">$18/mo</span></td>
             <td><span class="trust-badge trust-verified">&#x2714; Verified</span></td>
             <td>
               <div style="display:flex;gap:4px">
@@ -551,6 +603,7 @@
               </div>
             </td>
             <td style="font-size:12px;color:var(--muted-fg);max-width:200px">"Browser automation for UI testing and screenshots"</td>
+            <td><span class="price-tag price-free">Free</span></td>
             <td><span class="trust-badge trust-community">&#x1F465; Community</span></td>
             <td>
               <div style="display:flex;gap:4px">
@@ -570,6 +623,7 @@
               </div>
             </td>
             <td style="font-size:12px;color:var(--muted-fg);max-width:200px">"Scrape prospect websites for lead enrichment"</td>
+            <td><span class="price-tag price-free">Free</span></td>
             <td><span class="trust-badge trust-unknown">&#x26A0; Unknown</span></td>
             <td>
               <div style="display:flex;gap:4px">
@@ -678,12 +732,13 @@
     </div>
 
     <div class="detail-body">
-      <!-- Trust + type badges -->
-      <div style="display:flex;gap:8px;margin-bottom:14px">
+      <!-- Trust + type badges + price -->
+      <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center">
         <span class="type-badge type-mcp">MCP Server</span>
         <span class="trust-badge trust-community">&#x1F465; Community</span>
         <span style="font-size:11px;color:var(--muted-fg);display:flex;align-items:center;gap:4px">&#x2B50; 234 stars</span>
         <span style="font-size:11px;color:var(--muted-fg);display:flex;align-items:center;gap:4px">&#x1F4E5; 1.2k installs</span>
+        <span style="margin-left:auto;background:rgba(245,158,11,.12);color:var(--yellow);font-size:14px;font-weight:700;padding:4px 12px;border-radius:8px">$12/mo</span>
       </div>
 
       <!-- Pipeline: Pull > Understand > Clone -->
@@ -790,7 +845,10 @@
     </div>
 
     <div class="detail-footer">
-      <div style="font-size:12px;color:var(--muted-fg)">This will add 1 MCP server + 1 connector + 1 companion skill</div>
+      <div>
+        <div style="font-size:12px;color:var(--muted-fg)">1 MCP + 1 connector + 1 companion skill</div>
+        <div style="font-size:11px;color:var(--yellow);margin-top:2px">&#x1F4B0; $12/mo from Swarm budget &middot; <span style="color:var(--muted-fg)">$353 remaining</span></div>
+      </div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-cancel" onclick="closeDetail()">Cancel</button>
         <button class="btn btn-primary" onclick="closeDetail();openInstallFlow()">&#x1F4E5; Pull &amp; Install</button>
@@ -920,10 +978,49 @@
         </div>
       </div>
 
+      <!-- Cost breakdown -->
+      <div style="background:var(--bg);border-radius:8px;padding:14px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:600;color:var(--muted-fg);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Cost Breakdown</div>
+        <div class="cost-row">
+          <span>Slack MCP Server <span style="font-size:11px;color:var(--muted-fg)">(paid)</span></span>
+          <span class="price-tag price-paid">$12/mo</span>
+        </div>
+        <div class="cost-row">
+          <span>Slack Connector <span style="font-size:11px;color:var(--muted-fg)">(auto-generated)</span></span>
+          <span class="price-tag price-free">Free</span>
+        </div>
+        <div class="cost-row">
+          <span>slack-workflows skill <span style="font-size:11px;color:var(--muted-fg)">(auto-generated)</span></span>
+          <span class="price-tag price-free">Free</span>
+        </div>
+        <div class="cost-row">
+          <span>AI analysis cost <span style="font-size:11px;color:var(--muted-fg)">(one-time)</span></span>
+          <span style="font-size:11px;color:var(--cyan)">~$0.03</span>
+        </div>
+        <div class="cost-row cost-total">
+          <span>Total monthly</span>
+          <span style="color:var(--yellow);font-size:15px">$12/mo</span>
+        </div>
+      </div>
+
+      <!-- Budget impact -->
+      <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:12px;margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:12px;font-weight:600">Swarm Budget Impact</span>
+          <span style="font-size:12px;color:var(--muted-fg)">Agent: <strong style="color:var(--fg)">TechLead</strong></span>
+        </div>
+        <div style="display:flex;gap:20px;font-size:12px">
+          <div><span style="color:var(--muted-fg)">Before:</span> <strong>$353/mo remaining</strong></div>
+          <span style="color:var(--muted-fg)">&#x2192;</span>
+          <div><span style="color:var(--muted-fg)">After:</span> <strong style="color:var(--yellow)">$341/mo remaining</strong></div>
+        </div>
+      </div>
+
       <div style="background:var(--bg);border-radius:8px;padding:12px;font-size:12px;color:var(--muted-fg)">
         <strong style="color:var(--fg)">Agents:</strong> TechLead, BackendEng<br>
         <strong style="color:var(--fg)">Trust:</strong> Community (source default)<br>
-        <strong style="color:var(--fg)">Secrets:</strong> 2 configured (encrypted)
+        <strong style="color:var(--fg)">Secrets:</strong> 2 configured (encrypted)<br>
+        <strong style="color:var(--fg)">Billed to:</strong> TechLead's agent budget
       </div>
     </div>
 
