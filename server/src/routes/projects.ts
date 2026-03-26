@@ -1,5 +1,7 @@
 import { Router, type Request } from "express";
+import { eq, and, asc, desc } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
+import { documents } from "@paperclipai/db";
 import {
   createProjectSchema,
   createProjectWorkspaceSchema,
@@ -288,6 +290,70 @@ export function projectRoutes(db: Db) {
     });
 
     res.json(project);
+  });
+
+  // ── Project Documents (Knowledge Base) ──
+
+  router.get("/projects/:id/documents", async (req, res) => {
+    const id = req.params.id as string;
+    const project = await svc.getById(id);
+    if (!project) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+    assertCompanyAccess(req, project.companyId);
+
+    const rows = await db
+      .select()
+      .from(documents)
+      .where(and(eq(documents.projectId, id), eq(documents.companyId, project.companyId)))
+      .orderBy(desc(documents.updatedAt));
+
+    res.json({ documents: rows });
+  });
+
+  router.post("/projects/:id/documents", async (req, res) => {
+    const id = req.params.id as string;
+    const project = await svc.getById(id);
+    if (!project) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+    assertCompanyAccess(req, project.companyId);
+
+    const { title, body, format, key } = req.body;
+    if (!body || typeof body !== "string") {
+      res.status(400).json({ error: "body is required" });
+      return;
+    }
+
+    const actor = getActorInfo(req);
+    const [doc] = await db
+      .insert(documents)
+      .values({
+        companyId: project.companyId,
+        projectId: id,
+        key: key ?? null,
+        title: title ?? null,
+        format: format ?? "markdown",
+        latestBody: body,
+        createdByAgentId: actor.agentId ?? undefined,
+        createdByUserId: actor.actorType === "user" ? actor.actorId : undefined,
+      })
+      .returning();
+
+    await logActivity(db, {
+      companyId: project.companyId,
+      actorType: actor.actorType,
+      actorId: actor.actorId,
+      agentId: actor.agentId,
+      action: "project.document_added",
+      entityType: "project",
+      entityId: id,
+      details: { documentId: doc.id, title: doc.title },
+    });
+
+    res.status(201).json({ document: doc });
   });
 
   return router;

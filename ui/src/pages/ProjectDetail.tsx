@@ -22,6 +22,7 @@ import { PageSkeleton } from "../components/PageSkeleton";
 import { PageTabBar } from "../components/PageTabBar";
 import { ProjectGraphTab } from "../components/ProjectGraphTab";
 import { ProjectAccessTab } from "../components/ProjectAccessTab";
+import { ProjectKnowledgeTab } from "../components/ProjectKnowledgeTab";
 import { projectRouteRef, cn } from "../lib/utils";
 import { Tabs } from "@/components/ui/tabs";
 import { PluginLauncherOutlet } from "@/plugins/launchers";
@@ -29,7 +30,7 @@ import { PluginSlotMount, PluginSlotOutlet, usePluginSlots } from "@/plugins/slo
 
 /* ── Top-level tab types ── */
 
-type ProjectBaseTab = "overview" | "list" | "configuration" | "budget" | "graph" | "access";
+type ProjectBaseTab = "overview" | "list" | "configuration" | "budget" | "graph" | "access" | "knowledge";
 type ProjectPluginTab = `plugin:${string}`;
 type ProjectTab = ProjectBaseTab | ProjectPluginTab;
 
@@ -48,6 +49,7 @@ function resolveProjectTab(pathname: string, projectId: string): ProjectTab | nu
   if (tab === "issues") return "list";
   if (tab === "graph") return "graph";
   if (tab === "access") return "access";
+  if (tab === "knowledge") return "knowledge";
   return null;
 }
 
@@ -357,6 +359,10 @@ export function ProjectDetail() {
       navigate(`/projects/${canonicalProjectRef}/access`, { replace: true });
       return;
     }
+    if (activeTab === "knowledge") {
+      navigate(`/projects/${canonicalProjectRef}/knowledge`, { replace: true });
+      return;
+    }
     if (activeTab === "list") {
       if (filter) {
         navigate(`/projects/${canonicalProjectRef}/issues/${filter}`, { replace: true });
@@ -581,6 +587,7 @@ export function ProjectDetail() {
             { value: "budget", label: "Budget" },
             { value: "graph", label: "Graph" },
             { value: "access", label: "Access" },
+            { value: "knowledge", label: "Knowledge" },
             ...pluginTabItems.map((item) => ({
               value: item.value,
               label: item.label,
@@ -652,6 +659,10 @@ export function ProjectDetail() {
 
       {activeTab === "access" && (
         <ProjectAccessTab project={project} />
+      )}
+
+      {activeTab === "knowledge" && (
+        <ProjectKnowledgeTab projectId={project.id} companyId={project.companyId} />
       )}
     </div>
   );
