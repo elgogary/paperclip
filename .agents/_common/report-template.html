@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{REPORT_TITLE}}</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --brand-dark: #1B1C31;
+    --brand-accent: #4F46E5;
+    --brand-accent-light: #818CF8;
+    --brand-success: #10B981;
+    --brand-warning: #F59E0B;
+    --brand-danger: #EF4444;
+    --text-primary: #1B1C31;
+    --text-secondary: #6B7280;
+    --text-muted: #9CA3AF;
+    --bg-white: #FFFFFF;
+    --bg-gray: #F9FAFB;
+    --bg-card: #FFFFFF;
+    --border: #E5E7EB;
+    --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: var(--text-primary);
+    background: var(--bg-gray);
+    line-height: 1.6;
+    font-size: 14px;
+  }
+
+  /* Print styles */
+  @media print {
+    body { background: white; }
+    .page-break { page-break-before: always; }
+    .no-print { display: none; }
+    .report-container { box-shadow: none; max-width: 100%; }
+  }
+
+  .report-container {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: var(--bg-white);
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* Cover Page */
+  .cover {
+    background: linear-gradient(135deg, var(--brand-dark) 0%, #2D2E4A 100%);
+    color: white;
+    padding: 80px 60px;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .cover .logo {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--brand-accent-light);
+    margin-bottom: 32px;
+  }
+  .cover h1 {
+    font-size: 42px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 16px;
+  }
+  .cover .subtitle {
+    font-size: 18px;
+    color: #A5B4FC;
+    font-weight: 300;
+    margin-bottom: 40px;
+  }
+  .cover .meta {
+    display: flex;
+    gap: 32px;
+    font-size: 13px;
+    color: #9CA3AF;
+  }
+  .cover .meta span { display: flex; align-items: center; gap: 6px; }
+
+  /* Content */
+  .content { padding: 48px 60px; }
+
+  /* Executive Summary Card */
+  .exec-summary {
+    background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+    border-left: 4px solid var(--brand-accent);
+    border-radius: 0 8px 8px 0;
+    padding: 24px 28px;
+    margin-bottom: 40px;
+  }
+  .exec-summary h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--brand-accent);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .exec-summary ul { padding-left: 20px; }
+  .exec-summary li { margin-bottom: 8px; color: var(--text-primary); }
+
+  /* Section Headers */
+  h2.section-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--brand-dark);
+    margin: 40px 0 20px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--brand-accent);
+    display: inline-block;
+  }
+
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--brand-dark);
+    margin: 24px 0 12px;
+  }
+
+  p { margin-bottom: 12px; color: var(--text-secondary); }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0 24px;
+    font-size: 13px;
+  }
+  thead th {
+    background: var(--brand-dark);
+    color: white;
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  tbody td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-primary);
+  }
+  tbody tr:nth-child(even) { background: var(--bg-gray); }
+  tbody tr:hover { background: #EEF2FF; }
+
+  /* Metric Cards */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin: 20px 0 32px;
+  }
+  .metric-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: var(--shadow);
+  }
+  .metric-card .value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--brand-accent);
+    margin-bottom: 4px;
+  }
+  .metric-card .label {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .metric-card .trend {
+    font-size: 12px;
+    margin-top: 4px;
+    font-weight: 500;
+  }
+  .metric-card .trend.up { color: var(--brand-success); }
+  .metric-card .trend.down { color: var(--brand-danger); }
+
+  /* Charts */
+  .chart-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    margin: 20px 0;
+    box-shadow: var(--shadow);
+  }
+  .chart-container h3 {
+    margin-top: 0;
+    margin-bottom: 16px;
+  }
+  .chart-container canvas { max-height: 350px; }
+
+  /* Verdict Badges */
+  .verdict {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .verdict.strong { background: #D1FAE5; color: #065F46; }
+  .verdict.moderate { background: #FEF3C7; color: #92400E; }
+  .verdict.weak { background: #FEE2E2; color: #991B1B; }
+  .verdict.growing { background: #D1FAE5; color: #065F46; }
+  .verdict.crowded { background: #FEE2E2; color: #991B1B; }
+  .verdict.blue-ocean { background: #DBEAFE; color: #1E40AF; }
+
+  /* Comparison Matrix */
+  .matrix td.yes { color: var(--brand-success); font-weight: 600; }
+  .matrix td.no { color: var(--brand-danger); font-weight: 600; }
+  .matrix td.partial { color: var(--brand-warning); font-weight: 600; }
+  .matrix td.highlight { background: #EEF2FF; font-weight: 600; }
+
+  /* Sources */
+  .sources {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+  .sources h3 { font-size: 14px; color: var(--text-muted); }
+  .sources ol { padding-left: 20px; font-size: 12px; color: var(--text-muted); }
+  .sources li { margin-bottom: 4px; }
+  .sources a { color: var(--brand-accent); text-decoration: none; }
+
+  /* Footer */
+  .footer {
+    background: var(--brand-dark);
+    color: #9CA3AF;
+    padding: 24px 60px;
+    font-size: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .footer a { color: var(--brand-accent-light); text-decoration: none; }
+
+  /* SWOT Grid */
+  .swot-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 20px 0;
+  }
+  .swot-card {
+    border-radius: 8px;
+    padding: 20px;
+  }
+  .swot-card.strengths { background: #D1FAE5; border-left: 4px solid #10B981; }
+  .swot-card.weaknesses { background: #FEE2E2; border-left: 4px solid #EF4444; }
+  .swot-card.opportunities { background: #DBEAFE; border-left: 4px solid #3B82F6; }
+  .swot-card.threats { background: #FEF3C7; border-left: 4px solid #F59E0B; }
+  .swot-card h4 {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .swot-card ul { padding-left: 16px; font-size: 13px; }
+  .swot-card li { margin-bottom: 4px; }
+
+  /* Recommendation Box */
+  .recommendation {
+    background: linear-gradient(135deg, var(--brand-dark) 0%, #2D2E4A 100%);
+    color: white;
+    border-radius: 8px;
+    padding: 28px;
+    margin: 32px 0;
+  }
+  .recommendation h3 { color: var(--brand-accent-light); margin-top: 0; }
+  .recommendation p { color: #D1D5DB; }
+  .recommendation ul { padding-left: 20px; }
+  .recommendation li { color: #D1D5DB; margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<div class="report-container">
+
+  <!-- COVER PAGE -->
+  <div class="cover">
+    <div class="logo">Optiflow Systems</div>
+    <h1>{{REPORT_TITLE}}</h1>
+    <div class="subtitle">{{REPORT_SUBTITLE}}</div>
+    <div class="meta">
+      <span>{{REPORT_DATE}}</span>
+      <span>Prepared by: {{REPORT_AUTHOR}}</span>
+      <span>{{REPORT_TYPE}}</span>
+    </div>
+  </div>
+
+  <!-- CONTENT STARTS HERE -->
+  <div class="content">
+
+    <!-- Executive Summary -->
+    <div class="exec-summary">
+      <h2>Executive Summary</h2>
+      <ul>
+        {{EXEC_SUMMARY_BULLETS}}
+      </ul>
+    </div>
+
+    <!-- Key Metrics -->
+    <div class="metrics-grid">
+      {{METRIC_CARDS}}
+    </div>
+
+    <!-- Charts go here -->
+    {{CHARTS}}
+
+    <!-- Main content sections -->
+    {{MAIN_CONTENT}}
+
+    <!-- SWOT Analysis -->
+    {{SWOT}}
+
+    <!-- Recommendation -->
+    {{RECOMMENDATION}}
+
+    <!-- Sources -->
+    <div class="sources">
+      <h3>Sources</h3>
+      <ol>
+        {{SOURCES}}
+      </ol>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <span>&copy; 2026 Optiflow Systems &mdash; <a href="https://optiflowsys.com">optiflowsys.com</a></span>
+    <span>Confidential</span>
+  </div>
+
+</div>
+</body>
+</html>

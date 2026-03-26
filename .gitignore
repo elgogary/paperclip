@@ -38,7 +38,7 @@ tmp/
 .claude/settings.local.json
 .paperclip-local/
 /.idea/
-/.agents/
+# /.agents/ — now tracked for IGNITE agent configs
 
 # Doc maintenance cursor
 .doc-review-cursor

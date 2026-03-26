@@ -1,0 +1,29 @@
+model_list:
+  - model_name: qwen2.5-0.5b
+    litellm_params:
+      model: ollama/qwen2.5:0.5b
+      api_base: http://sanad-ollama:11434
+      num_ctx: 2048
+      timeout: 30
+  - model_name: llama-guard3-1b
+    litellm_params:
+      model: ollama/llama-guard3:1b
+      api_base: http://sanad-ollama:11434
+      num_ctx: 2048
+      timeout: 30
+  - model_name: glm-4.5-air
+    litellm_params:
+      model: openai/glm-4.5-air
+      api_key: os.environ/ZAI_API_KEY
+      api_base: https://api.z.ai/api/coding/paas/v4/
+
+litellm_settings:
+  drop_params: true
+  set_verbose: false
+  max_budget: 50.0
+  budget_duration: 30d
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  alerting: ["log"]
+  alert_types: ["budget_alerts"]
