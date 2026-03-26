@@ -295,7 +295,7 @@ export default function PublicChat() {
                     ? "bg-muted border border-border rounded-tl-sm"
                     : "bg-indigo-600 text-white rounded-tr-sm"
                 )}>
-                  {msg.role === "agent" ? <MarkdownBody markdown={msg.body} /> : msg.body}
+                  {msg.role === "agent" ? <MarkdownBody>{msg.body}</MarkdownBody> : msg.body}
                 </div>
                 <div className={cn("text-[10px] text-muted-foreground mt-1 px-1", msg.role === "customer" && "text-right")}>
                   {new Date(msg.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}

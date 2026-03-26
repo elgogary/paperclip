@@ -139,29 +139,30 @@ def tool_read_inbox(args: dict) -> str:
     try:
         imap.select(folder, readonly=True)
         criteria = "UNSEEN" if unread_only else "ALL"
-    status, data = imap.search(None, criteria)
-    msg_ids = data[0].split()
+        status, data = imap.search(None, criteria)
+        msg_ids = data[0].split()
 
-    if not msg_ids:
+        if not msg_ids:
+            imap.logout()
+            return "No messages found."
+
+        recent_ids = msg_ids[-max_results:][::-1]
+        lines = []
+        for mid in recent_ids:
+            status, msg_data = imap.fetch(mid, "(FLAGS BODY[HEADER.FIELDS (FROM SUBJECT DATE)])")
+            raw_header = msg_data[0][1].decode("utf-8", errors="replace")
+            msg = email.message_from_string(raw_header)
+            flags = msg_data[0][0].decode() if msg_data[0][0] else ""
+            is_read = "\\Seen" in flags
+            from_addr = decode_header_value(msg.get("From", ""))
+            subject = decode_header_value(msg.get("Subject", "(no subject)"))
+            date = msg.get("Date", "")
+            mark = "" if is_read else "[NEW] "
+            lines.append(f"[{mid.decode()}] {mark}{date} | From: {from_addr} | Subject: {subject}")
+
+        return "\n".join(lines)
+    finally:
         imap.logout()
-        return "No messages found."
-
-    recent_ids = msg_ids[-max_results:][::-1]
-    lines = []
-    for mid in recent_ids:
-        status, msg_data = imap.fetch(mid, "(FLAGS BODY[HEADER.FIELDS (FROM SUBJECT DATE)])")
-        raw_header = msg_data[0][1].decode("utf-8", errors="replace")
-        msg = email.message_from_string(raw_header)
-        flags = msg_data[0][0].decode() if msg_data[0][0] else ""
-        is_read = "\\Seen" in flags
-        from_addr = decode_header_value(msg.get("From", ""))
-        subject = decode_header_value(msg.get("Subject", "(no subject)"))
-        date = msg.get("Date", "")
-        mark = "" if is_read else "[NEW] "
-        lines.append(f"[{mid.decode()}] {mark}{date} | From: {from_addr} | Subject: {subject}")
-
-    imap.logout()
-    return "\n".join(lines)
 
 
 @tool("read_email")
