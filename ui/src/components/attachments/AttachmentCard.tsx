@@ -219,7 +219,7 @@ function OfficeCard({ attachmentId, filename, downloadUrl, htmlPreviewKey, sizeB
             className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium hover:bg-accent transition-colors shrink-0"
           >
             <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-            View Document
+            Preview Document
           </button>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogContent className="max-w-5xl h-[80vh]">
