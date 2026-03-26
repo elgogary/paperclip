@@ -195,6 +195,63 @@ function ActorIdentity({ evt, agentMap }: { evt: ActivityEvent; agentMap: Map<st
   return <Identity name={id || "Unknown"} size="sm" />;
 }
 
+function OfficePreview({ contentPath }: { contentPath: string }) {
+  const [html, setHtml] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(contentPath);
+        if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
+        const arrayBuffer = await res.arrayBuffer();
+
+        // Load mammoth from CDN if not already loaded
+        if (!(window as any).mammoth) {
+          await new Promise<void>((resolve, reject) => {
+            const script = document.createElement("script");
+            script.src = "https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js";
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error("Failed to load mammoth.js"));
+            document.head.appendChild(script);
+          });
+        }
+
+        const result = await (window as any).mammoth.convertToHtml({ arrayBuffer });
+        if (!cancelled) setHtml(result.value);
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Preview failed");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [contentPath]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+        Converting document...
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full text-sm text-destructive">
+        {error}
+      </div>
+    );
+  }
+  return (
+    <div
+      className="p-6 prose prose-sm dark:prose-invert max-w-none"
+      dangerouslySetInnerHTML={{ __html: html ?? "" }}
+    />
+  );
+}
+
 function IssueAttachmentCard({
   attachment,
   isImage,
@@ -211,7 +268,7 @@ function IssueAttachmentCard({
   const isOffice = attachment.contentType.startsWith("application/vnd.openxmlformats-officedocument.") ||
     attachment.contentType === "application/msword" ||
     attachment.contentType === "application/vnd.ms-excel";
-  const canPreview = isPdf || isImage;
+  const canPreview = isPdf || isImage || isOffice;
 
   return (
     <>
@@ -293,6 +350,9 @@ function IssueAttachmentCard({
                   className="w-full h-full border-0"
                   title={attachment.originalFilename ?? "PDF preview"}
                 />
+              )}
+              {isOffice && (
+                <OfficePreview contentPath={attachment.contentPath} />
               )}
             </div>
           </div>
