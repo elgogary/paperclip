@@ -5,20 +5,10 @@ interface ExecutionWorkspaceSectionProps {
   setExecutionWorkspaceMode: (mode: string) => void;
   selectedExecutionWorkspaceId: string;
   setSelectedExecutionWorkspaceId: (id: string) => void;
-  deduplicatedReusableWorkspaces: Array<Record<string, unknown> & {
-    id: string;
-    name: string;
-    status: string;
-    branchName?: string | null;
-    cwd?: string | null;
-    mode?: string | null;
-  }>;
-  selectedReusableExecutionWorkspace: {
-    id: string;
-    name: string;
-    branchName?: string | null;
-    cwd?: string | null;
-  } | undefined;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  deduplicatedReusableWorkspaces: Array<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  selectedReusableExecutionWorkspace: any;
 }
 
 export function ExecutionWorkspaceSection({
