@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Code Graph</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f6f8fa; color: #1f2328; overflow: hidden; }
+@media (prefers-color-scheme: dark) {
+  body { background: #0d1117; color: #e6edf3; }
+  #header { background: rgba(22,27,34,0.97); border-bottom-color: #30363d; }
+  #sidebar { background: rgba(22,27,34,0.97); border-left-color: #30363d; }
+  #tooltip { background: #161b22; border-color: #30363d; }
+  #controls button { background: #21262d; border-color: #30363d; color: #e6edf3; }
+  #controls button:hover { background: #30363d; }
+  #legend { background: #161b22; border-color: #30363d; color: #8b949e; }
+  #layer-filters { background: #161b22; }
+  .module-item:hover { background: #1c2128; }
+  .module-item.active { background: #1c3a5e; border-color: #388bfd; }
+  .module-item .name { color: #e6edf3; }
+  .dep-item { border-bottom-color: #21262d; }
+  #graph-container { background: #0d1117; }
+}
+#header { position: fixed; top: 0; left: 0; right: 0; z-index: 10; padding: 10px 20px; background: rgba(255,255,255,0.97); border-bottom: 1px solid #d0d7de; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+#header h1 { font-size: 15px; font-weight: 600; color: #0969da; }
+#header .stats { font-size: 12px; color: #656d76; display: flex; gap: 12px; flex-wrap: wrap; }
+#header .stats span { display: flex; align-items: center; gap: 3px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+#view-toggle { display: flex; gap: 4px; margin-left: auto; }
+#view-toggle button { padding: 4px 10px; background: #fff; border: 1px solid #d0d7de; color: #656d76; border-radius: 4px; cursor: pointer; font-size: 11px; }
+#view-toggle button.active { background: #0969da; color: #fff; border-color: #0969da; }
+#sidebar { position: fixed; top: 44px; right: 0; width: 290px; bottom: 0; background: rgba(255,255,255,0.97); border-left: 1px solid #d0d7de; padding: 12px; overflow-y: auto; z-index: 10; font-size: 12px; }
+#sidebar h2 { font-size: 13px; color: #e16f24; margin-bottom: 8px; }
+.module-item { padding: 6px 8px; margin-bottom: 3px; border-radius: 5px; cursor: pointer; transition: background 0.15s; }
+.module-item:hover { background: #f0f2f5; }
+.module-item.active { background: #ddf4ff; border: 1px solid #54aeff; }
+.module-item .name { color: #1f2328; font-weight: 500; font-size: 12px; }
+.module-item .count { color: #656d76; font-size: 10px; }
+#layer-filters { margin: 8px 0; padding: 8px; background: #f6f8fa; border-radius: 6px; }
+#layer-filters label { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #656d76; margin-bottom: 4px; cursor: pointer; }
+#layer-filters input { margin: 0; }
+.layer-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+#dep-panel h3 { font-size: 12px; color: #cf222e; margin: 10px 0 6px; }
+.dep-item { font-size: 11px; color: #656d76; padding: 3px 0; border-bottom: 1px solid #f0f2f5; line-height: 1.4; }
+.dep-item .arrow { color: #cf222e; font-weight: 600; }
+.dep-item .weight { color: #e16f24; font-weight: 600; }
+.dep-item .layer-tag { display: inline-block; padding: 1px 4px; border-radius: 3px; font-size: 9px; font-weight: 600; margin-left: 4px; }
+.tag-codegraph { background: #ddf4ff; color: #0969da; }
+.tag-hooks { background: #fff8c5; color: #9a6700; }
+.tag-doctype_link { background: #ffebe9; color: #cf222e; }
+.tag-js_call { background: #dcffe4; color: #1a7f37; }
+#tooltip { position: fixed; padding: 10px 14px; background: #fff; border: 1px solid #d0d7de; border-radius: 8px; font-size: 12px; pointer-events: none; display: none; z-index: 20; max-width: 380px; box-shadow: 0 4px 12px rgba(0,0,0,0.12); white-space: pre-line; }
+#tooltip .tt-name { font-weight: 600; color: #0969da; margin-bottom: 3px; }
+#tooltip .tt-kind { color: #e16f24; font-size: 10px; text-transform: uppercase; }
+#tooltip .tt-detail { color: #656d76; margin-top: 3px; font-size: 11px; }
+#graph-container { position: fixed; top: 44px; left: 0; right: 290px; bottom: 0; }
+#graph-container svg { width: 100%; height: 100%; }
+#controls { position: fixed; bottom: 12px; left: 12px; z-index: 10; display: flex; gap: 6px; }
+#controls button { padding: 5px 12px; background: #fff; border: 1px solid #d0d7de; color: #1f2328; border-radius: 5px; cursor: pointer; font-size: 11px; }
+#controls button:hover { background: #f0f2f5; }
+#legend { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); z-index: 10; background: #fff; border: 1px solid #d0d7de; border-radius: 6px; padding: 6px 14px; font-size: 10px; color: #656d76; display: flex; gap: 14px; }
+#legend span { display: flex; align-items: center; gap: 3px; }
+#loading { position: fixed; top: 50%; left: calc(50% - 145px); transform: translate(-50%, -50%); font-size: 14px; color: #656d76; z-index: 5; }
+</style>
+</head>
+<body>
+<div id="header">
+  <h1>Code Graph</h1>
+  <div class="stats">
+    <span><span class="dot" style="background:#e16f24"></span> <span id="s-modules">0</span> modules</span>
+    <span><span class="dot" style="background:#0969da"></span> <span id="s-classes">0</span> classes</span>
+    <span><span class="dot" style="background:#cf222e"></span> <span id="s-deps">0</span> deps</span>
+    <span>|</span>
+    <span><span class="dot" style="background:#0969da"></span><span id="s-cg">0</span> codegraph</span>
+    <span><span class="dot" style="background:#9a6700"></span><span id="s-hooks">0</span> hooks</span>
+    <span><span class="dot" style="background:#cf222e"></span><span id="s-links">0</span> links</span>
+    <span><span class="dot" style="background:#1a7f37"></span><span id="s-js">0</span> JS</span>
+    <span><span class="dot" style="background:#8250df"></span><span id="s-ext">0</span> external</span>
+  </div>
+  <div id="view-toggle">
+    <button class="active" onclick="setView('full')">Full Graph</button>
+    <button onclick="setView('modules')">Modules Only</button>
+  </div>
+</div>
+<div id="sidebar">
+  <h2>Modules</h2>
+  <div id="module-list"></div>
+  <div id="layer-filters">
+    <div style="font-weight:600;margin-bottom:4px;color:#1f2328">Dependency Layers</div>
+    <label><input type="checkbox" checked data-layer="codegraph"><span class="layer-dot" style="background:#0969da"></span> Codegraph Index</label>
+    <label><input type="checkbox" checked data-layer="hooks"><span class="layer-dot" style="background:#9a6700"></span> hooks.py Wiring</label>
+    <label><input type="checkbox" checked data-layer="doctype_link"><span class="layer-dot" style="background:#cf222e"></span> DocType Link Fields</label>
+    <label><input type="checkbox" checked data-layer="js_call"><span class="layer-dot" style="background:#1a7f37"></span> JS frappe.call</label>
+    <label><input type="checkbox" checked data-layer="external"><span class="layer-dot" style="background:#8250df"></span> External Systems</label>
+  </div>
+  <div id="dep-panel"></div>
+</div>
+<div id="tooltip">
+  <div class="tt-kind"></div>
+  <div class="tt-name"></div>
+  <div class="tt-detail"></div>
+</div>
+<div id="graph-container"></div>
+<div id="controls">
+  <button onclick="resetZoom()">Reset</button>
+  <button onclick="toggleLabels()">Labels</button>
+  <button onclick="resetHighlight()">Show All</button>
+  <button onclick="toggleDepArrows()" id="depToggle">Hide Dep Arrows</button>
+  <button onclick="setSpacing('compact')">Compact</button>
+  <button onclick="setSpacing('normal')" class="active" id="spacingNormal">Normal</button>
+  <button onclick="setSpacing('spread')">Spread</button>
+  <span style="margin-left:8px;border-left:1px solid #d0d7de;padding-left:8px;color:#656d76;font-size:10px">Depth:</span>
+  <button onclick="setDepth(1)" id="depth1">L1 Modules</button>
+  <button onclick="setDepth(2)" class="active" id="depth2">L2 Classes</button>
+  <button onclick="setDepth(3)" id="depth3">L3 Functions</button>
+</div>
+<div id="legend">
+  <span><svg width="16" height="8"><line x1="0" y1="4" x2="16" y2="4" stroke="#0969da" stroke-width="2"/></svg> codegraph</span>
+  <span><svg width="16" height="8"><line x1="0" y1="4" x2="16" y2="4" stroke="#9a6700" stroke-width="2" stroke-dasharray="4,2"/></svg> hooks</span>
+  <span><svg width="16" height="8"><line x1="0" y1="4" x2="16" y2="4" stroke="#cf222e" stroke-width="2" stroke-dasharray="2,2"/></svg> doctype</span>
+  <span><svg width="16" height="8"><line x1="0" y1="4" x2="16" y2="4" stroke="#1a7f37" stroke-width="2"/></svg> JS</span>
+  <span><svg width="16" height="8"><line x1="0" y1="4" x2="16" y2="4" stroke="#8250df" stroke-width="2" stroke-dasharray="8,4"/></svg> external</span>
+  <span>| thickness = weight</span>
+</div>
+<div id="loading">Loading graph...</div>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+const LAYER_COLORS = { codegraph: '#0969da', hooks: '#9a6700', doctype_link: '#cf222e', js_call: '#1a7f37' };
+const LAYER_DASH = { codegraph: null, hooks: '6,3', doctype_link: '3,3', js_call: null };
+// Auto-generated per project — customize colors for your modules
+const MODULE_COLORS = {};
+const EXTERNAL_COLORS = {
+  data_lake:'#8250df', external_system:'#bf8700', api:'#0969da',
+  government:'#cf222e', notification:'#57606a', framework:'#d1242f',
+};
+
+let DATA, node, link, linkLabel, label, subLabel, simulation, svg, g, zoom;
+let showLabels = true, activeModule = null, currentView = 'full';
+let activeLayers = new Set(['codegraph','hooks','doctype_link','js_call','external']);
+let spacingLevel = 'normal';
+let depthLevel = 2; // 1=modules, 2=+classes, 3=+functions
+const SPACING = {
+  compact: { linkDep: 150, linkContains: 60, linkExt: 200, chargeMod: -800, chargeClass: -60, collClass: 15, collMod: 30 },
+  normal:  { linkDep: 350, linkContains: 120, linkExt: 400, chargeMod: -3000, chargeClass: -250, collClass: 30, collMod: 55 },
+  spread:  { linkDep: 550, linkContains: 200, linkExt: 600, chargeMod: -5000, chargeClass: -500, collClass: 50, collMod: 80 },
+};
+
+fetch('codegraph-data.json').then(r => r.json()).then(d => { document.getElementById('loading').remove(); DATA = d; initGraph(); })
+  .catch(e => { document.getElementById('loading').textContent = 'Error: ' + e.message; });
+
+function initGraph() {
+  document.getElementById('s-modules').textContent = DATA.stats.modules.length;
+  document.getElementById('s-classes').textContent = DATA.stats.totalClasses;
+  document.getElementById('s-deps').textContent = DATA.stats.crossModuleEdges;
+  document.getElementById('s-cg').textContent = DATA.stats.layers.codegraph;
+  document.getElementById('s-hooks').textContent = DATA.stats.layers.hooks;
+  document.getElementById('s-links').textContent = DATA.stats.layers.doctype_link;
+  document.getElementById('s-js').textContent = DATA.stats.layers.js_call;
+  document.getElementById('s-ext').textContent = DATA.stats.layers.external || 0;
+
+  // Sidebar modules
+  const ml = document.getElementById('module-list');
+  DATA.stats.modules.forEach(m => {
+    const d = document.createElement('div');
+    d.className = 'module-item'; d.id = 'mi-' + m.name;
+    d.innerHTML = '<div class="name">' + m.name.replace('accubuild_','') + '</div><div class="count">' + m.files + 'f / ' + m.classes + 'c / ' + m.functions + 'fn</div>';
+    d.onclick = () => highlightModule(m.name);
+    ml.appendChild(d);
+  });
+
+  // Layer filter checkboxes
+  document.querySelectorAll('#layer-filters input').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if (cb.checked) activeLayers.add(cb.dataset.layer); else activeLayers.delete(cb.dataset.layer);
+      updateLinkVisibility();
+    });
+  });
+
+  const container = document.getElementById('graph-container');
+  const W = container.clientWidth, H = container.clientHeight;
+
+  svg = d3.select('#graph-container').append('svg').attr('width', W).attr('height', H);
+  const defs = svg.append('defs');
+  Object.entries(LAYER_COLORS).forEach(([layer, color]) => {
+    defs.append('marker').attr('id', 'arr-' + layer).attr('viewBox', '0 -5 12 10')
+      .attr('refX', 18).attr('refY', 0)
+      .attr('markerUnits', 'userSpaceOnUse')
+      .attr('markerWidth', 18).attr('markerHeight', 14)
+      .attr('orient', 'auto')
+      .append('path').attr('d', 'M0,-6L16,0L0,6').attr('fill', color);
+  });
+
+  g = svg.append('g');
+  zoom = d3.zoom().scaleExtent([0.15, 6]).on('zoom', e => g.attr('transform', e.transform));
+  svg.call(zoom);
+
+  buildSimulation(W, H);
+
+  window.addEventListener('resize', () => {
+    const w = container.clientWidth, h = container.clientHeight;
+    svg.attr('width', w).attr('height', h);
+    simulation.force('center', d3.forceCenter(w / 2, h / 2));
+    simulation.alpha(0.3).restart();
+  });
+}
+
+function getVisibleNodes() {
+  if (currentView === 'modules') return DATA.nodes.filter(n => n.kind === 'module' || n.kind === 'external');
+  return DATA.nodes.filter(n => (n.level || 1) <= depthLevel || n.kind === 'external');
+}
+function getVisibleLinks() {
+  const nodeIds = new Set(getVisibleNodes().map(n => n.id));
+  return DATA.links.filter(l => {
+    const sid = typeof l.source === 'object' ? l.source.id : l.source;
+    const tid = typeof l.target === 'object' ? l.target.id : l.target;
+    if (!nodeIds.has(sid) || !nodeIds.has(tid)) return false;
+    if ((l.level || 1) > depthLevel) return false;
+    if (l.type === 'contains') return true;
+    if (l.layers) return l.layers.some(ly => activeLayers.has(ly));
+    return true;
+  });
+}
+
+function buildSimulation(W, H) {
+  const vNodes = getVisibleNodes();
+  const vLinks = getVisibleLinks();
+  const isModOnly = currentView === 'modules';
+
+  if (simulation) simulation.stop();
+  g.selectAll('*').remove();
+
+  const sp = SPACING[spacingLevel];
+  simulation = d3.forceSimulation(vNodes)
+    .force('link', d3.forceLink(vLinks).id(d => d.id)
+      .distance(d => { if (d.type === 'external') return sp.linkExt; if (d.type === 'depends') return sp.linkDep; return sp.linkContains; })
+      .strength(d => { if (d.type === 'depends' || d.type === 'external') return 0.12; return 0.4; }))
+    .force('charge', d3.forceManyBody().strength(d => (d.kind === 'module' || d.kind === 'external') ? sp.chargeMod : sp.chargeClass))
+    .force('center', d3.forceCenter(W / 2, H / 2))
+    .force('collision', d3.forceCollide().radius(d => nodeRadius(d) + ((d.kind === 'module' || d.kind === 'external') ? sp.collMod : sp.collClass)))
+    .force('x', d3.forceX(W / 2).strength(0.015))
+    .force('y', d3.forceY(H / 2).strength(0.015));
+
+  function linkArc(d) {
+    const dx = d.target.x - d.source.x, dy = d.target.y - d.source.y;
+    const dr = Math.sqrt(dx * dx + dy * dy);
+    const hasReverse = vLinks.some(l => {
+      const s = typeof l.source === 'object' ? l.source.id : l.source;
+      const t = typeof l.target === 'object' ? l.target.id : l.target;
+      const ds = typeof d.source === 'object' ? d.source.id : d.source;
+      const dt = typeof d.target === 'object' ? d.target.id : d.target;
+      return s === dt && t === ds;
+    });
+    return hasReverse
+      ? 'M' + d.source.x + ',' + d.source.y + 'A' + dr*0.7 + ',' + dr*0.7 + ' 0 0,1 ' + d.target.x + ',' + d.target.y
+      : 'M' + d.source.x + ',' + d.source.y + 'L' + d.target.x + ',' + d.target.y;
+  }
+
+  function primaryLayer(d) { return (d.layers && d.layers[0]) || 'codegraph'; }
+
+  link = g.append('g').selectAll('path').data(vLinks).join('path')
+    .attr('fill', 'none')
+    .attr('stroke', d => { if (d.type === 'fn_call') return '#8b949e'; if (d.type === 'class_ref') return '#57606a'; if (d.type === 'external') return '#8250df'; if (d.type === 'depends') return LAYER_COLORS[primaryLayer(d)]; return 'rgba(200,200,200,0.06)'; })
+    .attr('stroke-width', d => { if (d.type === 'fn_call') return Math.min(Math.max(0.5, Math.sqrt(d.weight || 1) * 0.3), 2); if (d.type === 'class_ref') return Math.min(Math.max(1, Math.sqrt(d.weight || 1) * 0.6), 3); if (d.type === 'depends' || d.type === 'external') return Math.min(Math.max(1.5, Math.sqrt(d.weight) * 1.2), 5); return 0.4; })
+    .attr('stroke-opacity', d => { if (d.type === 'fn_call') return 0.25; if (d.type === 'class_ref') return 0.5; if (d.type === 'depends' || d.type === 'external') return Math.min(0.5 + d.weight * 0.04, 0.95); return 0.2; })
+    .attr('stroke-dasharray', d => { if (d.type === 'external') return '8,4'; if (d.type === 'depends') return LAYER_DASH[primaryLayer(d)]; return null; })
+    .attr('marker-end', d => { if (d.type === 'class_ref') return 'url(#arr-codegraph)'; if (d.type === 'external') return 'url(#arr-codegraph)'; if (d.type === 'depends') return 'url(#arr-' + primaryLayer(d) + ')'; return null; });
+
+  linkLabel = g.append('g').selectAll('text').data(vLinks.filter(l => l.type === 'depends' || l.type === 'external')).join('text')
+    .text(d => d.weight)
+    .attr('font-size', 10).attr('fill', d => d.type === 'external' ? '#8250df' : LAYER_COLORS[primaryLayer(d)])
+    .attr('font-weight', 600).attr('text-anchor', 'middle').attr('opacity', 0.8);
+
+  node = g.append('g').selectAll('circle').data(vNodes).join('circle')
+    .attr('r', d => nodeRadius(d))
+    .attr('fill', d => { if (d.kind === 'external') return EXTERNAL_COLORS[d.systemType] || '#8250df'; if (d.kind === 'module') return MODULE_COLORS[d.fullName] || MODULE_COLORS[d.name] || '#8b949e'; if (d.kind === 'function' || d.kind === 'method') return '#57606a'; return '#0969da'; })
+    .attr('stroke', d => (d.kind === 'function' || d.kind === 'method') ? 'none' : '#fff').attr('stroke-width', d => d.kind === 'module' ? 3 : (d.kind === 'function' || d.kind === 'method') ? 0 : 1.5)
+    .attr('opacity', d => { if (d.kind === 'module') return 0.95; if (d.kind === 'function' || d.kind === 'method') return 0.4; return 0.7; })
+    .attr('cursor', 'grab')
+    .attr('filter', d => d.kind === 'module' ? 'drop-shadow(0 2px 4px rgba(0,0,0,0.12))' : null)
+    .call(d3.drag().on('start', dragStart).on('drag', dragged).on('end', dragEnd));
+
+  label = g.append('g').selectAll('text').data(vNodes).join('text')
+    .text(d => d.name)
+    .attr('font-size', d => d.kind === 'module' ? (isModOnly ? 14 : 13) : 9)
+    .attr('fill', d => d.kind === 'module' ? '#1f2328' : '#656d76')
+    .attr('font-weight', d => d.kind === 'module' ? 600 : 400)
+    .attr('text-anchor', 'middle')
+    .attr('dy', d => nodeRadius(d) + (d.kind === 'module' ? 16 : 12))
+    .attr('pointer-events', 'none');
+
+  if (isModOnly) {
+    subLabel = g.append('g').selectAll('text').data(vNodes).join('text')
+      .text(d => d.size + 'f / ' + d.classes + 'c / ' + d.functions + 'fn')
+      .attr('font-size', 10).attr('fill', '#656d76').attr('text-anchor', 'middle')
+      .attr('dy', d => nodeRadius(d) + 30).attr('pointer-events', 'none');
+  }
+
+  // Tooltip
+  const tt = document.getElementById('tooltip');
+  node.on('mouseover', (e, d) => {
+    tt.style.display = 'block';
+    tt.querySelector('.tt-kind').textContent = d.kind.toUpperCase();
+    tt.querySelector('.tt-name').textContent = d.fullName || d.name;
+    let detail = '';
+    if (d.kind === 'module') {
+      detail = d.kind === 'external' ? (d.description || d.fullName) + '\nProtocol: ' + (d.protocol || 'n/a') + '\nType: ' + (d.systemType || 'n/a') : d.size + ' files, ' + d.classes + ' classes, ' + d.functions + ' functions';
+      if (d.topClasses && d.topClasses.length) detail += '\nClasses: ' + d.topClasses.join(', ');
+      const outD = DATA.links.filter(l => l.type === 'depends' && (typeof l.source === 'object' ? l.source.id : l.source) === d.id);
+      const inD = DATA.links.filter(l => l.type === 'depends' && (typeof l.target === 'object' ? l.target.id : l.target) === d.id);
+      if (outD.length) { detail += '\n\nDepends on:'; outD.forEach(l => { const t = typeof l.target === 'object' ? l.target : DATA.nodes.find(n=>n.id===l.target); detail += '\n  \u2192 ' + (t.name||'?') + ' (' + l.weight + ') [' + (l.layers||[]).join(',') + ']'; }); }
+      if (inD.length) { detail += '\n\nUsed by:'; inD.forEach(l => { const s = typeof l.source === 'object' ? l.source : DATA.nodes.find(n=>n.id===l.source); detail += '\n  \u2190 ' + (s.name||'?') + ' (' + l.weight + ') [' + (l.layers||[]).join(',') + ']'; }); }
+    } else {
+      detail = d.size + ' lines\nModule: ' + (d.module || 'n/a') + '\nFile: ' + (d.file || '');
+    }
+    tt.querySelector('.tt-detail').textContent = detail;
+    d3.select(e.target).attr('stroke', '#0969da').attr('stroke-width', 4);
+  }).on('mousemove', e => {
+    tt.style.left = Math.min(e.clientX + 12, window.innerWidth - 400) + 'px';
+    tt.style.top = (e.clientY - 12) + 'px';
+  }).on('mouseout', e => {
+    tt.style.display = 'none';
+    const d = d3.select(e.target).datum();
+    d3.select(e.target).attr('stroke', '#fff').attr('stroke-width', d.kind === 'module' ? 3 : 1.5);
+  });
+
+  node.on('click', (e, d) => { if (d.kind === 'module') highlightModule(d.fullName || d.name); });
+
+  simulation.on('tick', () => {
+    link.attr('d', linkArc);
+    linkLabel.attr('x', d => (d.source.x + d.target.x) / 2 + 4).attr('y', d => (d.source.y + d.target.y) / 2 - 6);
+    node.attr('cx', d => d.x).attr('cy', d => d.y);
+    label.attr('x', d => d.x).attr('y', d => d.y);
+    if (subLabel) subLabel.attr('x', d => d.x).attr('y', d => d.y);
+  });
+}
+
+function nodeRadius(d) {
+  if (d.kind === 'external') return 18;
+  if (d.kind === 'module') return currentView === 'modules' ? Math.max(22, Math.sqrt(d.size) * 4) : Math.max(16, Math.sqrt(d.size) * 3);
+  if (d.kind === 'function' || d.kind === 'method') return Math.max(2, Math.sqrt(d.size || 2) * 0.4);
+  return Math.max(4, Math.sqrt(d.size) * 0.7);
+}
+
+function setDepth(level) {
+  depthLevel = level;
+  document.querySelectorAll('#controls button[id^="depth"]').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('depth' + level);
+  if (btn) btn.classList.add('active');
+  const container = document.getElementById('graph-container');
+  buildSimulation(container.clientWidth, container.clientHeight);
+}
+
+let showDepArrows = true;
+function toggleDepArrows() {
+  showDepArrows = !showDepArrows;
+  const btn = document.getElementById('depToggle');
+  btn.textContent = showDepArrows ? 'Hide Dep Arrows' : 'Show Dep Arrows';
+  btn.classList.toggle('active', !showDepArrows);
+  if (!link) return;
+  link.attr('display', d => {
+    if (d.type === 'contains') return null;
+    if ((d.type === 'depends' || d.type === 'external') && !showDepArrows) return 'none';
+    if (!d.layers) return null;
+    return d.layers.some(ly => activeLayers.has(ly)) ? null : 'none';
+  });
+  linkLabel.attr('display', d => {
+    if (!showDepArrows) return 'none';
+    if (!d.layers) return null;
+    return d.layers.some(ly => activeLayers.has(ly)) ? null : 'none';
+  });
+}
+
+function setSpacing(level) {
+  spacingLevel = level;
+  document.querySelectorAll('#controls button').forEach(b => b.classList.remove('active'));
+  const btn = document.querySelector('#controls button[onclick*="' + level + '"]');
+  if (btn) btn.classList.add('active');
+  const c = document.getElementById('graph-container');
+  buildSimulation(c.clientWidth, c.clientHeight);
+}
+
+function dragStart(e, d) { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; }
+function dragged(e, d) { d.fx = e.x; d.fy = e.y; }
+function dragEnd(e, d) { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }
+function resetZoom() { svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity); }
+function toggleLabels() { showLabels = !showLabels; label.attr('display', showLabels ? null : 'none'); if (subLabel) subLabel.attr('display', showLabels ? null : 'none'); }
+
+function setView(v) {
+  currentView = v;
+  document.querySelectorAll('#view-toggle button').forEach(b => b.classList.remove('active'));
+  document.querySelector('#view-toggle button[onclick*="' + v + '"]').classList.add('active');
+  const c = document.getElementById('graph-container');
+  buildSimulation(c.clientWidth, c.clientHeight);
+}
+
+function updateLinkVisibility() {
+  if (!link) return;
+  link.attr('display', d => {
+    if (d.type === 'contains') return null;
+    if (!d.layers) return null;
+    return d.layers.some(ly => activeLayers.has(ly)) ? null : 'none';
+  });
+  linkLabel.attr('display', d => {
+    if (!d.layers) return null;
+    return d.layers.some(ly => activeLayers.has(ly)) ? null : 'none';
+  });
+}
+
+function highlightModule(name) {
+  const modId = 'mod:' + name;
+  if (activeModule === modId) { resetHighlight(); return; }
+  activeModule = modId;
+  const connected = new Set([modId]);
+  const depDetails = [];
+  DATA.links.forEach(l => {
+    const sid = typeof l.source === 'object' ? l.source.id : l.source;
+    const tid = typeof l.target === 'object' ? l.target.id : l.target;
+    if (sid === modId) { connected.add(tid); if (l.type === 'depends') depDetails.push({dir:'out', other: tid.replace('mod:','').replace('accubuild_',''), weight: l.weight, desc: l.description, layers: l.layers}); }
+    if (tid === modId) { connected.add(sid); if (l.type === 'depends') depDetails.push({dir:'in', other: sid.replace('mod:','').replace('accubuild_',''), weight: l.weight, desc: l.description, layers: l.layers}); }
+  });
+  node.transition().duration(250).attr('opacity', d => connected.has(d.id) ? 1 : 0.06);
+  link.transition().duration(250).attr('stroke-opacity', d => {
+    const s = typeof d.source === 'object' ? d.source.id : d.source;
+    const t = typeof d.target === 'object' ? d.target.id : d.target;
+    return (s === modId || t === modId) ? 0.85 : 0.02;
+  });
+  linkLabel.transition().duration(250).attr('opacity', d => {
+    const s = typeof d.source === 'object' ? d.source.id : d.source;
+    const t = typeof d.target === 'object' ? d.target.id : d.target;
+    return (s === modId || t === modId) ? 1 : 0.03;
+  });
+  label.transition().duration(250).attr('opacity', d => connected.has(d.id) ? 1 : 0.06);
+  if (subLabel) subLabel.transition().duration(250).attr('opacity', d => connected.has(d.id) ? 1 : 0.06);
+
+  document.querySelectorAll('.module-item').forEach(el => el.classList.remove('active'));
+  const mi = document.getElementById('mi-' + name); if (mi) mi.classList.add('active');
+
+  const panel = document.getElementById('dep-panel');
+  let html = '<h3>' + name.replace('accubuild_','') + '</h3>';
+  const out = depDetails.filter(d => d.dir === 'out').sort((a,b) => b.weight - a.weight);
+  const inp = depDetails.filter(d => d.dir === 'in').sort((a,b) => b.weight - a.weight);
+  if (out.length) { html += '<div style="font-weight:600;color:#1f2328;margin:4px 0">Depends on:</div>'; out.forEach(d => { const tags = (d.layers||[]).map(l => '<span class="layer-tag tag-' + l + '">' + l + '</span>').join(''); html += '<div class="dep-item"><span class="arrow">\u2192</span> ' + d.other + ' <span class="weight">(' + d.weight + ')</span> ' + tags + '<br><span style="color:#8b949e">' + (d.desc||'').split(' | ').join('<br>') + '</span></div>'; }); }
+  if (inp.length) { html += '<div style="font-weight:600;color:#1f2328;margin:4px 0">Used by:</div>'; inp.forEach(d => { const tags = (d.layers||[]).map(l => '<span class="layer-tag tag-' + l + '">' + l + '</span>').join(''); html += '<div class="dep-item"><span class="arrow">\u2190</span> ' + d.other + ' <span class="weight">(' + d.weight + ')</span> ' + tags + '<br><span style="color:#8b949e">' + (d.desc||'').split(' | ').join('<br>') + '</span></div>'; }); }
+  panel.innerHTML = html;
+}
+
+function resetHighlight() {
+  activeModule = null;
+  node.transition().duration(250).attr('opacity', d => d.kind === 'module' ? 0.95 : 0.7);
+  link.transition().duration(250).attr('stroke-opacity', d => d.type === 'depends' ? Math.min(0.3 + (d.weight||1) * 0.03, 0.8) : 0.3);
+  linkLabel.transition().duration(250).attr('opacity', 0.8);
+  label.transition().duration(250).attr('opacity', 1);
+  if (subLabel) subLabel.transition().duration(250).attr('opacity', 1);
+  document.querySelectorAll('.module-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('dep-panel').innerHTML = '';
+}
+</script>
+</body>
+</html>
