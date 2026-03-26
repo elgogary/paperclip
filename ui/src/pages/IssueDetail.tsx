@@ -211,68 +211,94 @@ function IssueAttachmentCard({
   const isOffice = attachment.contentType.startsWith("application/vnd.openxmlformats-officedocument.") ||
     attachment.contentType === "application/msword" ||
     attachment.contentType === "application/vnd.ms-excel";
+  const canPreview = isPdf || isImage;
 
   return (
-    <div className="border border-border rounded-md p-2">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-medium truncate" title={attachment.originalFilename ?? attachment.id}>
-          {attachment.originalFilename ?? attachment.id}
-        </span>
-        <div className="flex items-center gap-1 shrink-0">
-          <a
-            href={attachment.contentPath}
-            download={attachment.originalFilename ?? undefined}
-            className="text-[11px] text-primary hover:underline"
-          >
-            Download
-          </a>
-          {(isPdf || isOffice || isImage) && (
+    <>
+      <div className="border border-border rounded-md p-2">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-medium truncate" title={attachment.originalFilename ?? attachment.id}>
+            {attachment.originalFilename ?? attachment.id}
+          </span>
+          <div className="flex items-center gap-1 shrink-0">
+            <a
+              href={attachment.contentPath}
+              download={attachment.originalFilename ?? undefined}
+              className="text-[11px] text-primary hover:underline"
+            >
+              Download
+            </a>
+            {canPreview && (
+              <button
+                type="button"
+                onClick={() => setPreviewOpen(true)}
+                className="text-[11px] text-primary hover:underline ml-2"
+              >
+                Preview
+              </button>
+            )}
             <button
               type="button"
-              onClick={() => setPreviewOpen(!previewOpen)}
-              className="text-[11px] text-primary hover:underline ml-2"
+              className="text-muted-foreground hover:text-destructive ml-2"
+              onClick={onDelete}
+              disabled={deleteDisabled}
+              title="Delete attachment"
             >
-              {previewOpen ? "Close Preview" : "Preview"}
+              <Trash2 className="h-3.5 w-3.5" />
             </button>
-          )}
-          <button
-            type="button"
-            className="text-muted-foreground hover:text-destructive ml-2"
-            onClick={onDelete}
-            disabled={deleteDisabled}
-            title="Delete attachment"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
+          </div>
         </div>
+        <p className="text-[11px] text-muted-foreground">
+          {attachment.contentType} · {(attachment.byteSize / 1024).toFixed(1)} KB
+        </p>
       </div>
-      <p className="text-[11px] text-muted-foreground">
-        {attachment.contentType} · {(attachment.byteSize / 1024).toFixed(1)} KB
-      </p>
-      {previewOpen && isImage && (
-        <img
-          src={attachment.contentPath}
-          alt={attachment.originalFilename ?? "attachment"}
-          className="mt-2 max-h-72 rounded border border-border object-contain bg-accent/10"
-          loading="lazy"
-        />
+
+      {/* Preview popup modal */}
+      {previewOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={(e) => { if (e.target === e.currentTarget) setPreviewOpen(false); }}
+        >
+          <div className="bg-card border border-border rounded-xl w-[90vw] max-w-4xl h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+              <span className="text-sm font-semibold truncate">{attachment.originalFilename ?? "Preview"}</span>
+              <div className="flex items-center gap-3">
+                <a
+                  href={attachment.contentPath}
+                  download={attachment.originalFilename ?? undefined}
+                  className="text-xs text-primary hover:underline"
+                >
+                  Download
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setPreviewOpen(false)}
+                  className="text-muted-foreground hover:text-foreground text-lg leading-none"
+                >
+                  &#x2715;
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto bg-accent/5">
+              {isImage && (
+                <img
+                  src={attachment.contentPath}
+                  alt={attachment.originalFilename ?? "attachment"}
+                  className="max-w-full max-h-full object-contain mx-auto"
+                />
+              )}
+              {isPdf && (
+                <iframe
+                  src={attachment.contentPath}
+                  className="w-full h-full border-0"
+                  title={attachment.originalFilename ?? "PDF preview"}
+                />
+              )}
+            </div>
+          </div>
+        </div>
       )}
-      {previewOpen && isPdf && (
-        <iframe
-          src={attachment.contentPath}
-          className="mt-2 w-full h-[500px] rounded border border-border"
-          title={attachment.originalFilename ?? "PDF preview"}
-        />
-      )}
-      {previewOpen && isOffice && (
-        <iframe
-          src={attachment.contentPath}
-          sandbox="allow-scripts allow-same-origin"
-          className="mt-2 w-full h-[500px] rounded border border-border bg-white"
-          title={attachment.originalFilename ?? "Document preview"}
-        />
-      )}
-    </div>
+    </>
   );
 }
 
