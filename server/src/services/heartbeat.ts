@@ -102,9 +102,10 @@ export function heartbeatService(db: Db) {
   Object.assign($, cancellationOps);
 
   // ── Budget service (needs cancelBudgetScopeWork from cancellation) ─────
-  $.budgets = budgetService(db, {
-    cancelWorkForScope: cancellationOps.cancelBudgetScopeWork,
-  });
+  // NOTE: $.budgets and $.budgetHooks must be set before any function is
+  // called at runtime. Order matters — modules reference these lazily via $.
+  $.budgetHooks = { cancelWorkForScope: cancellationOps.cancelBudgetScopeWork };
+  $.budgets = budgetService(db, $.budgetHooks);
 
   // ── Public API ─────────────────────────────────────────────────────────
   return {
