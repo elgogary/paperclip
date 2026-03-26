@@ -140,40 +140,161 @@ Agent Competency Map:
 | `swarm_recommend` | Director suggests capability to an agent | Director only |
 | `swarm_knowledge` | Query the capability knowledge graph | Director + Board |
 
+## Swarm Economics Engine
+
+### The Investment Equation
+
+```
+INPUT (Cost)                          OUTPUT (Value)
+════════════════════                  ════════════════════
+Tokens consumed (discovery,           Capability acquired
+  analysis, adaptation)                 (skill/MCP/connector/plugin)
+
+Agent time (opportunity cost)         Agent performance delta
+                                        (how much better after)
+
+Money (paid capabilities,             Knowledge base growth
+  API costs)                            (patterns, learnings,
+                                         cross-agent transfers)
+```
+
+### Cost Model: Ledger + Market Hybrid
+
+Every Swarm interaction creates a **SwarmTransaction**:
+
+```
+SwarmTransaction {
+  id, timestamp, companyId, agentId
+
+  // COST SIDE
+  tokensConsumed: 45200        // actual LLM tokens
+  timeSpentMinutes: 12         // wall-clock in Swarm
+  directCostUsd: 0.03          // token cost at model rate
+  licenseCostUsd: 12.00        // paid capability monthly
+  totalCostUsd: 12.03          // direct + license
+
+  // VALUE SIDE
+  capabilityId, capabilityType
+  action: "acquire" | "use" | "share" | "evaluate"
+  reuseCount: 8                // times used after acquire
+  timeSavedMinutes: 240        // vs doing it manually
+  agentsBenefited: 3           // cross-agent transfers
+  qualityScore: 8.5            // self-eval + Director eval
+  knowledgeEntries: 2          // patterns/learnings created
+  estimatedValueUsd: 47.20     // (timeSaved * agentHourlyRate) + knowledge
+  roi: 3.93                    // value / cost
+}
+```
+
+### Market Dynamics
+
+Capabilities get quality-adjusted pricing over time:
+
+```
+CapabilityMarketData {
+  basePrice: 12.00             // original price (free = 0)
+  marketPrice: 10.50           // adjusted by quality + demand
+
+  // Quality signals (affect price)
+  avgQualityScore: 8.5         // across all agent evals
+  totalInstalls: 23            // adoption
+  avgRoi: 3.9x                // average return
+  failureRate: 0.02            // how often it breaks
+
+  // Market rules:
+  // - High quality (>8) + high demand → price drops
+  // - Low quality (<5) → price increases (warning)
+  // - Zero usage 30 days → flagged for removal
+  // - Negative ROI → auto-disabled
+}
+```
+
+### Budget System (Tiered Visibility)
+
+```
+BOARD (Multi-tenant admin)
+├── Sees: All companies, total Swarm spend, cross-company trends
+│
+└── CEO + COMPANY ADMIN
+    ├── Sees: Full dashboard (Economics tab) — all agents, ROI leaderboard,
+    │         knowledge graph, market prices, transaction ledger
+    ├── Controls: Company Swarm budget, agent allowances, approval rules
+    │
+    └── AGENTS (each agent)
+        ├── Sees: Own budget remaining, own cost history, catalog with prices
+        ├── Decides: Which capabilities to acquire (within budget)
+        └── Reports: Self-evaluation after using capability
+```
+
+Budget allocation:
+```
+Company Budget ($5,000/mo)
+  └── Swarm Budget ($1,200/mo)
+        ├── TechLead: 400K tokens + $200 paid caps
+        ├── BackendEng: 300K tokens + $150 paid caps
+        ├── FrontendEng: 200K tokens + $100 paid caps
+        ├── SalesManager: 100K tokens + $50 paid caps
+        ├── Swarm Director: 200K tokens (analysis/mentoring)
+        └── Reserve: $100 (overflow)
+```
+
+### Capability Pricing
+
+| Pricing Tier | Examples | Who Pays |
+|---|---|---|
+| Free | Open source skills, community MCP servers | Only token/time cost |
+| Paid ($5-50/mo) | Premium MCP servers, licensed connectors | Agent's Swarm budget |
+| Premium ($50+/mo) | Enterprise connectors, full plugin suites | Company Swarm budget |
+| Generated (free) | AI-created companion skills, auto-configs | Only AI analysis cost (~$0.03) |
+
 ## UI Pages (Prototype: capabilities_swarm_prototype.html)
 
-1. **Catalog** (`/OPT/swarm`) — Browse all capabilities with search, filters, trust badges
+1. **Catalog** (`/OPT/swarm`) — Browse capabilities with search, filters, trust + price badges
 2. **Sources** (`/OPT/swarm/sources`) — Manage registry sources
-3. **Queue** (`/OPT/swarm/queue`) — Agent approval requests
+3. **Queue** (`/OPT/swarm/queue`) — Agent approval requests with cost column
 4. **Audit** (`/OPT/swarm/audit`) — Full history of installs, removals, evaluations
+5. **Economics** (`/OPT/swarm/economics`) — Investment vs Return dashboard, ROI leaderboard, transaction ledger
+6. **Agent Budgets** (`/OPT/swarm/budgets`) — Per-agent allowances, spend, proficiency, Director recommendations
 
 ## Implementation Phases
 
 ### Phase 1: Swarm Infrastructure (Paperclip Server)
-- [ ] Swarm registry DB tables (swarm_sources, swarm_capabilities, swarm_installs)
+- [ ] DB tables: swarm_sources, swarm_capabilities, swarm_installs, swarm_transactions
 - [ ] Source adapters: local filesystem, mcpservers.org scraper, mcpserverhub.com scraper
 - [ ] Pull pipeline: fetch → parse → validate → store
 - [ ] Trust engine with configurable rules
 - [ ] REST API endpoints for all swarm operations
 - [ ] UI: Catalog, Sources, Queue, Audit pages
 - [ ] Install flow wizard (from prototype)
+- [ ] Pricing: free/paid/premium tags on capabilities
+- [ ] Budget bar on catalog page
 
-### Phase 2: Brain Discovery Tools (Sanad Brain MCP)
+### Phase 2: Swarm Economics Engine (Paperclip Server)
+- [ ] SwarmTransaction ledger (tokens, time, money, value)
+- [ ] Agent budget allocation system (tokens + money per agent)
+- [ ] CapabilityMarketData: quality-adjusted pricing
+- [ ] ROI calculation: value / cost per capability and per agent
+- [ ] Economics dashboard (Investment vs Return, ROI leaderboard, ledger)
+- [ ] Agent Budgets page (per-agent cards with proficiency)
+- [ ] Tiered visibility: agents see own, CEO sees all, Board sees cross-company
+
+### Phase 3: Brain Discovery Tools (Sanad Brain MCP)
 - [ ] swarm_discover tool — NL search across all registries
 - [ ] swarm_analyze tool — AI compatibility assessment
-- [ ] swarm_pull tool — pull + adapt with trust engine gate
+- [ ] swarm_pull tool — pull + adapt with trust engine gate + budget check
 - [ ] swarm_evaluate tool — self-scoring framework
 - [ ] swarm_feedback tool — structured feedback to Director
 - [ ] Integration with Sanad Brain memory for knowledge graph
 
-### Phase 3: Swarm Director Agent
+### Phase 4: Swarm Director Agent
 - [ ] Agent config in Paperclip (role, permissions, heartbeat)
 - [ ] Feedback processing loop (receive, aggregate, act)
-- [ ] Capability Knowledge Graph (agent × capability × proficiency)
+- [ ] Capability Knowledge Graph (agent x capability x proficiency)
 - [ ] Mentor/student evaluation protocol
-- [ ] Proactive recommendation engine
+- [ ] Proactive recommendation engine (based on task patterns + budget)
 - [ ] Cross-agent knowledge transfer
 - [ ] Director dashboard in Swarm UI
+- [ ] Budget-aware mentoring ("You have $50 left, here's the best free alternative")
 
 ## Key Design Decisions
 
@@ -183,3 +304,6 @@ Agent Competency Map:
 4. **Pull-Understand-Clone** — AI analyzes external capabilities and adapts them to our system
 5. **Companion generation** — When pulling an MCP server, AI auto-generates connector + companion skill
 6. **Version pinning** — Installed capabilities pin to version, updates go through trust engine
+7. **Ledger + Market hybrid** — Real accounting (tokens + time + money) with quality-adjusted market pricing
+8. **Swarm as investment center** — The Swarm itself has a budget and must generate positive ROI
+9. **Tiered visibility** — Agents see own costs, CEO sees everything, Board sees cross-company
