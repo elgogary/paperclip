@@ -265,6 +265,7 @@
     <div class="tab" onclick="switchTab('sources')">&#x1F517; Sources <span class="tab-count">5</span></div>
     <div class="tab" onclick="switchTab('queue')">&#x1F514; Queue <span class="tab-count" style="background:rgba(239,68,68,.25);color:var(--red)">3</span></div>
     <div class="tab" onclick="switchTab('audit')">&#x1F4DC; Audit</div>
+    <div class="tab" onclick="switchTab('library')">&#x1F4DA; Library <span class="tab-count">245</span></div>
     <div class="tab" onclick="switchTab('economics')">&#x1F4B0; Economics</div>
     <div class="tab" onclick="switchTab('budgets')">&#x1F464; Agent Budgets</div>
   </div>
@@ -911,6 +912,244 @@
             <div class="audit-action"><strong>Gmail Connector</strong> installed</div>
             <div class="audit-detail">Auto-approved (trusted private source). Installed by TechLead. Source: internal repo.</div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- TAB: LIBRARY (Knowledge Base)                               -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <div id="panel-library" class="panel">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Knowledge Library</div>
+          <div class="page-sub">The university where agents study. Docs, courses, lessons, and an AI Tutor — all grounded in your curated knowledge.</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-cancel btn-sm" onclick="">Import from URL</button>
+          <button class="btn btn-primary" onclick="">+ Add to Library</button>
+        </div>
+      </div>
+
+      <!-- AI Tutor search -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <span style="font-size:20px">&#x1F9E0;</span>
+          <div>
+            <div style="font-weight:700">AI Tutor</div>
+            <div style="font-size:11px;color:var(--muted-fg)">Ask anything — answers grounded in YOUR library only. No hallucination.</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <input class="search-input" placeholder="How do doc_events work in Frappe hooks.py?" style="flex:1;border-radius:8px" />
+          <button class="btn btn-primary">Ask Tutor</button>
+          <button class="btn btn-cancel">Search Docs</button>
+        </div>
+        <!-- Sample AI answer -->
+        <div style="margin-top:12px;background:var(--bg);border-radius:8px;padding:14px;font-size:12px;line-height:1.7;display:block">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;font-weight:600;color:var(--cyan)">&#x1F9E0; AI Tutor Answer <span style="font-size:10px;font-weight:400;color:var(--muted-fg)">&middot; based on 3 library sources</span></div>
+          <div style="color:var(--muted-fg)">
+            In Frappe, <code style="background:oklch(0.22 0 0);padding:1px 5px;border-radius:3px;color:var(--cyan)">doc_events</code> in <code style="background:oklch(0.22 0 0);padding:1px 5px;border-radius:3px;color:var(--cyan)">hooks.py</code> let you hook into document lifecycle events across ANY DocType, even ones you don't own. The format is:
+            <pre style="background:oklch(0.18 0 0);border-radius:4px;padding:8px;margin:8px 0;font-size:11px;color:var(--cyan);overflow-x:auto">doc_events = {
+    "Sales Invoice": {
+        "on_submit": "my_app.events.on_invoice_submit",
+        "validate": "my_app.events.validate_invoice"
+    }
+}</pre>
+            Key difference from controllers: <code style="background:oklch(0.22 0 0);padding:1px 5px;border-radius:3px;color:var(--cyan)">doc_events</code> run for ALL apps, while controller methods only run for the app that owns the DocType.
+          </div>
+          <div style="margin-top:8px;display:flex;gap:8px;font-size:11px">
+            <span style="color:var(--muted-fg)">Sources:</span>
+            <a style="color:var(--blue);cursor:pointer">Frappe Hooks Guide</a>
+            <a style="color:var(--blue);cursor:pointer">erpnext-syntax-hooks skill</a>
+            <a style="color:var(--blue);cursor:pointer">LESSON: doc_events vs controllers</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Library content grid -->
+      <div style="display:grid;grid-template-columns:240px 1fr;gap:16px">
+        <!-- Left sidebar: categories -->
+        <div>
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted-fg);margin-bottom:8px">Categories</div>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;background:var(--accent);color:var(--fg);cursor:pointer;font-size:13px;font-weight:500">
+              <span>&#x1F4D6;</span> <span style="flex:1">All Resources</span> <span style="font-size:10px;background:oklch(0.35 0 0);padding:1px 7px;border-radius:8px">245</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;color:var(--muted-fg);cursor:pointer;font-size:13px">
+              <span>&#x1F4D6;</span> <span style="flex:1">Reference Docs</span> <span style="font-size:10px;background:var(--muted);padding:1px 7px;border-radius:8px">98</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;color:var(--muted-fg);cursor:pointer;font-size:13px">
+              <span>&#x1F393;</span> <span style="flex:1">Learning Paths</span> <span style="font-size:10px;background:var(--muted);padding:1px 7px;border-radius:8px">8</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;color:var(--muted-fg);cursor:pointer;font-size:13px">
+              <span>&#x1F4A1;</span> <span style="flex:1">Lessons Learned</span> <span style="font-size:10px;background:var(--muted);padding:1px 7px;border-radius:8px">147</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;color:var(--muted-fg);cursor:pointer;font-size:13px">
+              <span>&#x1F3D7;</span> <span style="flex:1">Architecture Decisions</span> <span style="font-size:10px;background:var(--muted);padding:1px 7px;border-radius:8px">23</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;color:var(--muted-fg);cursor:pointer;font-size:13px">
+              <span>&#x1F504;</span> <span style="flex:1">Patterns</span> <span style="font-size:10px;background:var(--muted);padding:1px 7px;border-radius:8px">19</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;color:var(--muted-fg);cursor:pointer;font-size:13px">
+              <span>&#x1F517;</span> <span style="flex:1">External Resources</span> <span style="font-size:10px;background:var(--muted);padding:1px 7px;border-radius:8px">42</span>
+            </div>
+          </div>
+
+          <!-- Learning Paths progress -->
+          <div style="margin-top:16px">
+            <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted-fg);margin-bottom:8px">Learning Paths</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:10px">
+                <div style="font-size:12px;font-weight:600;margin-bottom:4px">&#x1F393; Frappe Backend</div>
+                <div class="budget-meter" style="margin-bottom:4px"><div class="budget-meter-fill" style="width:80%;background:var(--green)"></div></div>
+                <div style="font-size:10px;color:var(--muted-fg)">4/5 agents completed &middot; 5 steps</div>
+              </div>
+              <div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:10px">
+                <div style="font-size:12px;font-weight:600;margin-bottom:4px">&#x1F393; Frontend Dev</div>
+                <div class="budget-meter" style="margin-bottom:4px"><div class="budget-meter-fill" style="width:30%;background:var(--yellow)"></div></div>
+                <div style="font-size:10px;color:var(--muted-fg)">2/5 agents completed &middot; 4 steps</div>
+              </div>
+              <div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:10px">
+                <div style="font-size:12px;font-weight:600;margin-bottom:4px">&#x1F393; API Integration</div>
+                <div class="budget-meter" style="margin-bottom:4px"><div class="budget-meter-fill" style="width:60%;background:var(--blue)"></div></div>
+                <div style="font-size:10px;color:var(--muted-fg)">3/5 agents completed &middot; 6 steps</div>
+              </div>
+              <div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:10px">
+                <div style="font-size:12px;font-weight:600;margin-bottom:4px">&#x1F393; Security Practices</div>
+                <div class="budget-meter" style="margin-bottom:4px"><div class="budget-meter-fill" style="width:10%;background:var(--red)"></div></div>
+                <div style="font-size:10px;color:var(--muted-fg)">1/5 agents started &middot; 3 steps</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: content list -->
+        <div>
+          <!-- Recent additions -->
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted-fg);margin-bottom:8px">Recent Additions</div>
+
+          <!-- Reference doc -->
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:8px;cursor:pointer" onmouseover="this.style.borderColor='oklch(0.45 0 0)'" onmouseout="this.style.borderColor=''">
+            <div style="display:flex;align-items:flex-start;gap:10px">
+              <span style="font-size:20px">&#x1F4D6;</span>
+              <div style="flex:1">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="font-weight:600">Frappe Hooks.py — Complete Guide</div>
+                  <span class="type-badge type-skill" style="font-size:9px">Reference</span>
+                </div>
+                <div style="font-size:12px;color:var(--muted-fg);margin-top:3px;line-height:1.5">Complete reference for hooks.py configuration: doc_events, scheduler_events, fixtures, boot session, override hooks. Covers v14/v15/v16.</div>
+                <div style="display:flex;gap:12px;margin-top:6px;font-size:11px;color:var(--muted-fg)">
+                  <span>Added by Board &middot; 2 days ago</span>
+                  <span>&#x1F441; 34 reads</span>
+                  <span>&#x1F50D; Used in 12 AI Tutor answers</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Lesson learned -->
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:8px;cursor:pointer" onmouseover="this.style.borderColor='oklch(0.45 0 0)'" onmouseout="this.style.borderColor=''">
+            <div style="display:flex;align-items:flex-start;gap:10px">
+              <span style="font-size:20px">&#x1F4A1;</span>
+              <div style="flex:1">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="font-weight:600">LESSON: companySkillRoutes shadows skillRoutes</div>
+                  <span class="type-badge" style="font-size:9px;background:rgba(245,158,11,.1);color:var(--yellow)">Lesson</span>
+                </div>
+                <div style="font-size:12px;color:var(--muted-fg);margin-top:3px;line-height:1.5">Two Express routes on the same path — the first one mounted wins. companySkillRoutes returned bare array but UI expected { skills: [...] }. Fix: wrap response + remove dead skillRoutes mount.</div>
+                <div style="display:flex;gap:12px;margin-top:6px;font-size:11px;color:var(--muted-fg)">
+                  <span>Auto-captured from TechLead &middot; Today</span>
+                  <span>&#x1F441; 5 reads</span>
+                  <span>&#x1F3F7; Express, routing, Paperclip</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Architecture decision -->
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:8px;cursor:pointer" onmouseover="this.style.borderColor='oklch(0.45 0 0)'" onmouseout="this.style.borderColor=''">
+            <div style="display:flex;align-items:flex-start;gap:10px">
+              <span style="font-size:20px">&#x1F3D7;</span>
+              <div style="flex:1">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="font-weight:600">ADR: Ledger + Market hybrid for Swarm economics</div>
+                  <span class="type-badge" style="font-size:9px;background:rgba(139,92,246,.1);color:var(--purple)">Decision</span>
+                </div>
+                <div style="font-size:12px;color:var(--muted-fg);margin-top:3px;line-height:1.5">Every Swarm action creates a SwarmTransaction (debit/credit). Capabilities get quality-adjusted pricing. Credits too abstract, market model too complex alone — hybrid gives real accounting + self-regulating prices.</div>
+                <div style="display:flex;gap:12px;margin-top:6px;font-size:11px;color:var(--muted-fg)">
+                  <span>Board decision &middot; Today</span>
+                  <span>&#x1F441; 2 reads</span>
+                  <span>&#x1F3F7; Swarm, economics, architecture</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- External resource -->
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:8px;cursor:pointer" onmouseover="this.style.borderColor='oklch(0.45 0 0)'" onmouseout="this.style.borderColor=''">
+            <div style="display:flex;align-items:flex-start;gap:10px">
+              <span style="font-size:20px">&#x1F517;</span>
+              <div style="flex:1">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="font-weight:600">MCP Protocol Specification</div>
+                  <span class="type-badge type-mcp" style="font-size:9px">External</span>
+                </div>
+                <div style="font-size:12px;color:var(--muted-fg);margin-top:3px;line-height:1.5">Official Model Context Protocol specification. Covers: transport types, tool schemas, resource URIs, sampling, roots. Essential for building MCP servers.</div>
+                <div style="display:flex;gap:12px;margin-top:6px;font-size:11px;color:var(--muted-fg)">
+                  <span>Added by Board &middot; 5 days ago</span>
+                  <span>&#x1F441; 18 reads</span>
+                  <span>&#x1F310; spec.modelcontextprotocol.io</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pattern -->
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:8px;cursor:pointer" onmouseover="this.style.borderColor='oklch(0.45 0 0)'" onmouseout="this.style.borderColor=''">
+            <div style="display:flex;align-items:flex-start;gap:10px">
+              <span style="font-size:20px">&#x1F504;</span>
+              <div style="flex:1">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="font-weight:600">PATTERN: Safe-split strategy for files >700 lines</div>
+                  <span class="type-badge" style="font-size:9px;background:rgba(6,182,212,.1);color:var(--cyan)">Pattern</span>
+                </div>
+                <div style="font-size:12px;color:var(--muted-fg);margin-top:3px;line-height:1.5">Original file stays as stub, re-exports from new modules. All frappe.call() paths preserved. One commit per extracted file for crash-safe checkpoints.</div>
+                <div style="display:flex;gap:12px;margin-top:6px;font-size:11px;color:var(--muted-fg)">
+                  <span>Curated by Director &middot; 1 week ago</span>
+                  <span>&#x1F441; 28 reads</span>
+                  <span>&#x1F3F7; refactoring, Python, JS</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Learning path entry -->
+          <div style="background:var(--card);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:14px;margin-bottom:8px;cursor:pointer" onmouseover="this.style.borderColor='var(--green)'" onmouseout="this.style.borderColor='rgba(16,185,129,.3)'">
+            <div style="display:flex;align-items:flex-start;gap:10px">
+              <span style="font-size:20px">&#x1F393;</span>
+              <div style="flex:1">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="font-weight:600">COURSE: Frappe Backend Basics</div>
+                  <span class="type-badge" style="font-size:9px;background:rgba(16,185,129,.1);color:var(--green)">Course</span>
+                  <span style="font-size:10px;color:var(--green);font-weight:600;margin-left:auto">4/5 agents passed</span>
+                </div>
+                <div style="font-size:12px;color:var(--muted-fg);margin-top:3px;line-height:1.5">5-step learning path: DocTypes → Controllers → Hooks → Whitelisted Methods → Permissions. Each step has reading + self-test.</div>
+                <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+                  <span style="font-size:10px;padding:3px 8px;border-radius:4px;background:rgba(16,185,129,.15);color:var(--green)">&#x2713; Step 1: DocTypes</span>
+                  <span style="font-size:10px;padding:3px 8px;border-radius:4px;background:rgba(16,185,129,.15);color:var(--green)">&#x2713; Step 2: Controllers</span>
+                  <span style="font-size:10px;padding:3px 8px;border-radius:4px;background:rgba(16,185,129,.15);color:var(--green)">&#x2713; Step 3: Hooks</span>
+                  <span style="font-size:10px;padding:3px 8px;border-radius:4px;background:rgba(59,130,246,.15);color:var(--blue)">&#x25B6; Step 4: APIs</span>
+                  <span style="font-size:10px;padding:3px 8px;border-radius:4px;background:var(--muted);color:var(--muted-fg)">Step 5: Permissions</span>
+                </div>
+                <div style="display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--muted-fg)">
+                  <span>Created by Board &middot; 2 weeks ago</span>
+                  <span>&#x1F464; SalesRep1 still on Step 2</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
