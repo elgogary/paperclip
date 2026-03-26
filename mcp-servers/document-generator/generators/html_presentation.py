@@ -342,9 +342,12 @@ def generate_html_presentation(data: dict, output_path: Path) -> dict:
 * {{ box-sizing: border-box; margin: 0; padding: 0; }}
 body {{ font-family: var(--font-body); background: var(--page-bg); color: var(--text); }}
 
+/* -- Print: 16:9 landscape -- */
+@page {{ size: 13.333in 7.5in; margin: 0; }}
+
 /* ── Slide Engine ── */
 .deck {{ height: 100dvh; overflow-y: auto; scroll-snap-type: y mandatory; scroll-behavior: smooth; }}
-.slide {{ height: 100dvh; scroll-snap-align: start; overflow: hidden; position: relative; display: flex; flex-direction: column; }}
+.slide {{ width: 100%; aspect-ratio: 16/9; scroll-snap-align: start; overflow: hidden; position: relative; display: flex; flex-direction: column; }}
 
 /* ── Title Slide ── */
 .slide--title {{ justify-content: center; align-items: center; text-align: center; padding: 80px; color: white; }}
@@ -362,30 +365,30 @@ body {{ font-family: var(--font-body); background: var(--page-bg); color: var(--
 
 /* ── Content Slide ── */
 .slide--content {{ padding: 0; }}
-.slide-header {{ padding: 24px 48px; border-bottom: 2px solid var(--border); display: flex; align-items: center; gap: 16px; }}
+.slide-header {{ padding: 20px 48px; border-bottom: 2px solid var(--border); display: flex; align-items: center; gap: 16px; }}
 .tag {{ font-size: 11px; font-weight: 700; padding: 4px 14px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; }}
 .slide-header h3 {{ font-family: var(--font-display); font-size: 24px; font-weight: 700; color: var(--heading); }}
-.slide-body {{ padding: 32px 48px; flex: 1; overflow-y: auto; }}
+.slide-body {{ padding: 28px 60px; flex: 1; display: flex; flex-direction: column; justify-content: center; overflow-y: auto; }}
 .slide-footer {{ padding: 12px 48px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }}
 
 /* ── Steps ── */
-.steps {{ display: flex; flex-direction: column; gap: 14px; }}
-.step-row {{ display: flex; gap: 16px; align-items: flex-start; }}
-.step-num {{ width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: white; flex-shrink: 0; }}
-.step-body h4 {{ font-size: 15px; font-weight: 600; color: var(--heading); }}
-.step-body p {{ font-size: 13px; color: var(--muted); margin-top: 2px; }}
+.steps {{ display: flex; flex-direction: column; gap: 18px; justify-content: center; flex: 1; }}
+.step-row {{ display: flex; gap: 20px; align-items: center; padding: 14px 20px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; }}
+.step-num {{ width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: white; flex-shrink: 0; }}
+.step-body h4 {{ font-size: 17px; font-weight: 600; color: var(--heading); }}
+.step-body p {{ font-size: 14px; color: var(--muted); margin-top: 2px; }}
 
 /* ── Cards ── */
 .cards {{ display: grid; gap: 16px; }}
 .card {{ background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }}
 .card-icon {{ width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 10px; }}
-.card h4 {{ font-size: 14px; font-weight: 700; color: var(--heading); margin-bottom: 6px; }}
-.card p {{ font-size: 12px; color: var(--muted); line-height: 1.5; }}
+.card h4 {{ font-size: 16px; font-weight: 700; color: var(--heading); margin-bottom: 6px; }}
+.card p {{ font-size: 13px; color: var(--muted); line-height: 1.5; }}
 
 /* ── Flow ── */
 .flow {{ display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0; padding: 20px 0; }}
-.flow-box {{ padding: 14px 20px; border-radius: 12px; font-size: 13px; font-weight: 600; text-align: center; min-width: 110px; }}
-.flow-box i {{ font-size: 18px; display: block; margin-bottom: 6px; }}
+.flow-box {{ padding: 16px 24px; border-radius: 12px; font-size: 13px; font-weight: 600; text-align: center; min-width: 110px; }}
+.flow-box i {{ font-size: 22px; display: block; margin-bottom: 6px; }}
 .flow-sub {{ font-size: 10px; font-weight: 400; opacity: 0.7; }}
 .flow-arrow {{ font-size: 18px; color: var(--muted); margin: 0 6px; }}
 
@@ -396,10 +399,10 @@ body {{ font-family: var(--font-body); background: var(--page-bg); color: var(--
 .styled-table tbody tr:nth-child(even) {{ background: rgba(0,0,0,0.02); }}
 
 /* ── Stats ── */
-.stats {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; }}
+.stats {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }}
 .stat {{ text-align: center; padding: 24px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; }}
-.stat .num {{ font-family: var(--font-display); font-size: 42px; font-weight: 800; display: block; }}
-.stat .label {{ font-size: 12px; color: var(--muted); margin-top: 4px; display: block; }}
+.stat .num {{ font-family: var(--font-display); font-size: 56px; font-weight: 800; display: block; }}
+.stat .label {{ font-size: 14px; color: var(--muted); margin-top: 4px; display: block; }}
 
 /* ── Badges ── */
 .badge {{ display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 600; }}
@@ -410,7 +413,7 @@ body {{ font-family: var(--font-body); background: var(--page-bg); color: var(--
 /* ── Print ── */
 @media print {{
   .deck {{ height: auto; overflow: visible; scroll-snap-type: none; }}
-  .slide {{ page-break-after: always; height: 100vh; }}
+  .slide {{ page-break-after: always; width: 100vw; height: 100vh; aspect-ratio: auto; }}
 }}
 
 /* ── Atmospheric background ── */
