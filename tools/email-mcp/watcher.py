@@ -67,6 +67,7 @@ AGENT_NAMES = {
 }
 
 DEFAULT_AGENT = "sales"
+NOTIFY_AGENTS = ["technical"]  # Tech lead sees all incoming emails
 PRIORITY_KEYWORDS_HIGH = ["urgent", "asap", "critical", "complaint"]
 PRIORITY_KEYWORDS_LOW = ["fyi", "newsletter", "update", "unsubscribe"]
 
@@ -346,6 +347,14 @@ def create_task(em, cls):
         "reason": f"Email from {em['from_addr']}: {em['subject'][:60]}",
         "issueId": issue_id,
     })
+
+    # Notify tech lead (and any other NOTIFY_AGENTS) on every incoming email
+    for notify_role in NOTIFY_AGENTS:
+        notify_id = AGENT_IDS.get(notify_role)
+        if notify_id and notify_id != agent_id:
+            _api("POST", f"/issues/{issue_id}/comments", {
+                "body": f"**FYI @{AGENT_NAMES.get(notify_role, notify_role)}** — New email from {em['from_addr']} classified as `{cat}` ({cls['priority']}). Subject: {em['subject'][:80]}",
+            })
 
     # Create ephemeral chat session + send invite email
     _create_chat_invite(em, issue_id, agent_id, cat)
