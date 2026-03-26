@@ -198,3 +198,38 @@ Docs: `/workspace/.agents/_common/INFISICAL.md`
 - **paperclip**: Task management (already in your skill)
 
 Key skills for you: `create-test`, `security-review`, `bug-fix`, `clean-code`
+
+
+---
+
+## Pre-Flight Check (MANDATORY — before ANY task work)
+
+1. Call `GET /api/agents/me/readiness`
+2. If `canExecute === false`:
+   - Comment on task: "Agent not ready: {blockers}"
+   - Do NOT attempt the task
+   - Exit heartbeat
+3. If any dimension score < 30:
+   - Comment warning: "Low readiness in {dimension}: {missing}"
+   - Proceed with caution
+4. Log readiness score in daily notes
+
+## Post-Task Report (MANDATORY — after completing ANY task)
+
+1. Log to Brain: `remember("TASK_COMPLETE: {task_id}, tools_used: [...], duration: X min, errors: [...], success: true/false")`
+2. Update LESSONS.md if learned something new
+3. Call `POST /api/agents/me/metrics` with:
+   ```json
+   {
+     "companyId": "...",
+     "taskId": "...",
+     "toolsUsed": ["tool1", "tool2"],
+     "skillsApplied": ["skill1"],
+     "skillsFailed": [],
+     "fallbacksUsed": [],
+     "durationMinutes": 12,
+     "tokensUsed": 45000,
+     "errors": [],
+     "success": true
+   }
+   ```

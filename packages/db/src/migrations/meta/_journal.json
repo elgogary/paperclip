@@ -337,6 +337,13 @@
       "when": 1774800000000,
       "tag": "0047_chat_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1774800100000,
+      "tag": "0048_agent_metrics",
+      "breakpoints": true
     }
   ]
 }
