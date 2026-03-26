@@ -321,10 +321,10 @@ def generate_html_presentation(data: dict, output_path: Path) -> dict:
     font_display = theme.get("font_display", "Outfit")
     font_body = theme.get("font_body", "Outfit")
     font_mono = theme.get("font_mono", "Space Mono")
-    fonts_url = f"https://fonts.googleapis.com/css2?family={font_display.replace(' ','+')}:wght@400;500;600;700;800&family={font_body.replace(' ','+')}:wght@400;500;600;700&family={font_mono.replace(' ','+')}:wght@400;700&display=swap"
+    fonts_url = f"https://fonts.googleapis.com/css2?family={font_display.replace(' ','+')}:wght@400;500;600;700;800&family={font_body.replace(' ','+')}:wght@400;500;600;700&family={font_mono.replace(' ','+')}:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"
 
     html = f'''<!DOCTYPE html>
-<html lang="en">
+<html lang="{data.get('lang', 'en')}" dir="{data.get('dir', 'ltr')}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -341,6 +341,21 @@ def generate_html_presentation(data: dict, output_path: Path) -> dict:
 
 * {{ box-sizing: border-box; margin: 0; padding: 0; }}
 body {{ font-family: var(--font-body); background: var(--page-bg); color: var(--text); }}
+
+/* -- RTL Arabic Support -- */
+html[dir="rtl"] {{ direction: rtl; }}
+html[dir="rtl"] body {{ font-family: 'IBM Plex Sans Arabic', var(--font-body); }}
+html[dir="rtl"] .slide-header {{ flex-direction: row-reverse; }}
+html[dir="rtl"] .step-row {{ flex-direction: row-reverse; }}
+html[dir="rtl"] .step-body, html[dir="rtl"] .step-body h4, html[dir="rtl"] .step-body p {{ text-align: right; }}
+html[dir="rtl"] .flow {{ flex-direction: row-reverse; }}
+html[dir="rtl"] .flow-arrow i {{ transform: rotate(180deg); }}
+html[dir="rtl"] .slide-footer {{ flex-direction: row-reverse; }}
+html[dir="rtl"] .card {{ text-align: right; }}
+html[dir="rtl"] .meta {{ flex-direction: row-reverse; }}
+html[dir="rtl"] .styled-table {{ direction: rtl; }}
+html[dir="rtl"] .styled-table th, html[dir="rtl"] .styled-table td {{ text-align: right; }}
+html[dir="rtl"] .slide__display, html[dir="rtl"] .slide--section h2 {{ font-family: 'IBM Plex Sans Arabic', var(--font-display); }}
 
 /* -- Print: 16:9 landscape -- */
 @page {{ size: 13.333in 7.5in; margin: 0; }}
