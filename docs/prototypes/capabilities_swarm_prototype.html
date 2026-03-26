@@ -1167,6 +1167,35 @@
         <button class="btn btn-primary">Invite Agent to Swarm</button>
       </div>
 
+      <!-- Resource usage (first section) -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">
+        <div style="font-size:14px;font-weight:700;margin-bottom:12px">Resource Usage (All Agents)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px">
+          <div>
+            <div style="font-size:11px;color:var(--muted-fg);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Total Tokens</div>
+            <div style="font-size:20px;font-weight:700">360K <span style="font-size:12px;font-weight:400;color:var(--muted-fg)">/ 1.4M</span></div>
+            <div class="budget-meter" style="margin-top:4px"><div class="budget-meter-fill" style="width:26%;background:var(--blue)"></div></div>
+            <div style="font-size:10px;color:var(--muted-fg);margin-top:3px">26% used &middot; resets in 18 days</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted-fg);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Total Spend</div>
+            <div style="font-size:20px;font-weight:700;color:var(--yellow)">$847 <span style="font-size:12px;font-weight:400;color:var(--muted-fg)">/ $1,200</span></div>
+            <div class="budget-meter" style="margin-top:4px"><div class="budget-meter-fill" style="width:71%;background:linear-gradient(90deg,var(--green),var(--yellow))"></div></div>
+            <div style="font-size:10px;color:var(--muted-fg);margin-top:3px">71% used &middot; $353 remaining</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted-fg);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Agent Hours</div>
+            <div style="font-size:20px;font-weight:700">38h <span style="font-size:12px;font-weight:400;color:var(--muted-fg)">in Swarm</span></div>
+            <div style="font-size:10px;color:var(--muted-fg);margin-top:7px">Avg 6.3h per agent &middot; TechLead: 14h (most)</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted-fg);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">MCP Processes</div>
+            <div style="font-size:20px;font-weight:700">5 <span style="font-size:12px;font-weight:400;color:var(--muted-fg)">running</span></div>
+            <div style="font-size:10px;color:var(--muted-fg);margin-top:7px">RAM: 840MB / 1.28GB &middot; CPU: 1.2 / 2.5 cores</div>
+          </div>
+        </div>
+      </div>
+
       <!-- Summary stats -->
       <div class="stats-row">
         <div class="stat-card" style="border-left:3px solid var(--green)"><div class="stat-value" style="color:var(--green)">6</div><div class="stat-label">In Swarm</div></div>
@@ -1401,34 +1430,6 @@
         </div>
       </div>
 
-      <!-- Resource usage -->
-      <div style="margin-top:20px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px">
-        <div style="font-size:14px;font-weight:700;margin-bottom:12px">Resource Usage (All Agents)</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px">
-          <div>
-            <div style="font-size:11px;color:var(--muted-fg);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Total Tokens</div>
-            <div style="font-size:20px;font-weight:700">360K <span style="font-size:12px;font-weight:400;color:var(--muted-fg)">/ 1.4M</span></div>
-            <div class="budget-meter" style="margin-top:4px"><div class="budget-meter-fill" style="width:26%;background:var(--blue)"></div></div>
-            <div style="font-size:10px;color:var(--muted-fg);margin-top:3px">26% used &middot; resets in 18 days</div>
-          </div>
-          <div>
-            <div style="font-size:11px;color:var(--muted-fg);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Total Spend</div>
-            <div style="font-size:20px;font-weight:700;color:var(--yellow)">$847 <span style="font-size:12px;font-weight:400;color:var(--muted-fg)">/ $1,200</span></div>
-            <div class="budget-meter" style="margin-top:4px"><div class="budget-meter-fill" style="width:71%;background:linear-gradient(90deg,var(--green),var(--yellow))"></div></div>
-            <div style="font-size:10px;color:var(--muted-fg);margin-top:3px">71% used &middot; $353 remaining</div>
-          </div>
-          <div>
-            <div style="font-size:11px;color:var(--muted-fg);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Agent Hours</div>
-            <div style="font-size:20px;font-weight:700">38h <span style="font-size:12px;font-weight:400;color:var(--muted-fg)">in Swarm</span></div>
-            <div style="font-size:10px;color:var(--muted-fg);margin-top:7px">Avg 6.3h per agent &middot; TechLead: 14h (most)</div>
-          </div>
-          <div>
-            <div style="font-size:11px;color:var(--muted-fg);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">MCP Processes</div>
-            <div style="font-size:20px;font-weight:700">5 <span style="font-size:12px;font-weight:400;color:var(--muted-fg)">running</span></div>
-            <div style="font-size:10px;color:var(--muted-fg);margin-top:7px">RAM: 840MB / 1.28GB &middot; CPU: 1.2 / 2.5 cores</div>
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════ -->
