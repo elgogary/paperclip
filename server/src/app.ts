@@ -32,6 +32,7 @@ import { accessRoutes } from "./routes/access.js";
 import { attachmentRoutes } from "./routes/attachments.js";
 import { pluginRoutes } from "./routes/plugins.js";
 import { agentAccessRoutes } from "./routes/agent-access.js";
+import { agentReadinessRoutes } from "./routes/agent-readiness.js";
 import { scheduledJobRoutes } from "./routes/scheduled-jobs.js";
 import { mcpServerRoutes } from "./routes/mcp-servers.js";
 import { connectorRoutes } from "./routes/connectors.js";
@@ -154,6 +155,7 @@ export async function createApp(
   api.use(mcpServerRoutes(db));
   api.use(connectorRoutes(db));
   api.use(evolutionRoutes(db));
+  api.use(agentReadinessRoutes(db));
   api.use(publicChatRoutes(db));
   api.use(
     accessRoutes(db, {
