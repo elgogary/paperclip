@@ -324,6 +324,43 @@ export function attachmentRoutes(db: Db, storage: StorageService) {
         });
     }
 
+    // Office preview job — convert docx/xlsx/pptx to HTML for in-browser preview
+    const officeTypes = [
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      "application/msword",
+      "application/vnd.ms-excel",
+      "application/vnd.ms-powerpoint",
+    ];
+    if (officeTypes.includes(updated.mimeType)) {
+      const mediaWorkerUrl =
+        process.env.PAPERCLIP_MEDIA_WORKER_URL ??
+        process.env.MEDIA_WORKER_URL ??
+        "http://media-worker:8200";
+      fetch(mediaWorkerUrl + "/convert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          attachmentId,
+          storageKey: finalKey,
+          mimeType: updated.mimeType,
+        }),
+        signal: AbortSignal.timeout(30_000),
+      })
+        .then((r) => r.ok ? r.json() : null)
+        .then(async (data: { outputKey?: string } | null) => {
+          if (data?.outputKey) {
+            await db.update(attachments)
+              .set({ htmlPreviewKey: data.outputKey, updatedAt: new Date() })
+              .where(eq(attachments.id, attachmentId));
+          }
+        })
+        .catch((err: Error) => {
+          logger.warn(`[attachments] office preview generation failed for ${attachmentId}: ${err.message}`);
+        });
+    }
+
     const actor = getActorInfo(req);
     await logActivity(db, {
       companyId: updated.companyId,
