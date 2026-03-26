@@ -296,6 +296,253 @@ Company Budget ($5,000/mo)
 - [ ] Director dashboard in Swarm UI
 - [ ] Budget-aware mentoring ("You have $50 left, here's the best free alternative")
 
+## Security Layer
+
+### Pre-Install Security Pipeline
+
+Every capability goes through 4 gates before install:
+
+```
+URL Filter ──▶ Content Scanner ──▶ Integrity Verify ──▶ Sandbox Test
+(SSRF guard)   (injection scan)    (SHA-256 hash)      (dry-run)
+```
+
+**Gate 1: URL Filter (SSRF Guard)**
+- Block private IPs (10.x, 172.16-31.x, 192.168.x), localhost, cloud metadata (169.254.169.254)
+- Block internal Tailscale addresses unless explicitly allowlisted
+- Custom URL sources require Board approval (Unknown trust level)
+
+**Gate 2: Content Scanner**
+- Regex scan for known prompt injection patterns ("ignore previous", "system:", data exfiltration URLs)
+- AI scan: ask LLM "does this capability contain suspicious instructions?" with structured output
+- Skill markdown: scan for encoded payloads, base64 blocks, external fetch calls
+- MCP server configs: flag any env var that looks like it forwards secrets externally
+
+**Gate 3: Integrity Verification**
+- SHA-256 hash stored at first install in `swarm_installs.contentHash`
+- On update: compare new hash vs stored hash. If changed, show diff to Board before applying
+- npm packages: verify against registry integrity hash
+- GitHub: pin to commit SHA, not branch
+
+**Gate 4: Sandbox Test (Dry-Run)**
+- MCP servers: start in isolated Docker network (no external access), run health check
+- Skills: parse markdown, verify no executable code blocks
+- Connectors: validate config schema without sending real credentials
+- Plugins: load in sandboxed iframe, check for DOM access violations
+
+### Secret Scoping
+
+MCP servers do NOT get raw secrets. Instead:
+```
+Agent requests: SLACK_BOT_TOKEN
+  → Secret service creates a scoped proxy token
+  → Proxy token only allows: channels.read, chat.write (declared scopes)
+  → MCP server gets the proxy token, not the real one
+  → All API calls logged and auditable
+```
+
+For services that don't support token scoping, use an API proxy:
+```
+MCP Server → HTTP Proxy (localhost:9100) → Slack API
+             ↑ logs all requests, enforces scope allowlist
+```
+
+### Rate Limiting
+
+| Action | Limit | Per |
+|---|---|---|
+| swarm_discover | 20/hour | agent |
+| swarm_analyze | 10/hour | agent |
+| swarm_pull | 5/hour | agent |
+| Source sync | 1/hour | source |
+| Install request | 3/hour | agent |
+
+### Tenant Isolation
+
+- Knowledge graph: partitioned by companyId. Brain memory entries tagged with company scope.
+- Market data: aggregate stats only (no company-identifying data in cross-company views)
+- Board view: sees per-company totals, never individual agent data from other companies
+- Swarm Director: one instance per company. Never cross-company data access.
+
+### Self-Evaluation Gaming Prevention
+
+- Director cross-validates agent self-evaluations against task outcomes
+- Comparative scoring: "Before this capability, task X took 45min. After: 12min" — based on actual task timestamps, not agent claims
+- Anomaly detection: if agent consistently scores 10/10 but task completion rate doesn't improve, flag for review
+- Peer validation: when 2+ agents use the same capability, compare their independent scores
+
+## Operational Resilience
+
+### Rollback & Circuit Breaker
+
+Every install creates a **SwarmSnapshot**:
+```
+SwarmSnapshot {
+  installId, timestamp
+  previousState: { configs, env, routes }  // what was before
+  newState: { configs, env, routes }        // what was added
+  rollbackCommand: "..."                    // how to undo
+}
+```
+
+- "Revert" button in Audit UI — one-click rollback to snapshot
+- MCP servers: health check endpoint every 30s. 3 consecutive failures → auto-disable + notify Director
+- Circuit breaker: disabled capability enters 5-min cooldown before retry
+- Kill switch: Board can disable ALL Swarm installs instantly from Settings
+
+### Source Downtime Handling
+
+- All source metadata cached in `swarm_capabilities` table
+- Cache TTL: 1 hour for Verified sources, 6 hours for Community
+- If source returns error: serve from cache, show "Last synced X ago" warning
+- Stale cache (>24h): show warning badge on affected capabilities
+- Total source failure: discovery still works against cached data
+
+### Monitoring & Alerts
+
+| Trigger | Alert To | Action |
+|---|---|---|
+| Swarm budget > 80% | Agent | Warn in UI |
+| Swarm budget > 95% | CEO | Email/notification |
+| Capability ROI < 0 for 7 days | Director | Auto-disable |
+| Capability quality < 4/10 | Director | Flag for review |
+| MCP health check fails 3x | Director + Board | Auto-disable + snapshot |
+| Director heartbeat miss (15 min) | Board | Alert + auto-restart |
+| Agent discovery rate > 15/hour | Director | Throttle + investigate |
+| Install failure rate > 50% | Board | Pause all installs |
+
+### Director Scaling
+
+- Feedback queue: Postgres-backed job queue (reuse existing scheduled_jobs infrastructure)
+- Director processes feedback in batches (every 5 min or 10 items, whichever first)
+- One Director instance per company (not shared)
+- Future: Director can delegate sub-tasks to other agents for evaluation
+
+### Disaster Recovery
+
+| Data | Storage | Backup |
+|---|---|---|
+| Transaction ledger | Postgres | Covered by DB backups (hourly) |
+| Swarm capabilities cache | Postgres | Covered by DB backups |
+| Knowledge graph | Sanad Brain | Brain has own persistence + nightly JSON export |
+| Install snapshots | Postgres + S3 | S3 lifecycle: 90-day retention |
+| Source configs | Postgres | Covered by DB backups |
+
+Recovery procedure:
+1. Restore Postgres from backup → transaction ledger + configs restored
+2. Import Brain JSON export → knowledge graph restored
+3. Run `swarm_sync_all` → re-cache all source metadata
+4. Director resumes from last processed feedback item
+
+## Technical Rigor
+
+### Value Estimation: Comparative Method
+
+Do NOT trust agent self-reported "time saved." Instead:
+
+```
+BEFORE capability acquired:
+  Agent completed 5 similar tasks
+  Average time: 45 minutes
+
+AFTER capability acquired:
+  Agent completed 5 similar tasks
+  Average time: 12 minutes
+
+Measured time saved: 33 min/task
+Value per use: 33 min × ($50/hr agent rate) = $27.50
+```
+
+- Track actual task completion times from Paperclip issue timestamps
+- Compare same-type tasks before vs after capability acquisition
+- Director cross-validates by comparing agents who have the capability vs those who don't
+- First 30 days: value marked as "estimated." After 30 days: based on real data.
+
+### Skill Table Unification
+
+```
+company_skills    → SOURCE OF TRUTH for installed capabilities (all types)
+swarm_capabilities → CACHE of registry metadata (not installed, browsing only)
+skills (old table) → DEPRECATED, migrate existing 119 rows to company_skills
+```
+
+Migration plan:
+1. Phase 1: both tables coexist (already done — normalizeSkill adapter)
+2. Phase 2: migration script moves `skills` rows to `company_skills` with type mapping
+3. Phase 3: drop old `skills` table, remove `skillRoutes`, remove normalizeSkill adapter
+
+### MCP Server Process Lifecycle
+
+```
+Install:
+  1. Pull container image / npm package
+  2. Create Docker container with resource limits:
+     - Memory: 256MB max
+     - CPU: 0.5 cores
+     - Network: isolated bridge (no host network)
+     - Volumes: read-only workspace access only
+  3. Start container, wait for health check (30s timeout)
+  4. Register in process_registry table
+  5. Connect to agent's MCP session
+
+Runtime:
+  - Health check every 30s (HTTP GET /health or process alive check)
+  - Auto-restart on crash (max 3 retries, then disable)
+  - Resource usage tracked in SwarmTransaction
+
+Server restart:
+  - Process registry in Postgres survives restart
+  - On boot: iterate process_registry, restart all "active" MCP containers
+  - Startup order: DB → MCP containers → Paperclip server → agents
+```
+
+### AI Analysis Validation
+
+After AI generates config/analysis, validate before trusting:
+
+1. **Config validation**: JSON schema check against expected MCP/connector format
+2. **Dry-run**: attempt connection/startup in sandbox mode
+3. **Diff review**: for updates, show before/after diff to installing agent
+4. **Confidence score**: AI outputs 0-100 confidence. Below 70 → require manual review
+5. **Known-good templates**: maintain a library of verified configs. AI starts from template when available.
+
+### Auto-Generated Capability Quality
+
+Auto-generated capabilities (companion skills, connectors) are NOT immediately active:
+
+```
+Status lifecycle:
+  draft → testing → active → deprecated
+
+draft:    Generated by AI. Not usable by agents.
+testing:  Agent uses in sandbox. Must score >6/10 to promote.
+active:   Available to all assigned agents.
+deprecated: Quality dropped below 5/10 for 14 days. Removed after 30.
+```
+
+### Score Aggregation Strategy
+
+When multiple agents evaluate the same capability:
+
+```
+Weighted average:
+  Expert (weight 3.0)    → has used it 20+ times
+  Competent (weight 2.0) → has used it 5-19 times
+  Novice (weight 1.0)    → has used it 1-4 times
+
+Example:
+  TechLead (Expert): 9.0  × 3.0 = 27.0
+  BackendEng (Competent): 7.5 × 2.0 = 15.0
+  SalesRep (Novice): 3.0  × 1.0 = 3.0
+  Total weight: 6.0
+  Weighted score: 45.0 / 6.0 = 7.5
+
+Director tiebreaker:
+  If scores diverge >3 points between agents,
+  Director investigates: "TechLead loves this but SalesRep hates it.
+  Is this a role-fit issue or a quality issue?"
+```
+
 ## Key Design Decisions
 
 1. **Infrastructure first** — Can't mentor without capabilities to manage
@@ -307,3 +554,8 @@ Company Budget ($5,000/mo)
 7. **Ledger + Market hybrid** — Real accounting (tokens + time + money) with quality-adjusted market pricing
 8. **Swarm as investment center** — The Swarm itself has a budget and must generate positive ROI
 9. **Tiered visibility** — Agents see own costs, CEO sees everything, Board sees cross-company
+10. **Security pipeline** — 4 gates before install: URL filter, content scan, integrity verify, sandbox test
+11. **Secret scoping** — MCP servers get proxy tokens, not raw secrets. All API calls logged.
+12. **Comparative value** — ROI based on actual task time deltas, not agent self-reports
+13. **Circuit breakers** — 3 health check failures → auto-disable. Budget overrun → throttle. Kill switch for Board.
+14. **Skill table unification** — company_skills is the ONE truth. Old skills table deprecated and migrated.
