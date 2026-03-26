@@ -27,8 +27,7 @@ import {
   bufferToPortableBinaryFile,
   inferContentTypeFromPath,
 } from "./portability-helpers.js";
-import { readIncludeEntries } from "./portability-manifest.js";
-import { buildManifestFromPackageFiles } from "./portability-manifest.js";
+import { readIncludeEntries, buildManifestFromPackageFiles, type ResolvedSource } from "./portability-manifest.js";
 
 // Re-export test-facing API surface (preserves import paths)
 export { parseGitHubSourceUrl } from "./portability-skills.js";
@@ -66,17 +65,12 @@ function resolveRawGitHubUrl(owner: string, repo: string, ref: string, filePath:
   return `https://raw.githubusercontent.com/${owner}/${repo}/${ref}/${normalizedFilePath}`;
 }
 
-// Inline parseGitHubSourceUrl import for resolveSource
 import { parseGitHubSourceUrl as _parseGitHubSourceUrl } from "./portability-skills.js";
 
-// ── Types needed by resolveSource ─────────────────────────────────────────
 import type {
   CompanyPortabilityFileEntry,
   CompanyPortabilityPreview,
 } from "@paperclipai/shared";
-
-// ResolvedSource type — mirrors what buildManifestFromPackageFiles returns
-type ResolvedSource = ReturnType<typeof buildManifestFromPackageFiles> extends Promise<infer T> ? T : never;
 
 export function companyPortabilityService(db: Db, storage?: StorageService) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -106,6 +106,7 @@ export function heartbeatService(db: Db) {
   // called at runtime. Order matters — modules reference these lazily via $.
   $.budgetHooks = { cancelWorkForScope: cancellationOps.cancelBudgetScopeWork };
   $.budgets = budgetService(db, $.budgetHooks);
+  if (!$.budgets) throw new Error("heartbeat: budgetService failed to initialize");
 
   // ── Public API ─────────────────────────────────────────────────────────
   return {

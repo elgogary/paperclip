@@ -4,7 +4,17 @@ import path from "node:path";
 import { asString, parseObject, renderTemplate } from "../adapters/utils.js";
 import { resolveHomeAwarePath } from "../home-paths.js";
 import type { WorkspaceOperationRecorder } from "./workspace-operations.js";
-import { sanitizeRuntimeServiceBaseEnv } from "./workspace-runtime.js";
+// sanitizeRuntimeServiceBaseEnv lives here (canonical); re-exported from workspace-runtime.ts
+export function sanitizeRuntimeServiceBaseEnv(baseEnv: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { ...baseEnv };
+  for (const key of Object.keys(env)) {
+    if (key.startsWith("PAPERCLIP_")) {
+      delete env[key];
+    }
+  }
+  delete env.DATABASE_URL;
+  return env;
+}
 import type {
   ExecutionWorkspaceInput,
   ExecutionWorkspaceIssueRef,

@@ -64,18 +64,7 @@ export interface RuntimeServiceRef {
   reused: boolean;
 }
 
-// ── Local functions (kept here — too small to extract) ─────────────────────────
-
-export function sanitizeRuntimeServiceBaseEnv(baseEnv: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
-  const env: NodeJS.ProcessEnv = { ...baseEnv };
-  for (const key of Object.keys(env)) {
-    if (key.startsWith("PAPERCLIP_")) {
-      delete env[key];
-    }
-  }
-  delete env.DATABASE_URL;
-  return env;
-}
+// ── Local functions ─────────────────────────────────────────────────────────────
 
 export function buildWorkspaceReadyComment(input: {
   workspace: RealizedExecutionWorkspace;
@@ -99,6 +88,7 @@ export function buildWorkspaceReadyComment(input: {
 // ── Re-exports from workspace-provision.ts ─────────────────────────────────────
 
 export {
+  sanitizeRuntimeServiceBaseEnv,
   realizeExecutionWorkspace,
   cleanupExecutionWorkspaceArtifacts,
 } from "./workspace-provision.js";

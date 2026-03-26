@@ -9,7 +9,7 @@ import { workspaceRuntimeServices } from "@paperclipai/db";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { asNumber, asString, parseObject, renderTemplate } from "../adapters/utils.js";
 import { resolveHomeAwarePath } from "../home-paths.js";
-import { sanitizeRuntimeServiceBaseEnv } from "./workspace-runtime.js";
+import { sanitizeRuntimeServiceBaseEnv } from "./workspace-provision.js";
 import type {
   ExecutionWorkspaceIssueRef,
   ExecutionWorkspaceAgentRef,

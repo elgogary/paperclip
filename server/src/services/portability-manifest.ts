@@ -32,7 +32,7 @@ type CompanyPackageIncludeEntry = {
   path: string;
 };
 
-type ResolvedSource = {
+export type ResolvedSource = {
   manifest: CompanyPortabilityManifest;
   files: Record<string, CompanyPortabilityFileEntry>;
   warnings: string[];

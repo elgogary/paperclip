@@ -487,13 +487,13 @@ export function issueService(db: Db) {
     );
   }
 
-  // Wire sub-modules with cross-module refs
-  const commentOps = createCommentOps(db, {});
-  const attachmentOps = createAttachmentOps(db, {});
-  const checkoutOps = createCheckoutOps(db, {
-    assertAssignableAgent,
-    withIssueLabels,
-  });
+  // Shared context bag for cross-module refs (same pattern as heartbeat)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const $: Record<string, any> = { assertAssignableAgent, withIssueLabels };
+
+  const commentOps = createCommentOps(db, $);
+  const attachmentOps = createAttachmentOps(db, $);
+  const checkoutOps = createCheckoutOps(db, $);
 
   return {
     ...commentOps,
