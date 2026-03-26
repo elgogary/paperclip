@@ -92,12 +92,51 @@ export interface CreateSkillInput {
 
 export type UpdateSkillInput = Partial<CreateSkillInput & { enabled: boolean }>;
 
-export const skillsApi = {
-  list: (companyId: string) =>
-    api.get<{ skills: Skill[] }>(`/companies/${companyId}/skills`),
+function mapSourceType(sourceType?: string): SkillSource {
+  if (sourceType === "github" || sourceType === "url") return "community";
+  if (sourceType === "builtin" || sourceType === "bundled") return "builtin";
+  return "user";
+}
 
-  get: (companyId: string, skillId: string) =>
-    api.get<{ skill: Skill }>(`/companies/${companyId}/skills/${skillId}`),
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function normalizeSkill(raw: any): Skill {
+  return {
+    id: raw.id,
+    companyId: raw.companyId,
+    name: raw.name,
+    slug: raw.slug ?? raw.key ?? "",
+    description: raw.description ?? null,
+    icon: raw.icon ?? null,
+    category: raw.category ?? null,
+    source: raw.source ?? mapSourceType(raw.sourceType),
+    instructions: raw.instructions ?? raw.markdown ?? "",
+    triggerHint: raw.triggerHint ?? null,
+    invokedBy: raw.invokedBy ?? "user_or_agent",
+    enabled: raw.enabled !== false,
+    createdBy: raw.createdBy ?? null,
+    origin: raw.origin ?? raw.sourceType ?? "manual",
+    parentId: raw.parentId ?? null,
+    version: raw.version ?? 1,
+    qualityMetrics: raw.qualityMetrics ?? {},
+    embeddingId: raw.embeddingId ?? null,
+    evolutionStatus: raw.evolutionStatus ?? "active",
+    defaultVersion: raw.defaultVersion !== false,
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt,
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+export const skillsApi = {
+  list: async (companyId: string) => {
+    const data = await api.get<{ skills: unknown[] }>(`/companies/${companyId}/skills`);
+    return { skills: (data.skills ?? []).map(normalizeSkill) };
+  },
+
+  get: async (companyId: string, skillId: string) => {
+    const data = await api.get<{ skill: unknown }>(`/companies/${companyId}/skills/${skillId}`);
+    return { skill: data.skill ? normalizeSkill(data.skill) : null };
+  },
 
   create: (companyId: string, data: CreateSkillInput) =>
     api.post<{ skill: Skill }>(`/companies/${companyId}/skills`, data),

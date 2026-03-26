@@ -55,7 +55,7 @@ export function companySkillRoutes(db: Db) {
     const companyId = req.params.companyId as string;
     assertCompanyAccess(req, companyId);
     const result = await svc.list(companyId);
-    res.json(result);
+    res.json({ skills: result });
   });
 
   router.get("/companies/:companyId/skills/:skillId", async (req, res) => {
@@ -67,7 +67,7 @@ export function companySkillRoutes(db: Db) {
       res.status(404).json({ error: "Skill not found" });
       return;
     }
-    res.json(result);
+    res.json({ skill: result });
   });
 
   router.get("/companies/:companyId/skills/:skillId/update-status", async (req, res) => {
