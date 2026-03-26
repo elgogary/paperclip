@@ -5,14 +5,13 @@ interface ExecutionWorkspaceSectionProps {
   setExecutionWorkspaceMode: (mode: string) => void;
   selectedExecutionWorkspaceId: string;
   setSelectedExecutionWorkspaceId: (id: string) => void;
-  deduplicatedReusableWorkspaces: Array<{
+  deduplicatedReusableWorkspaces: Array<Record<string, unknown> & {
     id: string;
     name: string;
     status: string;
     branchName?: string | null;
     cwd?: string | null;
     mode?: string | null;
-    lastUsedAt: string;
   }>;
   selectedReusableExecutionWorkspace: {
     id: string;
