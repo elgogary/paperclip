@@ -195,6 +195,87 @@ function ActorIdentity({ evt, agentMap }: { evt: ActivityEvent; agentMap: Map<st
   return <Identity name={id || "Unknown"} size="sm" />;
 }
 
+function IssueAttachmentCard({
+  attachment,
+  isImage,
+  onDelete,
+  deleteDisabled,
+}: {
+  attachment: IssueAttachment;
+  isImage: boolean;
+  onDelete: () => void;
+  deleteDisabled: boolean;
+}) {
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const isPdf = attachment.contentType === "application/pdf";
+  const isOffice = attachment.contentType.startsWith("application/vnd.openxmlformats-officedocument.") ||
+    attachment.contentType === "application/msword" ||
+    attachment.contentType === "application/vnd.ms-excel";
+
+  return (
+    <div className="border border-border rounded-md p-2">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-medium truncate" title={attachment.originalFilename ?? attachment.id}>
+          {attachment.originalFilename ?? attachment.id}
+        </span>
+        <div className="flex items-center gap-1 shrink-0">
+          <a
+            href={attachment.contentPath}
+            download={attachment.originalFilename ?? undefined}
+            className="text-[11px] text-primary hover:underline"
+          >
+            Download
+          </a>
+          {(isPdf || isOffice || isImage) && (
+            <button
+              type="button"
+              onClick={() => setPreviewOpen(!previewOpen)}
+              className="text-[11px] text-primary hover:underline ml-2"
+            >
+              {previewOpen ? "Close Preview" : "Preview"}
+            </button>
+          )}
+          <button
+            type="button"
+            className="text-muted-foreground hover:text-destructive ml-2"
+            onClick={onDelete}
+            disabled={deleteDisabled}
+            title="Delete attachment"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        {attachment.contentType} · {(attachment.byteSize / 1024).toFixed(1)} KB
+      </p>
+      {previewOpen && isImage && (
+        <img
+          src={attachment.contentPath}
+          alt={attachment.originalFilename ?? "attachment"}
+          className="mt-2 max-h-72 rounded border border-border object-contain bg-accent/10"
+          loading="lazy"
+        />
+      )}
+      {previewOpen && isPdf && (
+        <iframe
+          src={attachment.contentPath}
+          className="mt-2 w-full h-[500px] rounded border border-border"
+          title={attachment.originalFilename ?? "PDF preview"}
+        />
+      )}
+      {previewOpen && isOffice && (
+        <iframe
+          src={attachment.contentPath}
+          sandbox="allow-scripts allow-same-origin"
+          className="mt-2 w-full h-[500px] rounded border border-border bg-white"
+          title={attachment.originalFilename ?? "Document preview"}
+        />
+      )}
+    </div>
+  );
+}
+
 export function IssueDetail() {
   const { issueId } = useParams<{ issueId: string }>();
   const { selectedCompanyId } = useCompany();
@@ -952,45 +1033,13 @@ export function IssueDetail() {
 
         <div className="space-y-2">
           {attachmentList.map((attachment) => (
-            <div key={attachment.id} className="border border-border rounded-md p-2">
-              <div className="flex items-center justify-between gap-2">
-                <a
-                  href={attachment.contentPath}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs hover:underline truncate"
-                  title={attachment.originalFilename ?? attachment.id}
-                >
-                  {attachment.originalFilename ?? attachment.id}
-                </a>
-                <button
-                  type="button"
-                  className="text-muted-foreground hover:text-destructive"
-                  onClick={() => deleteAttachment.mutate(attachment.id)}
-                  disabled={deleteAttachment.isPending}
-                  title="Delete attachment"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-              <p className="text-[11px] text-muted-foreground">
-                {attachment.contentType} · {(attachment.byteSize / 1024).toFixed(1)} KB
-                {" · "}
-                <a href={attachment.contentPath} download={attachment.originalFilename ?? undefined} className="text-primary hover:underline">Download</a>
-                {" · "}
-                <a href={attachment.contentPath} target="_blank" rel="noreferrer" className="text-primary hover:underline">Preview</a>
-              </p>
-              {isImageAttachment(attachment) && (
-                <a href={attachment.contentPath} target="_blank" rel="noreferrer">
-                  <img
-                    src={attachment.contentPath}
-                    alt={attachment.originalFilename ?? "attachment"}
-                    className="mt-2 max-h-56 rounded border border-border object-contain bg-accent/10"
-                    loading="lazy"
-                  />
-                </a>
-              )}
-            </div>
+            <IssueAttachmentCard
+              key={attachment.id}
+              attachment={attachment}
+              isImage={isImageAttachment(attachment)}
+              onDelete={() => deleteAttachment.mutate(attachment.id)}
+              deleteDisabled={deleteAttachment.isPending}
+            />
           ))}
         </div>
         </div>
