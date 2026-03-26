@@ -36,6 +36,7 @@ import { scheduledJobRoutes } from "./routes/scheduled-jobs.js";
 import { mcpServerRoutes } from "./routes/mcp-servers.js";
 import { connectorRoutes } from "./routes/connectors.js";
 import { evolutionRoutes } from "./routes/evolution.js";
+import { publicChatRoutes } from "./routes/public-chat.js";
 import { applyUiBranding } from "./ui-branding.js";
 import { logger } from "./middleware/logger.js";
 import type { BetterAuthSessionResult } from "./auth/better-auth.js";
@@ -153,6 +154,7 @@ export async function createApp(
   api.use(mcpServerRoutes(db));
   api.use(connectorRoutes(db));
   api.use(evolutionRoutes(db));
+  api.use(publicChatRoutes(db));
   api.use(
     accessRoutes(db, {
       deploymentMode: opts.deploymentMode,
