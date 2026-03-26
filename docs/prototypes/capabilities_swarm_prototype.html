@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Capabilities Swarm — Prototype</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: oklch(0.145 0 0); --fg: oklch(0.985 0 0); --card: oklch(0.205 0 0);
+    --border: oklch(0.26 0 0); --muted: oklch(0.269 0 0); --muted-fg: oklch(0.78 0 0);
+    --accent: oklch(0.269 0 0); --primary: oklch(0.922 0 0);
+    --green: #10b981; --red: #ef4444; --yellow: #f59e0b; --blue: #3b82f6;
+    --purple: #8b5cf6; --orange: #f97316; --cyan: #06b6d4; --pink: #ec4899;
+  }
+  body { background: var(--bg); color: var(--fg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; height: 100vh; overflow: hidden; display: flex; }
+  ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: oklch(0.35 0 0); border-radius: 3px; }
+
+  /* ── App sidebar ── */
+  .app-sidebar { width: 228px; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 10px; gap: 12px; flex-shrink: 0; overflow-y: auto; }
+  .co-name { font-size: 13px; font-weight: 700; padding: 4px 8px 10px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); }
+  .brand-dot { width: 14px; height: 14px; border-radius: 3px; background: #6366f1; flex-shrink: 0; }
+  .sec-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted-fg); padding: 0 8px 4px; }
+  .nav { display: flex; flex-direction: column; gap: 1px; }
+  .nav a { display: flex; align-items: center; gap: 9px; padding: 6px 8px; border-radius: 5px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.65); cursor: pointer; text-decoration: none; transition: background .1s, color .1s; }
+  .nav a:hover { background: var(--accent); color: var(--fg); }
+  .nav a.active { background: var(--accent); color: var(--fg); }
+  .nav-badge { font-size: 10px; background: var(--red); color: #fff; padding: 1px 6px; border-radius: 8px; margin-left: auto; }
+
+  /* ── Main ── */
+  .main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .breadcrumb { height: 38px; border-bottom: 1px solid var(--border); padding: 0 16px; display: flex; align-items: center; font-size: 12px; color: var(--muted-fg); flex-shrink: 0; gap: 6px; }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); padding: 0 16px; flex-shrink: 0; }
+  .tab { padding: 10px 16px; font-size: 13px; font-weight: 500; color: var(--muted-fg); cursor: pointer; border-bottom: 2px solid transparent; transition: all .15s; display: flex; align-items: center; gap: 6px; }
+  .tab:hover { color: var(--fg); background: var(--accent); }
+  .tab.active { color: var(--fg); border-bottom-color: var(--fg); }
+  .tab .tab-count { font-size: 10px; background: var(--muted); padding: 1px 7px; border-radius: 8px; }
+  .tab.active .tab-count { background: oklch(0.35 0 0); }
+
+  /* ── Content area ── */
+  .content { flex: 1; overflow-y: auto; padding: 16px 20px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ── Page header ── */
+  .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
+  .page-title { font-size: 20px; font-weight: 700; }
+  .page-sub { font-size: 12px; color: var(--muted-fg); margin-top: 3px; }
+
+  /* ── Buttons ── */
+  .btn { display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; font-family: inherit; }
+  .btn-primary { background: var(--primary); color: var(--bg); }
+  .btn-primary:hover { opacity: .88; }
+  .btn-cancel { background: transparent; color: var(--fg); border: 1px solid var(--border); }
+  .btn-cancel:hover { background: var(--accent); }
+  .btn-success { background: var(--green); color: #fff; }
+  .btn-danger { background: var(--red); color: #fff; }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+  .btn-ghost { background: transparent; color: var(--muted-fg); padding: 5px 8px; border-radius: 5px; border: none; cursor: pointer; }
+  .btn-ghost:hover { background: var(--accent); color: var(--fg); }
+
+  /* ── Search bar ── */
+  .search-bar { display: flex; gap: 8px; margin-bottom: 16px; align-items: center; }
+  .search-input { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; color: var(--fg); font-size: 13px; outline: none; }
+  .search-input:focus { border-color: oklch(0.5 0 0); }
+  .search-input::placeholder { color: var(--muted-fg); }
+
+  /* ── Filter chips ── */
+  .chips { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+  .chip { padding: 4px 12px; border-radius: 14px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--muted-fg); transition: all .15s; }
+  .chip:hover { border-color: oklch(0.5 0 0); color: var(--fg); }
+  .chip.active { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+
+  /* ── Capability cards grid ── */
+  .cap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+  .cap-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; cursor: pointer; transition: all .15s; position: relative; }
+  .cap-card:hover { border-color: oklch(0.45 0 0); transform: translateY(-1px); }
+  .cap-card-header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+  .cap-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .cap-icon.skill { background: rgba(139,92,246,.15); color: var(--purple); }
+  .cap-icon.mcp { background: rgba(59,130,246,.15); color: var(--blue); }
+  .cap-icon.connector { background: rgba(16,185,129,.15); color: var(--green); }
+  .cap-icon.plugin { background: rgba(249,115,22,.15); color: var(--orange); }
+  .cap-name { font-size: 14px; font-weight: 600; line-height: 1.3; }
+  .cap-source { font-size: 11px; color: var(--muted-fg); margin-top: 2px; }
+  .cap-desc { font-size: 12px; color: var(--muted-fg); line-height: 1.5; margin-bottom: 10px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .cap-footer { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+  /* ── Trust badges ── */
+  .trust-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+  .trust-trusted { background: rgba(16,185,129,.15); color: var(--green); }
+  .trust-verified { background: rgba(59,130,246,.15); color: var(--blue); }
+  .trust-community { background: rgba(139,92,246,.15); color: var(--purple); }
+  .trust-unknown { background: rgba(245,158,11,.15); color: var(--yellow); }
+
+  /* ── Type badges ── */
+  .type-badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+  .type-skill { background: rgba(139,92,246,.1); color: var(--purple); }
+  .type-mcp { background: rgba(59,130,246,.1); color: var(--blue); }
+  .type-connector { background: rgba(16,185,129,.1); color: var(--green); }
+  .type-plugin { background: rgba(249,115,22,.1); color: var(--orange); }
+
+  /* ── Installed badge ── */
+  .installed-badge { position: absolute; top: 10px; right: 10px; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; background: rgba(16,185,129,.15); color: var(--green); }
+
+  /* ── Detail overlay ── */
+  .detail-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 100; display: none; align-items: center; justify-content: center; }
+  .detail-overlay.open { display: flex; }
+  .detail-dialog { background: var(--card); border: 1px solid var(--border); border-radius: 12px; width: 700px; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; }
+  .detail-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; }
+  .detail-body { flex: 1; overflow-y: auto; padding: 16px 20px; }
+  .detail-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .detail-section { margin-bottom: 16px; }
+  .detail-section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted-fg); margin-bottom: 8px; }
+  .detail-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .meta-item { background: var(--bg); border-radius: 6px; padding: 10px 12px; }
+  .meta-label { font-size: 10px; color: var(--muted-fg); text-transform: uppercase; letter-spacing: .04em; }
+  .meta-value { font-size: 13px; font-weight: 600; margin-top: 3px; }
+
+  /* ── Pipeline visualization ── */
+  .pipeline { display: flex; align-items: center; gap: 0; margin: 16px 0; }
+  .pipe-step { flex: 1; text-align: center; padding: 12px 8px; background: var(--bg); border: 1px solid var(--border); position: relative; }
+  .pipe-step:first-child { border-radius: 8px 0 0 8px; }
+  .pipe-step:last-child { border-radius: 0 8px 8px 0; }
+  .pipe-step.active { border-color: var(--green); background: rgba(16,185,129,.08); }
+  .pipe-step.done { border-color: var(--green); background: rgba(16,185,129,.05); }
+  .pipe-step-num { font-size: 10px; color: var(--muted-fg); font-weight: 600; }
+  .pipe-step-label { font-size: 12px; font-weight: 600; margin-top: 2px; }
+  .pipe-step.active .pipe-step-label { color: var(--green); }
+  .pipe-step.done .pipe-step-label { color: var(--green); }
+  .pipe-arrow { font-size: 14px; color: var(--muted-fg); padding: 0 2px; flex-shrink: 0; }
+
+  /* ── Sources table ── */
+  .source-table { width: 100%; border-collapse: collapse; }
+  .source-table th { text-align: left; font-size: 11px; font-weight: 600; color: var(--muted-fg); text-transform: uppercase; letter-spacing: .04em; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  .source-table td { padding: 10px 12px; border-bottom: 1px solid oklch(0.22 0 0); font-size: 13px; }
+  .source-table tr:hover td { background: var(--accent); }
+  .source-status { display: inline-flex; align-items: center; gap: 5px; }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .status-dot.ok { background: var(--green); }
+  .status-dot.warn { background: var(--yellow); }
+  .status-dot.err { background: var(--red); }
+
+  /* ── Queue table ── */
+  .queue-table { width: 100%; border-collapse: collapse; }
+  .queue-table th { text-align: left; font-size: 11px; font-weight: 600; color: var(--muted-fg); text-transform: uppercase; letter-spacing: .04em; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  .queue-table td { padding: 10px 12px; border-bottom: 1px solid oklch(0.22 0 0); font-size: 13px; vertical-align: middle; }
+  .queue-table tr:hover td { background: var(--accent); }
+  .requester { display: flex; align-items: center; gap: 8px; }
+  .requester-avatar { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; }
+
+  /* ── Audit log ── */
+  .audit-list { display: flex; flex-direction: column; gap: 0; }
+  .audit-entry { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid oklch(0.22 0 0); }
+  .audit-time { width: 130px; flex-shrink: 0; font-size: 11px; color: var(--muted-fg); padding-top: 2px; }
+  .audit-icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+  .audit-icon.install { background: rgba(16,185,129,.15); color: var(--green); }
+  .audit-icon.remove { background: rgba(239,68,68,.15); color: var(--red); }
+  .audit-icon.approve { background: rgba(59,130,246,.15); color: var(--blue); }
+  .audit-icon.deny { background: rgba(245,158,11,.15); color: var(--yellow); }
+  .audit-icon.sync { background: rgba(139,92,246,.15); color: var(--purple); }
+  .audit-body { flex: 1; }
+  .audit-action { font-size: 13px; font-weight: 500; }
+  .audit-detail { font-size: 12px; color: var(--muted-fg); margin-top: 2px; }
+
+  /* ── Add Source dialog ── */
+  .add-source-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 200; display: none; align-items: center; justify-content: center; }
+  .add-source-overlay.open { display: flex; }
+  .add-source-dialog { background: var(--card); border: 1px solid var(--border); border-radius: 12px; width: 500px; overflow: hidden; }
+  .form-group { margin-bottom: 14px; }
+  .form-label { display: block; font-size: 11px; font-weight: 600; color: var(--muted-fg); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 5px; }
+  .form-input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; color: var(--fg); font-size: 13px; outline: none; font-family: inherit; }
+  .form-input:focus { border-color: oklch(0.5 0 0); }
+  .form-select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; color: var(--fg); font-size: 13px; outline: none; font-family: inherit; appearance: none; }
+  .form-hint { font-size: 11px; color: var(--muted-fg); margin-top: 4px; }
+
+  /* ── Install flow dialog ── */
+  .install-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 150; display: none; align-items: center; justify-content: center; }
+  .install-overlay.open { display: flex; }
+  .install-dialog { background: var(--card); border: 1px solid var(--border); border-radius: 12px; width: 600px; max-height: 80vh; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ── Stats row ── */
+  .stats-row { display: flex; gap: 12px; margin-bottom: 16px; }
+  .stat-card { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+  .stat-value { font-size: 22px; font-weight: 700; }
+  .stat-label { font-size: 11px; color: var(--muted-fg); margin-top: 2px; }
+
+  /* ── Empty state ── */
+  .empty-state { text-align: center; padding: 48px 20px; color: var(--muted-fg); }
+  .empty-state-icon { font-size: 36px; margin-bottom: 12px; opacity: .3; }
+  .empty-state-title { font-size: 15px; font-weight: 600; color: var(--fg); margin-bottom: 4px; }
+  .empty-state-desc { font-size: 12px; }
+
+  /* ── Readme block ── */
+  .readme-block { background: var(--bg); border-radius: 6px; padding: 14px; font-size: 12px; line-height: 1.7; color: var(--muted-fg); }
+  .readme-block h4 { color: var(--fg); font-size: 13px; margin-bottom: 6px; }
+  .readme-block code { background: oklch(0.22 0 0); padding: 1px 5px; border-radius: 3px; font-size: 11px; color: var(--cyan); }
+  .readme-block ul { padding-left: 18px; margin: 6px 0; }
+
+  /* ── Config preview ── */
+  .config-block { background: var(--bg); border-radius: 6px; padding: 12px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; line-height: 1.6; color: var(--cyan); overflow-x: auto; white-space: pre; }
+
+  .proto-label { position: fixed; top: 8px; right: 8px; background: var(--red); color: #fff; padding: 3px 10px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; z-index: 999; letter-spacing: .05em; }
+</style>
+</head>
+<body>
+<div class="proto-label">Prototype</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- APP SIDEBAR (mirrors existing Sanad AI EOI layout)            -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="app-sidebar">
+  <div class="co-name"><div class="brand-dot"></div>Optiflow</div>
+  <div class="sec-label">Operate</div>
+  <div class="nav">
+    <a>&#x1F4CA; Dashboard</a>
+    <a>&#x1F916; Agents</a>
+    <a>&#x1F4CB; Issues</a>
+    <a>&#x1F3AF; Goals</a>
+  </div>
+  <div class="sec-label">Capabilities</div>
+  <div class="nav">
+    <a>&#x1F9F0; Toolkit</a>
+    <a>&#x26A1; Skills</a>
+    <a class="active">&#x1F310; Swarm <span class="nav-badge">3</span></a>
+  </div>
+  <div class="sec-label">System</div>
+  <div class="nav">
+    <a>&#x2699;&#xFE0F; Settings</a>
+    <a>&#x1F50C; Plugins</a>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- MAIN AREA                                                      -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="main-area">
+  <div class="breadcrumb">
+    <span>OPT</span> <span style="opacity:.4">&#x203A;</span> <span style="color:var(--fg);font-weight:600">Capabilities Swarm</span>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('catalog')">&#x1F4E6; Catalog <span class="tab-count">247</span></div>
+    <div class="tab" onclick="switchTab('sources')">&#x1F517; Sources <span class="tab-count">5</span></div>
+    <div class="tab" onclick="switchTab('queue')">&#x1F514; Queue <span class="tab-count" style="background:rgba(239,68,68,.25);color:var(--red)">3</span></div>
+    <div class="tab" onclick="switchTab('audit')">&#x1F4DC; Audit</div>
+  </div>
+
+  <div class="content">
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- TAB 1: CATALOG                                             -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <div id="panel-catalog" class="panel active">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Capability Catalog</div>
+          <div class="page-sub">Browse and install skills, MCP servers, connectors, and plugins from all sources.</div>
+        </div>
+        <button class="btn btn-primary" onclick="openInstallFlow()">+ Pull Capability</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-value" style="color:var(--purple)">142</div><div class="stat-label">Skills</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:var(--blue)">58</div><div class="stat-label">MCP Servers</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:var(--green)">31</div><div class="stat-label">Connectors</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:var(--orange)">16</div><div class="stat-label">Plugins</div></div>
+      </div>
+
+      <!-- Search + filters -->
+      <div class="search-bar">
+        <input class="search-input" placeholder="Search capabilities... (e.g. 'slack integration', 'database MCP')" />
+        <button class="btn btn-cancel" style="flex-shrink:0">&#x2728; AI Search</button>
+      </div>
+
+      <div class="chips">
+        <span class="chip active" onclick="filterType(this,'all')">All</span>
+        <span class="chip" onclick="filterType(this,'skill')">Skills</span>
+        <span class="chip" onclick="filterType(this,'mcp')">MCP Servers</span>
+        <span class="chip" onclick="filterType(this,'connector')">Connectors</span>
+        <span class="chip" onclick="filterType(this,'plugin')">Plugins</span>
+        <span style="width:1px;background:var(--border);margin:0 4px"></span>
+        <span class="chip" onclick="filterType(this,'installed')">Installed (23)</span>
+        <span class="chip" onclick="filterType(this,'trusted')">Trusted</span>
+        <span class="chip" onclick="filterType(this,'verified')">Verified</span>
+      </div>
+
+      <!-- Capability cards -->
+      <div class="cap-grid">
+        <!-- MCP Server — Installed -->
+        <div class="cap-card" onclick="openDetail('filesystem')">
+          <span class="installed-badge">&#x2713; Installed</span>
+          <div class="cap-card-header">
+            <div class="cap-icon mcp">&#x1F4C1;</div>
+            <div>
+              <div class="cap-name">Filesystem MCP</div>
+              <div class="cap-source">mcpservers.org &middot; Official</div>
+            </div>
+          </div>
+          <div class="cap-desc">Secure file operations with configurable access controls. Read, write, search, and manage files within allowed directories.</div>
+          <div class="cap-footer">
+            <span class="type-badge type-mcp">MCP Server</span>
+            <span class="trust-badge trust-verified">&#x2714; Verified</span>
+          </div>
+        </div>
+
+        <!-- Skill — Installed -->
+        <div class="cap-card" onclick="openDetail('code-review')">
+          <span class="installed-badge">&#x2713; Installed</span>
+          <div class="cap-card-header">
+            <div class="cap-icon skill">&#x1F50D;</div>
+            <div>
+              <div class="cap-name">code-review</div>
+              <div class="cap-source">Local &middot; /workspace/skills</div>
+            </div>
+          </div>
+          <div class="cap-desc">Targeted code review with decision tables. Reads wiki + config once, analyzes ONLY specified files. Returns A/B/C options.</div>
+          <div class="cap-footer">
+            <span class="type-badge type-skill">Skill</span>
+            <span class="trust-badge trust-trusted">&#x1F512; Trusted</span>
+          </div>
+        </div>
+
+        <!-- MCP Server — Not installed -->
+        <div class="cap-card" onclick="openDetail('slack')">
+          <div class="cap-card-header">
+            <div class="cap-icon mcp">&#x1F4AC;</div>
+            <div>
+              <div class="cap-name">Slack MCP Server</div>
+              <div class="cap-source">mcpserverhub.com &middot; Community</div>
+            </div>
+          </div>
+          <div class="cap-desc">Send messages, read channels, manage threads, and react to messages in Slack workspaces via MCP.</div>
+          <div class="cap-footer">
+            <span class="type-badge type-mcp">MCP Server</span>
+            <span class="trust-badge trust-community">&#x1F465; Community</span>
+          </div>
+        </div>
+
+        <!-- Connector -->
+        <div class="cap-card" onclick="openDetail('github')">
+          <div class="cap-card-header">
+            <div class="cap-icon connector">&#x1F4BB;</div>
+            <div>
+              <div class="cap-name">GitHub Connector</div>
+              <div class="cap-source">github.com/paperclip &middot; Official</div>
+            </div>
+          </div>
+          <div class="cap-desc">Full GitHub integration: repos, issues, PRs, actions, code search. OAuth2 authentication with fine-grained tokens.</div>
+          <div class="cap-footer">
+            <span class="type-badge type-connector">Connector</span>
+            <span class="trust-badge trust-verified">&#x2714; Verified</span>
+          </div>
+        </div>
+
+        <!-- Plugin -->
+        <div class="cap-card" onclick="openDetail('kanban')">
+          <div class="cap-card-header">
+            <div class="cap-icon plugin">&#x1F4CB;</div>
+            <div>
+              <div class="cap-name">Kanban Board Plugin</div>
+              <div class="cap-source">npm &middot; @sanad/kanban</div>
+            </div>
+          </div>
+          <div class="cap-desc">Visual kanban board for issues with drag-and-drop, swimlanes, and WIP limits. Syncs with existing issue workflow.</div>
+          <div class="cap-footer">
+            <span class="type-badge type-plugin">Plugin</span>
+            <span class="trust-badge trust-community">&#x1F465; Community</span>
+          </div>
+        </div>
+
+        <!-- Skill — Unknown trust -->
+        <div class="cap-card" onclick="openDetail('custom')">
+          <div class="cap-card-header">
+            <div class="cap-icon skill">&#x1F9EA;</div>
+            <div>
+              <div class="cap-name">prompt-injection-guard</div>
+              <div class="cap-source">gist.github.com &middot; @unknown</div>
+            </div>
+          </div>
+          <div class="cap-desc">Scans agent prompts for injection attacks before execution. Heuristic + LLM-based detection with configurable sensitivity.</div>
+          <div class="cap-footer">
+            <span class="type-badge type-skill">Skill</span>
+            <span class="trust-badge trust-unknown">&#x26A0; Unknown</span>
+          </div>
+        </div>
+
+        <!-- More cards for density -->
+        <div class="cap-card">
+          <div class="cap-card-header">
+            <div class="cap-icon mcp">&#x1F5C4;</div>
+            <div><div class="cap-name">PostgreSQL MCP</div><div class="cap-source">mcpservers.org &middot; Official</div></div>
+          </div>
+          <div class="cap-desc">Read-only PostgreSQL access with schema inspection, query execution, and explain plans.</div>
+          <div class="cap-footer"><span class="type-badge type-mcp">MCP Server</span><span class="trust-badge trust-verified">&#x2714; Verified</span></div>
+        </div>
+
+        <div class="cap-card">
+          <span class="installed-badge">&#x2713; Installed</span>
+          <div class="cap-card-header">
+            <div class="cap-icon connector">&#x1F4E7;</div>
+            <div><div class="cap-name">Gmail Connector</div><div class="cap-source">Private &middot; internal</div></div>
+          </div>
+          <div class="cap-desc">Read, send, label, and manage Gmail across multiple accounts with unified tooling.</div>
+          <div class="cap-footer"><span class="type-badge type-connector">Connector</span><span class="trust-badge trust-trusted">&#x1F512; Trusted</span></div>
+        </div>
+
+        <div class="cap-card">
+          <div class="cap-card-header">
+            <div class="cap-icon skill">&#x1F4DD;</div>
+            <div><div class="cap-name">bug-fix</div><div class="cap-source">github.com/skills-lib &middot; Community</div></div>
+          </div>
+          <div class="cap-desc">Investigate, diagnose, and plan a high-quality bug fix by grounding in framework patterns first.</div>
+          <div class="cap-footer"><span class="type-badge type-skill">Skill</span><span class="trust-badge trust-community">&#x1F465; Community</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- TAB 2: SOURCES                                             -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <div id="panel-sources" class="panel">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Swarm Sources</div>
+          <div class="page-sub">Manage registries and repositories the swarm pulls capabilities from.</div>
+        </div>
+        <button class="btn btn-primary" onclick="openAddSource()">+ Add Source</button>
+      </div>
+
+      <table class="source-table">
+        <thead>
+          <tr>
+            <th>Source</th>
+            <th>Type</th>
+            <th>Trust Level</th>
+            <th>Capabilities</th>
+            <th>Last Sync</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>/workspace/skills</strong><br><span style="font-size:11px;color:var(--muted-fg)">Local filesystem path</span></td>
+            <td><span class="type-badge type-skill">Skills</span></td>
+            <td><span class="trust-badge trust-trusted">&#x1F512; Trusted</span></td>
+            <td>110</td>
+            <td style="color:var(--muted-fg)">2 min ago</td>
+            <td><span class="source-status"><span class="status-dot ok"></span> Synced</span></td>
+            <td><button class="btn-ghost">&#x22EE;</button></td>
+          </tr>
+          <tr>
+            <td><strong>mcpservers.org</strong><br><span style="font-size:11px;color:var(--muted-fg)">Public MCP registry</span></td>
+            <td><span class="type-badge type-mcp">MCP + Connectors</span></td>
+            <td><span class="trust-badge trust-verified">&#x2714; Verified</span></td>
+            <td>89</td>
+            <td style="color:var(--muted-fg)">1 hour ago</td>
+            <td><span class="source-status"><span class="status-dot ok"></span> Synced</span></td>
+            <td><button class="btn-ghost">&#x22EE;</button></td>
+          </tr>
+          <tr>
+            <td><strong>mcpserverhub.com</strong><br><span style="font-size:11px;color:var(--muted-fg)">Community MCP hub</span></td>
+            <td><span class="type-badge type-mcp">MCP Servers</span></td>
+            <td><span class="trust-badge trust-community">&#x1F465; Community</span></td>
+            <td>34</td>
+            <td style="color:var(--muted-fg)">3 hours ago</td>
+            <td><span class="source-status"><span class="status-dot ok"></span> Synced</span></td>
+            <td><button class="btn-ghost">&#x22EE;</button></td>
+          </tr>
+          <tr>
+            <td><strong>github.com/elgogary/*</strong><br><span style="font-size:11px;color:var(--muted-fg)">Private GitHub repos</span></td>
+            <td><span class="type-badge" style="background:rgba(255,255,255,.08);color:var(--muted-fg)">All Types</span></td>
+            <td><span class="trust-badge trust-trusted">&#x1F512; Trusted</span></td>
+            <td>14</td>
+            <td style="color:var(--muted-fg)">30 min ago</td>
+            <td><span class="source-status"><span class="status-dot ok"></span> Synced</span></td>
+            <td><button class="btn-ghost">&#x22EE;</button></td>
+          </tr>
+          <tr>
+            <td><strong>npm: @sanad/*</strong><br><span style="font-size:11px;color:var(--muted-fg)">npm package scope</span></td>
+            <td><span class="type-badge type-plugin">Plugins</span></td>
+            <td><span class="trust-badge trust-verified">&#x2714; Verified</span></td>
+            <td>0</td>
+            <td style="color:var(--muted-fg)">Never</td>
+            <td><span class="source-status"><span class="status-dot warn"></span> No packages</span></td>
+            <td><button class="btn-ghost">&#x22EE;</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- TAB 3: APPROVAL QUEUE                                      -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <div id="panel-queue" class="panel">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Approval Queue</div>
+          <div class="page-sub">Capabilities requested by agents that need board approval.</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-success btn-sm">&#x2713; Approve All Trusted</button>
+        </div>
+      </div>
+
+      <table class="queue-table">
+        <thead>
+          <tr>
+            <th>Capability</th>
+            <th>Type</th>
+            <th>Source</th>
+            <th>Requested By</th>
+            <th>Reason</th>
+            <th>Trust</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Brave Search MCP</strong></td>
+            <td><span class="type-badge type-mcp">MCP</span></td>
+            <td style="color:var(--muted-fg)">mcpservers.org</td>
+            <td>
+              <div class="requester">
+                <div class="requester-avatar" style="background:rgba(59,130,246,.2);color:var(--blue)">TL</div>
+                <div><div style="font-weight:500">TechLead</div><div style="font-size:11px;color:var(--muted-fg)">2 hours ago</div></div>
+              </div>
+            </td>
+            <td style="font-size:12px;color:var(--muted-fg);max-width:200px">"Need web search capability for research tasks"</td>
+            <td><span class="trust-badge trust-verified">&#x2714; Verified</span></td>
+            <td>
+              <div style="display:flex;gap:4px">
+                <button class="btn btn-success btn-sm">Approve</button>
+                <button class="btn btn-danger btn-sm">Deny</button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td><strong>Puppeteer MCP</strong></td>
+            <td><span class="type-badge type-mcp">MCP</span></td>
+            <td style="color:var(--muted-fg)">mcpserverhub.com</td>
+            <td>
+              <div class="requester">
+                <div class="requester-avatar" style="background:rgba(236,72,153,.2);color:var(--pink)">FE</div>
+                <div><div style="font-weight:500">FrontendEng</div><div style="font-size:11px;color:var(--muted-fg)">5 hours ago</div></div>
+              </div>
+            </td>
+            <td style="font-size:12px;color:var(--muted-fg);max-width:200px">"Browser automation for UI testing and screenshots"</td>
+            <td><span class="trust-badge trust-community">&#x1F465; Community</span></td>
+            <td>
+              <div style="display:flex;gap:4px">
+                <button class="btn btn-success btn-sm">Approve</button>
+                <button class="btn btn-danger btn-sm">Deny</button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td><strong>custom-scraper.md</strong></td>
+            <td><span class="type-badge type-skill">Skill</span></td>
+            <td style="color:var(--muted-fg)">gist.github.com</td>
+            <td>
+              <div class="requester">
+                <div class="requester-avatar" style="background:rgba(16,185,129,.2);color:var(--green)">SR</div>
+                <div><div style="font-weight:500">SalesRep1</div><div style="font-size:11px;color:var(--muted-fg)">1 day ago</div></div>
+              </div>
+            </td>
+            <td style="font-size:12px;color:var(--muted-fg);max-width:200px">"Scrape prospect websites for lead enrichment"</td>
+            <td><span class="trust-badge trust-unknown">&#x26A0; Unknown</span></td>
+            <td>
+              <div style="display:flex;gap:4px">
+                <button class="btn btn-success btn-sm">Approve</button>
+                <button class="btn btn-danger btn-sm">Deny</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- TAB 4: AUDIT LOG                                           -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <div id="panel-audit" class="panel">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Audit Log</div>
+          <div class="page-sub">Complete history of all capability installations, removals, and approvals.</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <input class="search-input" placeholder="Filter audit log..." style="width:250px" />
+        </div>
+      </div>
+
+      <div class="audit-list">
+        <div class="audit-entry">
+          <div class="audit-time">Today 06:15</div>
+          <div class="audit-icon install">&#x2713;</div>
+          <div class="audit-body">
+            <div class="audit-action"><strong>Filesystem MCP</strong> installed</div>
+            <div class="audit-detail">Auto-approved (verified source). Installed by Board via UI. Source: mcpservers.org</div>
+          </div>
+        </div>
+        <div class="audit-entry">
+          <div class="audit-time">Today 05:42</div>
+          <div class="audit-icon approve">&#x1F44D;</div>
+          <div class="audit-body">
+            <div class="audit-action"><strong>Brave Search MCP</strong> approved</div>
+            <div class="audit-detail">Approved by Board. Requested by TechLead for "web search for research tasks"</div>
+          </div>
+        </div>
+        <div class="audit-entry">
+          <div class="audit-time">Today 03:20</div>
+          <div class="audit-icon sync">&#x1F504;</div>
+          <div class="audit-body">
+            <div class="audit-action">Source <strong>mcpservers.org</strong> synced</div>
+            <div class="audit-detail">89 capabilities indexed. 3 new since last sync. Next sync in 1 hour.</div>
+          </div>
+        </div>
+        <div class="audit-entry">
+          <div class="audit-time">Yesterday 22:10</div>
+          <div class="audit-icon deny">&#x270B;</div>
+          <div class="audit-body">
+            <div class="audit-action"><strong>crypto-wallet-mcp</strong> denied</div>
+            <div class="audit-detail">Denied by Board. Reason: "Not relevant to our workflow". Requested by SalesRep1.</div>
+          </div>
+        </div>
+        <div class="audit-entry">
+          <div class="audit-time">Yesterday 18:30</div>
+          <div class="audit-icon install">&#x2713;</div>
+          <div class="audit-body">
+            <div class="audit-action"><strong>code-review</strong> skill synced from workspace</div>
+            <div class="audit-detail">Auto-synced (trusted local source). Updated from v2.1 to v2.2. 3 agents affected.</div>
+          </div>
+        </div>
+        <div class="audit-entry">
+          <div class="audit-time">Yesterday 14:00</div>
+          <div class="audit-icon remove">&#x2717;</div>
+          <div class="audit-body">
+            <div class="audit-action"><strong>deprecated-tool</strong> removed</div>
+            <div class="audit-detail">Removed by Board. Was unused for 30 days. 0 agents referenced it.</div>
+          </div>
+        </div>
+        <div class="audit-entry">
+          <div class="audit-time">Mar 24 09:15</div>
+          <div class="audit-icon install">&#x2713;</div>
+          <div class="audit-body">
+            <div class="audit-action"><strong>Gmail Connector</strong> installed</div>
+            <div class="audit-detail">Auto-approved (trusted private source). Installed by TechLead. Source: internal repo.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main-area -->
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- DETAIL DIALOG (capability preview)                             -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="detail-overlay" id="detailOverlay" onclick="if(event.target===this)closeDetail()">
+  <div class="detail-dialog">
+    <div class="detail-header">
+      <div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="cap-icon mcp" id="detail-icon">&#x1F4AC;</div>
+          <div>
+            <div style="font-size:18px;font-weight:700" id="detail-name">Slack MCP Server</div>
+            <div style="font-size:12px;color:var(--muted-fg);margin-top:2px" id="detail-source">mcpserverhub.com &middot; Community</div>
+          </div>
+        </div>
+      </div>
+      <button class="btn-ghost" onclick="closeDetail()" style="font-size:18px">&#x2715;</button>
+    </div>
+
+    <div class="detail-body">
+      <!-- Trust + type badges -->
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <span class="type-badge type-mcp">MCP Server</span>
+        <span class="trust-badge trust-community">&#x1F465; Community</span>
+        <span style="font-size:11px;color:var(--muted-fg);display:flex;align-items:center;gap:4px">&#x2B50; 234 stars</span>
+        <span style="font-size:11px;color:var(--muted-fg);display:flex;align-items:center;gap:4px">&#x1F4E5; 1.2k installs</span>
+      </div>
+
+      <!-- Pipeline: Pull > Understand > Clone -->
+      <div class="detail-section">
+        <div class="detail-section-title">Installation Pipeline</div>
+        <div class="pipeline">
+          <div class="pipe-step done">
+            <div class="pipe-step-num">Step 1</div>
+            <div class="pipe-step-label">&#x1F4E5; Discover</div>
+          </div>
+          <span class="pipe-arrow">&#x25B6;</span>
+          <div class="pipe-step active">
+            <div class="pipe-step-num">Step 2</div>
+            <div class="pipe-step-label">&#x1F9E0; Analyze</div>
+          </div>
+          <span class="pipe-arrow">&#x25B6;</span>
+          <div class="pipe-step">
+            <div class="pipe-step-num">Step 3</div>
+            <div class="pipe-step-label">&#x1F504; Adapt</div>
+          </div>
+          <span class="pipe-arrow">&#x25B6;</span>
+          <div class="pipe-step">
+            <div class="pipe-step-num">Step 4</div>
+            <div class="pipe-step-label">&#x2705; Install</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Metadata grid -->
+      <div class="detail-section">
+        <div class="detail-section-title">Details</div>
+        <div class="detail-meta">
+          <div class="meta-item">
+            <div class="meta-label">Version</div>
+            <div class="meta-value">1.3.2</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Last Updated</div>
+            <div class="meta-value">3 days ago</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Transport</div>
+            <div class="meta-value">stdio (npx)</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Dependencies</div>
+            <div class="meta-value">Slack OAuth token</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- README preview -->
+      <div class="detail-section">
+        <div class="detail-section-title">Description</div>
+        <div class="readme-block">
+          <h4>Slack MCP Server</h4>
+          <p>MCP server that provides tools for interacting with Slack workspaces. Supports:</p>
+          <ul>
+            <li>Sending messages to channels and DMs</li>
+            <li>Reading channel history and thread replies</li>
+            <li>Managing reactions and pins</li>
+            <li>Searching messages across workspace</li>
+            <li>Channel management (create, archive, invite)</li>
+          </ul>
+          <p style="margin-top:8px">Requires a Slack Bot Token with appropriate scopes. See <code>SLACK_BOT_TOKEN</code> environment variable.</p>
+        </div>
+      </div>
+
+      <!-- Generated config preview -->
+      <div class="detail-section">
+        <div class="detail-section-title">Generated Configuration</div>
+        <div class="config-block">{
+  "mcpServers": {
+    "slack": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/slack-mcp-server"],
+      "env": {
+        "SLACK_BOT_TOKEN": "${secret:slack_bot_token}",
+        "SLACK_TEAM_ID": "${secret:slack_team_id}"
+      }
+    }
+  }
+}</div>
+        <div style="font-size:11px;color:var(--muted-fg);margin-top:6px">&#x1F512; Secrets will be stored securely. You'll be prompted to enter values during install.</div>
+      </div>
+
+      <!-- AI Analysis -->
+      <div class="detail-section">
+        <div class="detail-section-title">AI Analysis</div>
+        <div style="background:var(--bg);border-radius:6px;padding:12px;font-size:12px;line-height:1.6">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+            <span style="font-size:14px">&#x2728;</span>
+            <span style="font-weight:600">Compatibility Assessment</span>
+            <span class="trust-badge trust-verified" style="margin-left:auto">92% Compatible</span>
+          </div>
+          <div style="color:var(--muted-fg)">
+            <strong style="color:var(--green)">&#x2713;</strong> Transport mode (stdio) is fully supported<br>
+            <strong style="color:var(--green)">&#x2713;</strong> No conflicting tools with existing MCP servers<br>
+            <strong style="color:var(--yellow)">&#x26A0;</strong> Requires Slack OAuth credentials (connector recommended)<br>
+            <strong style="color:var(--green)">&#x2713;</strong> Can generate companion skill for common Slack workflows
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-footer">
+      <div style="font-size:12px;color:var(--muted-fg)">This will add 1 MCP server + 1 connector + 1 companion skill</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-cancel" onclick="closeDetail()">Cancel</button>
+        <button class="btn btn-primary" onclick="closeDetail();openInstallFlow()">&#x1F4E5; Pull &amp; Install</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- INSTALL FLOW DIALOG (Pull > Configure > Confirm)               -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="install-overlay" id="installOverlay" onclick="if(event.target===this)closeInstallFlow()">
+  <div class="install-dialog">
+    <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:16px;font-weight:700">Pull Capability</div>
+      <button class="btn-ghost" onclick="closeInstallFlow()" style="font-size:18px">&#x2715;</button>
+    </div>
+
+    <!-- Step bar -->
+    <div style="display:flex;border-bottom:1px solid var(--border);background:var(--bg)">
+      <div class="install-step active" id="istep1" style="flex:1;padding:10px 14px;text-align:center;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid var(--fg)">1. Source</div>
+      <div class="install-step" id="istep2" style="flex:1;padding:10px 14px;text-align:center;font-size:12px;font-weight:500;color:var(--muted-fg);cursor:pointer;border-bottom:2px solid transparent">2. Configure</div>
+      <div class="install-step" id="istep3" style="flex:1;padding:10px 14px;text-align:center;font-size:12px;font-weight:500;color:var(--muted-fg);cursor:pointer;border-bottom:2px solid transparent">3. Install</div>
+    </div>
+
+    <!-- Step 1: Source -->
+    <div id="install-step-1" style="padding:16px 20px;overflow-y:auto;max-height:50vh">
+      <div class="form-group">
+        <div class="form-label">Pull From</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div class="cap-card" style="cursor:pointer;border-color:var(--fg);background:rgba(255,255,255,.03)" onclick="selectPullSource(this)">
+            <div style="font-size:18px;margin-bottom:6px">&#x1F310;</div>
+            <div style="font-weight:600;font-size:13px">URL / Registry</div>
+            <div style="font-size:11px;color:var(--muted-fg);margin-top:3px">Paste a URL from mcpservers.org, GitHub, or any supported registry</div>
+          </div>
+          <div class="cap-card" style="cursor:pointer" onclick="selectPullSource(this)">
+            <div style="font-size:18px;margin-bottom:6px">&#x1F4C1;</div>
+            <div style="font-weight:600;font-size:13px">Local Path</div>
+            <div style="font-size:11px;color:var(--muted-fg);margin-top:3px">Import from a local file or workspace directory</div>
+          </div>
+          <div class="cap-card" style="cursor:pointer" onclick="selectPullSource(this)">
+            <div style="font-size:18px;margin-bottom:6px">&#x1F4E6;</div>
+            <div style="font-weight:600;font-size:13px">npm Package</div>
+            <div style="font-size:11px;color:var(--muted-fg);margin-top:3px">Install an npm package as MCP server or plugin</div>
+          </div>
+          <div class="cap-card" style="cursor:pointer" onclick="selectPullSource(this)">
+            <div style="font-size:18px;margin-bottom:6px">&#x2728;</div>
+            <div style="font-weight:600;font-size:13px">AI Generate</div>
+            <div style="font-size:11px;color:var(--muted-fg);margin-top:3px">Describe what you need and AI will find or create it</div>
+          </div>
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:12px">
+        <div class="form-label">URL or Package Name</div>
+        <input class="form-input" placeholder="https://mcpservers.org/server/slack-mcp  or  @anthropic/slack-mcp-server" />
+        <div class="form-hint">Supports: mcpservers.org, mcpserverhub.com, GitHub repos, npm packages, raw URLs</div>
+      </div>
+    </div>
+
+    <!-- Step 2: Configure (hidden by default) -->
+    <div id="install-step-2" style="padding:16px 20px;overflow-y:auto;max-height:50vh;display:none">
+      <div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;display:flex;gap:8px;align-items:flex-start">
+        <span style="font-size:16px">&#x2728;</span>
+        <div>
+          <div style="font-weight:600;color:var(--green)">AI analyzed the capability</div>
+          <div style="color:var(--muted-fg);margin-top:3px">Detected: <strong style="color:var(--fg)">MCP Server (stdio)</strong> with 6 tools. Will also generate a companion skill and Slack connector.</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div class="form-label">Assign to Agents</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <span class="chip active">TechLead</span>
+          <span class="chip active">BackendEng</span>
+          <span class="chip">FrontendEng</span>
+          <span class="chip">SalesManager</span>
+          <span class="chip">DevOps</span>
+          <span class="chip" style="border-style:dashed">+ All agents</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div class="form-label">Secrets Required</div>
+        <div style="background:var(--bg);border-radius:6px;padding:12px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <span style="font-size:12px;font-weight:600;width:140px">SLACK_BOT_TOKEN</span>
+            <input class="form-input" type="password" placeholder="xoxb-..." style="flex:1" />
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:12px;font-weight:600;width:140px">SLACK_TEAM_ID</span>
+            <input class="form-input" placeholder="T0123456789" style="flex:1" />
+          </div>
+        </div>
+        <div class="form-hint">Secrets are encrypted and stored securely. Agents access them via the secret service.</div>
+      </div>
+
+      <div class="form-group">
+        <div class="form-label">Trust Override</div>
+        <select class="form-select">
+          <option>Use source default (Community)</option>
+          <option>Override: Trusted</option>
+          <option>Override: Verified</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Step 3: Confirm (hidden by default) -->
+    <div id="install-step-3" style="padding:16px 20px;overflow-y:auto;max-height:50vh;display:none">
+      <div style="text-align:center;padding:20px 0">
+        <div style="font-size:48px;margin-bottom:12px">&#x1F389;</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:4px">Ready to Install</div>
+        <div style="font-size:13px;color:var(--muted-fg)">The following capabilities will be added to your system:</div>
+      </div>
+
+      <div style="background:var(--bg);border-radius:8px;padding:14px;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div class="cap-icon mcp" style="width:28px;height:28px;font-size:14px">&#x1F4AC;</div>
+          <div><div style="font-weight:600">Slack MCP Server</div><div style="font-size:11px;color:var(--muted-fg)">MCP Server &middot; 6 tools &middot; stdio transport</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div class="cap-icon connector" style="width:28px;height:28px;font-size:14px">&#x1F517;</div>
+          <div><div style="font-weight:600">Slack Connector</div><div style="font-size:11px;color:var(--muted-fg)">Auto-generated &middot; OAuth credentials configured</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="cap-icon skill" style="width:28px;height:28px;font-size:14px">&#x1F4DD;</div>
+          <div><div style="font-weight:600">slack-workflows (companion skill)</div><div style="font-size:11px;color:var(--muted-fg)">Auto-generated &middot; Common Slack patterns for agents</div></div>
+        </div>
+      </div>
+
+      <div style="background:var(--bg);border-radius:8px;padding:12px;font-size:12px;color:var(--muted-fg)">
+        <strong style="color:var(--fg)">Agents:</strong> TechLead, BackendEng<br>
+        <strong style="color:var(--fg)">Trust:</strong> Community (source default)<br>
+        <strong style="color:var(--fg)">Secrets:</strong> 2 configured (encrypted)
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:space-between">
+      <button class="btn btn-cancel" onclick="prevInstallStep()">Back</button>
+      <button class="btn btn-primary" id="installNextBtn" onclick="nextInstallStep()">Next &#x25B6;</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- ADD SOURCE DIALOG                                              -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="add-source-overlay" id="addSourceOverlay" onclick="if(event.target===this)closeAddSource()">
+  <div class="add-source-dialog">
+    <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:16px;font-weight:700">Add Swarm Source</div>
+      <button class="btn-ghost" onclick="closeAddSource()" style="font-size:18px">&#x2715;</button>
+    </div>
+    <div style="padding:16px 20px">
+      <div class="form-group">
+        <div class="form-label">Source Type</div>
+        <select class="form-select">
+          <option>Public Registry (mcpservers.org, mcpserverhub.com)</option>
+          <option>GitHub Repository / Organization</option>
+          <option>npm Package Scope</option>
+          <option>Local Filesystem Path</option>
+          <option>Custom URL</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <div class="form-label">URL / Path</div>
+        <input class="form-input" placeholder="https://mcpserverhub.com or /workspace/custom-skills" />
+      </div>
+      <div class="form-group">
+        <div class="form-label">Default Trust Level</div>
+        <select class="form-select">
+          <option>Community (notify board, agents can install)</option>
+          <option>Verified (auto-install with notification)</option>
+          <option>Trusted (auto-install, log only)</option>
+          <option>Unknown (requires board approval)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <div class="form-label">Sync Interval</div>
+        <select class="form-select">
+          <option>Every hour</option>
+          <option>Every 6 hours</option>
+          <option>Daily</option>
+          <option>Manual only</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <div class="form-label">Capability Types to Pull</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <span class="chip active">Skills</span>
+          <span class="chip active">MCP Servers</span>
+          <span class="chip">Connectors</span>
+          <span class="chip">Plugins</span>
+        </div>
+      </div>
+    </div>
+    <div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px">
+      <button class="btn btn-cancel" onclick="closeAddSource()">Cancel</button>
+      <button class="btn btn-primary" onclick="closeAddSource()">Add Source</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Tab switching ──
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+}
+
+// ── Filter chips ──
+function filterType(el, type) {
+  el.closest('.chips').querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ── Detail overlay ──
+function openDetail() { document.getElementById('detailOverlay').classList.add('open'); }
+function closeDetail() { document.getElementById('detailOverlay').classList.remove('open'); }
+
+// ── Install flow ──
+let installStep = 1;
+function openInstallFlow() {
+  installStep = 1;
+  showInstallStep();
+  document.getElementById('installOverlay').classList.add('open');
+}
+function closeInstallFlow() {
+  document.getElementById('installOverlay').classList.remove('open');
+}
+function nextInstallStep() {
+  if (installStep < 3) { installStep++; showInstallStep(); }
+  else { closeInstallFlow(); /* would trigger actual install */ }
+}
+function prevInstallStep() {
+  if (installStep > 1) { installStep--; showInstallStep(); }
+  else { closeInstallFlow(); }
+}
+function showInstallStep() {
+  for (let i = 1; i <= 3; i++) {
+    document.getElementById('install-step-' + i).style.display = i === installStep ? 'block' : 'none';
+    const step = document.getElementById('istep' + i);
+    step.style.borderBottomColor = i === installStep ? 'var(--fg)' : 'transparent';
+    step.style.color = i === installStep ? 'var(--fg)' : 'var(--muted-fg)';
+    step.style.fontWeight = i === installStep ? '600' : '500';
+  }
+  document.getElementById('installNextBtn').innerHTML = installStep === 3 ? '&#x2713; Install Now' : 'Next &#x25B6;';
+}
+
+// ── Pull source selection ──
+function selectPullSource(el) {
+  el.closest('.form-group').querySelectorAll('.cap-card').forEach(c => {
+    c.style.borderColor = 'var(--border)';
+    c.style.background = 'var(--card)';
+  });
+  el.style.borderColor = 'var(--fg)';
+  el.style.background = 'rgba(255,255,255,.03)';
+}
+
+// ── Add Source dialog ──
+function openAddSource() { document.getElementById('addSourceOverlay').classList.add('open'); }
+function closeAddSource() { document.getElementById('addSourceOverlay').classList.remove('open'); }
+</script>
+</body>
+</html>
