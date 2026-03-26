@@ -330,6 +330,13 @@
       "when": 1774790400000,
       "tag": "0046_project_documents",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1774800000000,
+      "tag": "0047_chat_sessions",
+      "breakpoints": true
     }
   ]
 }

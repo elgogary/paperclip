@@ -159,20 +159,34 @@ async function authorizeUpgrade(
     .where(and(eq(agentApiKeys.keyHash, tokenHash), isNull(agentApiKeys.revokedAt)))
     .then((rows) => rows[0] ?? null);
 
-  if (!key || key.companyId !== companyId) {
-    return null;
+  if (key && key.companyId === companyId) {
+    await db
+      .update(agentApiKeys)
+      .set({ lastUsedAt: new Date() })
+      .where(eq(agentApiKeys.id, key.id));
+
+    return {
+      companyId,
+      actorType: "agent",
+      actorId: key.agentId,
+    };
   }
 
-  await db
-    .update(agentApiKeys)
-    .set({ lastUsedAt: new Date() })
-    .where(eq(agentApiKeys.id, key.id));
+  // Ephemeral chat token auth (public customers)
+  const chatToken = url.searchParams.get("chatToken")?.trim();
+  if (chatToken) {
+    try {
+      const { validateChatToken } = await import("../services/chat-sessions.js");
+      const chatSession = await validateChatToken(db, chatToken);
+      if (chatSession && chatSession.companyId === companyId) {
+        return { companyId, actorType: "board" as const, actorId: `chat:${chatSession.id}` };
+      }
+    } catch {
+      // chat-sessions module not available — skip
+    }
+  }
 
-  return {
-    companyId,
-    actorType: "agent",
-    actorId: key.agentId,
-  };
+  return null;
 }
 
 export function setupLiveEventsWebSocketServer(
