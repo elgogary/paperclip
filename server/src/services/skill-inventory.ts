@@ -18,7 +18,7 @@ import { promises as fs } from "node:fs";
 
 type CompanySkillRow = typeof import("@paperclipai/db").companySkills.$inferSelect;
 
-type ImportedSkill = {
+export type ImportedSkill = {
   key: string;
   slug: string;
   name: string;

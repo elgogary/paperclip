@@ -32,12 +32,8 @@ import { readIncludeEntries, buildManifestFromPackageFiles, type ResolvedSource 
 // Re-export test-facing API surface (preserves import paths)
 export { parseGitHubSourceUrl } from "./portability-skills.js";
 
-// GitHub fetch helpers used by resolveSource
-async function fetchText(url: string): Promise<string> {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`fetch ${url}: ${res.status} ${res.statusText}`);
-  return res.text();
-}
+// GitHub fetch helpers — fetchText, fetchJson, resolveRawGitHubUrl imported from skill-import-sources
+import { fetchText, fetchJson, resolveRawGitHubUrl } from "./skill-import-sources.js";
 
 async function fetchOptionalText(url: string): Promise<string | null> {
   const res = await fetch(url);
@@ -50,19 +46,6 @@ async function fetchBinary(url: string): Promise<Buffer> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`fetch ${url}: ${res.status} ${res.statusText}`);
   return Buffer.from(await res.arrayBuffer());
-}
-
-async function fetchJson<T = unknown>(url: string): Promise<T> {
-  const res = await fetch(url, {
-    headers: { Accept: "application/vnd.github.v3+json" },
-  });
-  if (!res.ok) throw new Error(`fetch ${url}: ${res.status} ${res.statusText}`);
-  return res.json() as Promise<T>;
-}
-
-function resolveRawGitHubUrl(owner: string, repo: string, ref: string, filePath: string): string {
-  const normalizedFilePath = filePath.replace(/^\/+/, "");
-  return `https://raw.githubusercontent.com/${owner}/${repo}/${ref}/${normalizedFilePath}`;
 }
 
 import { parseGitHubSourceUrl as _parseGitHubSourceUrl } from "./portability-skills.js";

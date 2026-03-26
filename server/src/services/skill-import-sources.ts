@@ -41,23 +41,9 @@ import type {
   ProjectSkillScanTarget,
 } from "./company-skills.js";
 
-type ImportedSkill = {
-  key: string;
-  slug: string;
-  name: string;
-  description: string | null;
-  markdown: string;
-  packageDir?: string | null;
-  sourceType: CompanySkillSourceType;
-  sourceLocator: string | null;
-  sourceRef: string | null;
-  trustLevel: CompanySkillTrustLevel;
-  compatibility: CompanySkillCompatibility;
-  fileInventory: CompanySkillFileInventoryEntry[];
-  metadata: Record<string, unknown> | null;
-};
+import type { ImportedSkill } from "./skill-inventory.js";
 
-type ParsedSkillImportSource = {
+export type ParsedSkillImportSource = {
   resolvedSource: string;
   requestedSkillSlug: string | null;
   originalSkillsShUrl: string | null;

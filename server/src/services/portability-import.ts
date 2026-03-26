@@ -67,11 +67,7 @@ import { buildManifestFromPackageFiles } from "./portability-manifest.js";
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
-type ResolvedSource = {
-  manifest: CompanyPortabilityManifest;
-  files: Record<string, CompanyPortabilityFileEntry>;
-  warnings: string[];
-};
+import type { ResolvedSource } from "./portability-manifest.js";
 
 type ImportPlanInternal = {
   preview: CompanyPortabilityPreviewResult;

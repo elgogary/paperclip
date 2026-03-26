@@ -92,21 +92,7 @@ import {
 
 type CompanySkillRow = typeof companySkills.$inferSelect;
 
-type ImportedSkill = {
-  key: string;
-  slug: string;
-  name: string;
-  description: string | null;
-  markdown: string;
-  packageDir?: string | null;
-  sourceType: CompanySkillSourceType;
-  sourceLocator: string | null;
-  sourceRef: string | null;
-  trustLevel: CompanySkillTrustLevel;
-  compatibility: CompanySkillCompatibility;
-  fileInventory: CompanySkillFileInventoryEntry[];
-  metadata: Record<string, unknown> | null;
-};
+import type { ImportedSkill } from "./skill-inventory.js";
 
 type PackageSkillConflictStrategy = "replace" | "rename" | "skip";
 
@@ -119,12 +105,7 @@ export type ImportPackageSkillResult = {
   reason: string | null;
 };
 
-type ParsedSkillImportSource = {
-  resolvedSource: string;
-  requestedSkillSlug: string | null;
-  originalSkillsShUrl: string | null;
-  warnings: string[];
-};
+import type { ParsedSkillImportSource } from "./skill-import-sources.js";
 
 type SkillSourceMeta = {
   skillKey?: string;

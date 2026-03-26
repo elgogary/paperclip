@@ -31,11 +31,7 @@ type CompanyPackageIncludeEntry = {
   path: string;
 };
 
-type ResolvedSource = {
-  manifest: CompanyPortabilityManifest;
-  files: Record<string, CompanyPortabilityFileEntry>;
-  warnings: string[];
-};
+import type { ResolvedSource } from "./portability-manifest.js";
 
 /** Build OrgNode tree from manifest agent list (slug + reportsToSlug). */
 export function buildOrgTreeFromManifest(agents: CompanyPortabilityManifest["agents"]): OrgNode[] {
