@@ -266,6 +266,7 @@
     <div class="tab" onclick="switchTab('queue')">&#x1F514; Queue <span class="tab-count" style="background:rgba(239,68,68,.25);color:var(--red)">3</span></div>
     <div class="tab" onclick="switchTab('audit')">&#x1F4DC; Audit</div>
     <div class="tab" onclick="switchTab('library')">&#x1F4DA; Library <span class="tab-count">245</span></div>
+    <div class="tab" onclick="switchTab('agents')">&#x1F916; Agents <span class="tab-count">9</span></div>
     <div class="tab" onclick="switchTab('economics')">&#x1F4B0; Economics</div>
     <div class="tab" onclick="switchTab('budgets')">&#x1F464; Agent Budgets</div>
   </div>
@@ -1150,6 +1151,282 @@
             </div>
           </div>
 
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- TAB: AGENTS (who's in/out of Swarm, status, performance)   -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <div id="panel-agents" class="panel">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Agents Overview</div>
+          <div class="page-sub">Who's in the Swarm, what they're doing, performance, and resource usage.</div>
+        </div>
+        <button class="btn btn-primary">Invite Agent to Swarm</button>
+      </div>
+
+      <!-- Summary stats -->
+      <div class="stats-row">
+        <div class="stat-card" style="border-left:3px solid var(--green)"><div class="stat-value" style="color:var(--green)">6</div><div class="stat-label">In Swarm</div></div>
+        <div class="stat-card" style="border-left:3px solid var(--red)"><div class="stat-value" style="color:var(--red)">3</div><div class="stat-label">Not in Swarm</div></div>
+        <div class="stat-card" style="border-left:3px solid var(--blue)"><div class="stat-value" style="color:var(--blue)">4</div><div class="stat-label">Active Now</div></div>
+        <div class="stat-card" style="border-left:3px solid var(--yellow)"><div class="stat-value" style="color:var(--yellow)">$847</div><div class="stat-label">Total Spend</div></div>
+      </div>
+
+      <!-- Agents IN the Swarm -->
+      <div style="margin-bottom:20px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <span style="width:8px;height:8px;border-radius:50%;background:var(--green)"></span>
+          <div style="font-size:14px;font-weight:700">In Swarm</div>
+          <span style="font-size:11px;color:var(--muted-fg)">6 agents connected</span>
+        </div>
+        <table class="source-table">
+          <thead><tr><th>Agent</th><th>Role</th><th>Status</th><th>Current Task</th><th>Capabilities</th><th>Tokens Used</th><th>Spend</th><th>ROI</th><th>Performance</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="width:28px;height:28px;border-radius:50%;background:rgba(59,130,246,.2);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">TL</div>
+                  <div><strong>TechLead</strong><br><span style="font-size:10px;color:var(--muted-fg)">$50/hr</span></div>
+                </div>
+              </td>
+              <td style="font-size:12px">CTO</td>
+              <td><span style="display:inline-flex;align-items:center;gap:4px"><span class="status-dot ok"></span><span style="font-size:11px;color:var(--green)">Active</span></span></td>
+              <td style="font-size:12px;color:var(--muted-fg);max-width:180px">Code review on Swarm API routes</td>
+              <td><span style="font-size:12px;font-weight:600">14</span> <span style="font-size:10px;color:var(--muted-fg)">(3 expert)</span></td>
+              <td style="font-size:12px">120K <span style="font-size:10px;color:var(--muted-fg)">/ 400K</span></td>
+              <td style="font-size:12px;color:var(--yellow)">$68</td>
+              <td><span style="color:var(--green);font-weight:700;font-size:12px">8.2x</span></td>
+              <td>
+                <div style="display:flex;gap:2px">
+                  <div style="width:4px;height:16px;border-radius:2px;background:var(--green)"></div>
+                  <div style="width:4px;height:16px;border-radius:2px;background:var(--green)"></div>
+                  <div style="width:4px;height:16px;border-radius:2px;background:var(--green)"></div>
+                  <div style="width:4px;height:16px;border-radius:2px;background:var(--green)"></div>
+                  <div style="width:4px;height:12px;border-radius:2px;background:var(--green);align-self:flex-end"></div>
+                  <div style="width:4px;height:14px;border-radius:2px;background:var(--green);align-self:flex-end"></div>
+                  <div style="width:4px;height:16px;border-radius:2px;background:var(--green)"></div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="width:28px;height:28px;border-radius:50%;background:rgba(16,185,129,.2);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">BE</div>
+                  <div><strong>BackendEng</strong><br><span style="font-size:10px;color:var(--muted-fg)">$40/hr</span></div>
+                </div>
+              </td>
+              <td style="font-size:12px">Engineer</td>
+              <td><span style="display:inline-flex;align-items:center;gap:4px"><span class="status-dot ok"></span><span style="font-size:11px;color:var(--green)">Active</span></span></td>
+              <td style="font-size:12px;color:var(--muted-fg);max-width:180px">Fixing PostgreSQL MCP connection timeout</td>
+              <td><span style="font-size:12px;font-weight:600">8</span> <span style="font-size:10px;color:var(--muted-fg)">(2 expert)</span></td>
+              <td style="font-size:12px">90K <span style="font-size:10px;color:var(--muted-fg)">/ 300K</span></td>
+              <td style="font-size:12px;color:var(--yellow)">$42</td>
+              <td><span style="color:var(--green);font-weight:700;font-size:12px">5.4x</span></td>
+              <td>
+                <div style="display:flex;gap:2px">
+                  <div style="width:4px;height:12px;border-radius:2px;background:var(--green);align-self:flex-end"></div>
+                  <div style="width:4px;height:14px;border-radius:2px;background:var(--green);align-self:flex-end"></div>
+                  <div style="width:4px;height:14px;border-radius:2px;background:var(--green);align-self:flex-end"></div>
+                  <div style="width:4px;height:16px;border-radius:2px;background:var(--green)"></div>
+                  <div style="width:4px;height:10px;border-radius:2px;background:var(--yellow);align-self:flex-end"></div>
+                  <div style="width:4px;height:14px;border-radius:2px;background:var(--green);align-self:flex-end"></div>
+                  <div style="width:4px;height:16px;border-radius:2px;background:var(--green)"></div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="width:28px;height:28px;border-radius:50%;background:rgba(236,72,153,.2);color:var(--pink);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">FE</div>
+                  <div><strong>FrontendEng</strong><br><span style="font-size:10px;color:var(--muted-fg)">$40/hr</span></div>
+                </div>
+              </td>
+              <td style="font-size:12px">Engineer</td>
+              <td><span style="display:inline-flex;align-items:center;gap:4px"><span class="status-dot ok"></span><span style="font-size:11px;color:var(--green)">Active</span></span></td>
+              <td style="font-size:12px;color:var(--muted-fg);max-width:180px">Building Swarm prototype UI components</td>
+              <td><span style="font-size:12px;font-weight:600">6</span> <span style="font-size:10px;color:var(--muted-fg)">(1 expert)</span></td>
+              <td style="font-size:12px">35K <span style="font-size:10px;color:var(--muted-fg)">/ 200K</span></td>
+              <td style="font-size:12px;color:var(--yellow)">$25</td>
+              <td><span style="color:var(--blue);font-weight:700;font-size:12px">3.1x</span></td>
+              <td>
+                <div style="display:flex;gap:2px">
+                  <div style="width:4px;height:10px;border-radius:2px;background:var(--blue);align-self:flex-end"></div>
+                  <div style="width:4px;height:12px;border-radius:2px;background:var(--blue);align-self:flex-end"></div>
+                  <div style="width:4px;height:14px;border-radius:2px;background:var(--green);align-self:flex-end"></div>
+                  <div style="width:4px;height:14px;border-radius:2px;background:var(--green);align-self:flex-end"></div>
+                  <div style="width:4px;height:12px;border-radius:2px;background:var(--blue);align-self:flex-end"></div>
+                  <div style="width:4px;height:16px;border-radius:2px;background:var(--green)"></div>
+                  <div style="width:4px;height:14px;border-radius:2px;background:var(--green);align-self:flex-end"></div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="width:28px;height:28px;border-radius:50%;background:rgba(249,115,22,.2);color:var(--orange);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">SR</div>
+                  <div><strong>SalesRep1</strong><br><span style="font-size:10px;color:var(--muted-fg)">$30/hr</span></div>
+                </div>
+              </td>
+              <td style="font-size:12px">Sales</td>
+              <td><span style="display:inline-flex;align-items:center;gap:4px"><span class="status-dot warn"></span><span style="font-size:11px;color:var(--yellow)">Idle</span></span></td>
+              <td style="font-size:12px;color:var(--muted-fg);max-width:180px">—</td>
+              <td><span style="font-size:12px;font-weight:600">3</span> <span style="font-size:10px;color:var(--muted-fg)">(0 expert)</span></td>
+              <td style="font-size:12px">18K <span style="font-size:10px;color:var(--muted-fg)">/ 100K</span></td>
+              <td style="font-size:12px;color:var(--yellow)">$8</td>
+              <td><span style="color:var(--red);font-weight:700;font-size:12px">0.8x &#x26A0;</span></td>
+              <td>
+                <div style="display:flex;gap:2px">
+                  <div style="width:4px;height:8px;border-radius:2px;background:var(--yellow);align-self:flex-end"></div>
+                  <div style="width:4px;height:6px;border-radius:2px;background:var(--red);align-self:flex-end"></div>
+                  <div style="width:4px;height:10px;border-radius:2px;background:var(--yellow);align-self:flex-end"></div>
+                  <div style="width:4px;height:4px;border-radius:2px;background:var(--red);align-self:flex-end"></div>
+                  <div style="width:4px;height:8px;border-radius:2px;background:var(--yellow);align-self:flex-end"></div>
+                  <div style="width:4px;height:6px;border-radius:2px;background:var(--red);align-self:flex-end"></div>
+                  <div style="width:4px;height:4px;border-radius:2px;background:var(--red);align-self:flex-end"></div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="width:28px;height:28px;border-radius:50%;background:rgba(139,92,246,.2);color:var(--purple);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">SD</div>
+                  <div><strong>SwarmDirector</strong><br><span style="font-size:10px;color:var(--purple)">system</span></div>
+                </div>
+              </td>
+              <td style="font-size:12px">Director</td>
+              <td><span style="display:inline-flex;align-items:center;gap:4px"><span class="status-dot ok"></span><span style="font-size:11px;color:var(--green)">Active</span></span></td>
+              <td style="font-size:12px;color:var(--muted-fg);max-width:180px">Evaluating SalesRep1 performance</td>
+              <td style="font-size:12px;color:var(--muted-fg)">—</td>
+              <td style="font-size:12px">52K <span style="font-size:10px;color:var(--muted-fg)">/ 200K</span></td>
+              <td style="font-size:12px;color:var(--muted-fg)">$14</td>
+              <td style="font-size:12px;color:var(--muted-fg)">—</td>
+              <td>
+                <div style="display:flex;gap:2px">
+                  <div style="width:4px;height:14px;border-radius:2px;background:var(--purple);align-self:flex-end"></div>
+                  <div style="width:4px;height:16px;border-radius:2px;background:var(--purple)"></div>
+                  <div style="width:4px;height:12px;border-radius:2px;background:var(--purple);align-self:flex-end"></div>
+                  <div style="width:4px;height:16px;border-radius:2px;background:var(--purple)"></div>
+                  <div style="width:4px;height:14px;border-radius:2px;background:var(--purple);align-self:flex-end"></div>
+                  <div style="width:4px;height:16px;border-radius:2px;background:var(--purple)"></div>
+                  <div style="width:4px;height:14px;border-radius:2px;background:var(--purple);align-self:flex-end"></div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="width:28px;height:28px;border-radius:50%;background:rgba(6,182,212,.2);color:var(--cyan);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">DO</div>
+                  <div><strong>DevOps</strong><br><span style="font-size:10px;color:var(--muted-fg)">$45/hr</span></div>
+                </div>
+              </td>
+              <td style="font-size:12px">Ops</td>
+              <td><span style="display:inline-flex;align-items:center;gap:4px"><span class="status-dot ok"></span><span style="font-size:11px;color:var(--green)">Active</span></span></td>
+              <td style="font-size:12px;color:var(--muted-fg);max-width:180px">Docker health monitoring</td>
+              <td><span style="font-size:12px;font-weight:600">5</span> <span style="font-size:10px;color:var(--muted-fg)">(1 expert)</span></td>
+              <td style="font-size:12px">45K <span style="font-size:10px;color:var(--muted-fg)">/ 200K</span></td>
+              <td style="font-size:12px;color:var(--yellow)">$18</td>
+              <td><span style="color:var(--green);font-weight:700;font-size:12px">4.2x</span></td>
+              <td>
+                <div style="display:flex;gap:2px">
+                  <div style="width:4px;height:14px;border-radius:2px;background:var(--green);align-self:flex-end"></div>
+                  <div style="width:4px;height:12px;border-radius:2px;background:var(--green);align-self:flex-end"></div>
+                  <div style="width:4px;height:16px;border-radius:2px;background:var(--green)"></div>
+                  <div style="width:4px;height:14px;border-radius:2px;background:var(--green);align-self:flex-end"></div>
+                  <div style="width:4px;height:12px;border-radius:2px;background:var(--green);align-self:flex-end"></div>
+                  <div style="width:4px;height:16px;border-radius:2px;background:var(--green)"></div>
+                  <div style="width:4px;height:14px;border-radius:2px;background:var(--green);align-self:flex-end"></div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Agents NOT in the Swarm -->
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <span style="width:8px;height:8px;border-radius:50%;background:var(--red)"></span>
+          <div style="font-size:14px;font-weight:700">Not in Swarm</div>
+          <span style="font-size:11px;color:var(--muted-fg)">3 agents — no capabilities, no learning, no ROI tracking</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+          <!-- CEO -->
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;opacity:.7">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div style="width:32px;height:32px;border-radius:50%;background:rgba(245,158,11,.2);color:var(--yellow);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">CEO</div>
+              <div>
+                <div style="font-weight:600">CEO</div>
+                <div style="font-size:11px;color:var(--muted-fg)">Strategy &middot; $60/hr</div>
+              </div>
+            </div>
+            <div style="font-size:12px;color:var(--muted-fg);margin-bottom:8px">Focuses on strategy and coordination. Uses agents directly, not Swarm capabilities.</div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:11px;color:var(--muted-fg)">No capabilities</span>
+              <button class="btn btn-cancel btn-sm" style="font-size:11px">Invite to Swarm</button>
+            </div>
+          </div>
+          <!-- SalesManager -->
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;opacity:.7">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div style="width:32px;height:32px;border-radius:50%;background:rgba(245,158,11,.2);color:var(--yellow);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">SM</div>
+              <div>
+                <div style="font-weight:600">SalesManager</div>
+                <div style="font-size:11px;color:var(--muted-fg)">Pipeline &middot; $40/hr</div>
+              </div>
+            </div>
+            <div style="font-size:12px;color:var(--muted-fg);margin-bottom:8px">Manages pipeline and deals. Could benefit from CRM connectors and outreach skills.</div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:11px;color:var(--yellow)">&#x1F4A1; Director recommends joining</span>
+              <button class="btn btn-cancel btn-sm" style="font-size:11px">Invite to Swarm</button>
+            </div>
+          </div>
+          <!-- ProductManager -->
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;opacity:.7">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div style="width:32px;height:32px;border-radius:50%;background:rgba(6,182,212,.2);color:var(--cyan);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">PM</div>
+              <div>
+                <div style="font-weight:600">ProductManager</div>
+                <div style="font-size:11px;color:var(--muted-fg)">Roadmap &middot; $45/hr</div>
+              </div>
+            </div>
+            <div style="font-size:12px;color:var(--muted-fg);margin-bottom:8px">Manages roadmap and beta. Could benefit from analytics plugins and research skills.</div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:11px;color:var(--yellow)">&#x1F4A1; Director recommends joining</span>
+              <button class="btn btn-cancel btn-sm" style="font-size:11px">Invite to Swarm</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resource usage -->
+      <div style="margin-top:20px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px">
+        <div style="font-size:14px;font-weight:700;margin-bottom:12px">Resource Usage (All Agents)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px">
+          <div>
+            <div style="font-size:11px;color:var(--muted-fg);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Total Tokens</div>
+            <div style="font-size:20px;font-weight:700">360K <span style="font-size:12px;font-weight:400;color:var(--muted-fg)">/ 1.4M</span></div>
+            <div class="budget-meter" style="margin-top:4px"><div class="budget-meter-fill" style="width:26%;background:var(--blue)"></div></div>
+            <div style="font-size:10px;color:var(--muted-fg);margin-top:3px">26% used &middot; resets in 18 days</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted-fg);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Total Spend</div>
+            <div style="font-size:20px;font-weight:700;color:var(--yellow)">$847 <span style="font-size:12px;font-weight:400;color:var(--muted-fg)">/ $1,200</span></div>
+            <div class="budget-meter" style="margin-top:4px"><div class="budget-meter-fill" style="width:71%;background:linear-gradient(90deg,var(--green),var(--yellow))"></div></div>
+            <div style="font-size:10px;color:var(--muted-fg);margin-top:3px">71% used &middot; $353 remaining</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted-fg);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Agent Hours</div>
+            <div style="font-size:20px;font-weight:700">38h <span style="font-size:12px;font-weight:400;color:var(--muted-fg)">in Swarm</span></div>
+            <div style="font-size:10px;color:var(--muted-fg);margin-top:7px">Avg 6.3h per agent &middot; TechLead: 14h (most)</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted-fg);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">MCP Processes</div>
+            <div style="font-size:20px;font-weight:700">5 <span style="font-size:12px;font-weight:400;color:var(--muted-fg)">running</span></div>
+            <div style="font-size:10px;color:var(--muted-fg);margin-top:7px">RAM: 840MB / 1.28GB &middot; CPU: 1.2 / 2.5 cores</div>
+          </div>
         </div>
       </div>
     </div>
