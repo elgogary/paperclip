@@ -241,7 +241,7 @@
   <div class="nav">
     <a>&#x1F9F0; Toolkit</a>
     <a>&#x26A1; Skills</a>
-    <a class="active">&#x1F310; Swarm <span class="nav-badge">3</span></a>
+    <a class="active">&#x1F41D; Capability Swarm <span class="nav-badge">3</span></a>
   </div>
   <div class="sec-label">System</div>
   <div class="nav">
@@ -255,12 +255,13 @@
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <div class="main-area">
   <div class="breadcrumb">
-    <span>OPT</span> <span style="opacity:.4">&#x203A;</span> <span style="color:var(--fg);font-weight:600">Capabilities Swarm</span>
+    <span>OPT</span> <span style="opacity:.4">&#x203A;</span> <span style="color:var(--fg);font-weight:600">Capability Swarm</span>
   </div>
 
   <!-- Tabs -->
   <div class="tabs">
     <div class="tab active" onclick="switchTab('catalog')">&#x1F4E6; Catalog <span class="tab-count">247</span></div>
+    <div class="tab" onclick="switchTab('myswarm')">&#x1F41D; My Swarm <span class="tab-count">23</span></div>
     <div class="tab" onclick="switchTab('sources')">&#x1F517; Sources <span class="tab-count">5</span></div>
     <div class="tab" onclick="switchTab('queue')">&#x1F514; Queue <span class="tab-count" style="background:rgba(239,68,68,.25);color:var(--red)">3</span></div>
     <div class="tab" onclick="switchTab('audit')">&#x1F4DC; Audit</div>
@@ -468,6 +469,208 @@
           </div>
           <div class="cap-desc">Investigate, diagnose, and plan a high-quality bug fix by grounding in framework patterns first.</div>
           <div class="cap-footer"><span class="type-badge type-skill">Skill</span><span class="trust-badge trust-community">&#x1F465; Community</span><span class="price-tag price-free">Free</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- TAB: MY SWARM (installed capabilities)                     -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <div id="panel-myswarm" class="panel">
+      <div class="page-header">
+        <div>
+          <div class="page-title">My Swarm</div>
+          <div class="page-sub">A living, organized hub where agents learn, grow, and develop — like a bee hive.</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-cancel btn-sm">Export</button>
+          <button class="btn btn-primary" onclick="switchTab('catalog')">+ Add Capability</button>
+        </div>
+      </div>
+
+      <!-- Installed summary -->
+      <div class="stats-row">
+        <div class="stat-card" style="border-left:3px solid var(--purple)"><div class="stat-value" style="color:var(--purple)">12</div><div class="stat-label">Skills installed</div></div>
+        <div class="stat-card" style="border-left:3px solid var(--blue)"><div class="stat-value" style="color:var(--blue)">5</div><div class="stat-label">MCP Servers running</div></div>
+        <div class="stat-card" style="border-left:3px solid var(--green)"><div class="stat-value" style="color:var(--green)">4</div><div class="stat-label">Connectors active</div></div>
+        <div class="stat-card" style="border-left:3px solid var(--orange)"><div class="stat-value" style="color:var(--orange)">2</div><div class="stat-label">Plugins loaded</div></div>
+      </div>
+
+      <!-- Skills section -->
+      <div style="margin-bottom:20px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <div class="cap-icon skill" style="width:24px;height:24px;font-size:12px">&#x26A1;</div>
+          <div style="font-size:14px;font-weight:700">Skills</div>
+          <span style="font-size:11px;color:var(--muted-fg)">12 installed</span>
+        </div>
+        <table class="source-table">
+          <thead><tr><th>Skill</th><th>Source</th><th>Agents Using</th><th>Uses (30d)</th><th>Avg Score</th><th>ROI</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>code-review</strong><br><span style="font-size:11px;color:var(--muted-fg)">Targeted code review with decision tables</span></td>
+              <td style="color:var(--muted-fg);font-size:12px">/workspace/skills</td>
+              <td><span style="display:inline-flex;gap:3px"><span style="width:18px;height:18px;border-radius:50%;background:rgba(59,130,246,.2);color:var(--blue);display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:700">TL</span><span style="width:18px;height:18px;border-radius:50%;background:rgba(16,185,129,.2);color:var(--green);display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:700">BE</span><span style="width:18px;height:18px;border-radius:50%;background:rgba(236,72,153,.2);color:var(--pink);display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:700">FE</span></span> +2</td>
+              <td>48</td>
+              <td><span style="color:var(--green);font-weight:600">9.2</span></td>
+              <td><span style="color:var(--green);font-weight:700">12.0x</span></td>
+              <td><span class="source-status"><span class="status-dot ok"></span> Active</span></td>
+              <td><button class="btn-ghost">&#x22EE;</button></td>
+            </tr>
+            <tr>
+              <td><strong>bug-fix</strong><br><span style="font-size:11px;color:var(--muted-fg)">Investigate, diagnose, plan high-quality bug fixes</span></td>
+              <td style="color:var(--muted-fg);font-size:12px">/workspace/skills</td>
+              <td><span style="display:inline-flex;gap:3px"><span style="width:18px;height:18px;border-radius:50%;background:rgba(59,130,246,.2);color:var(--blue);display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:700">TL</span><span style="width:18px;height:18px;border-radius:50%;background:rgba(16,185,129,.2);color:var(--green);display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:700">BE</span></span></td>
+              <td>32</td>
+              <td><span style="color:var(--green);font-weight:600">8.8</span></td>
+              <td><span style="color:var(--green);font-weight:700">8.4x</span></td>
+              <td><span class="source-status"><span class="status-dot ok"></span> Active</span></td>
+              <td><button class="btn-ghost">&#x22EE;</button></td>
+            </tr>
+            <tr>
+              <td><strong>clean-code</strong><br><span style="font-size:11px;color:var(--muted-fg)">File size, anti-patterns, ES6, safe refactor</span></td>
+              <td style="color:var(--muted-fg);font-size:12px">/workspace/skills</td>
+              <td><span style="display:inline-flex;gap:3px"><span style="width:18px;height:18px;border-radius:50%;background:rgba(59,130,246,.2);color:var(--blue);display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:700">TL</span></span></td>
+              <td>21</td>
+              <td><span style="color:var(--green);font-weight:600">8.5</span></td>
+              <td><span style="color:var(--green);font-weight:700">7.1x</span></td>
+              <td><span class="source-status"><span class="status-dot ok"></span> Active</span></td>
+              <td><button class="btn-ghost">&#x22EE;</button></td>
+            </tr>
+            <tr style="opacity:.6">
+              <td><strong>custom-scraper</strong><br><span style="font-size:11px;color:var(--muted-fg)">Scrape prospect websites for lead enrichment</span></td>
+              <td style="color:var(--muted-fg);font-size:12px">gist.github.com</td>
+              <td><span style="display:inline-flex;gap:3px"><span style="width:18px;height:18px;border-radius:50%;background:rgba(249,115,22,.2);color:var(--orange);display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:700">SR</span></span></td>
+              <td>1</td>
+              <td><span style="color:var(--red);font-weight:600">3.0</span></td>
+              <td><span style="color:var(--red);font-weight:700">-22.7x</span></td>
+              <td><span class="source-status"><span class="status-dot err"></span> Flagged</span></td>
+              <td><button class="btn-ghost">&#x22EE;</button></td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="text-align:center;padding:6px;font-size:11px;color:var(--muted-fg);cursor:pointer">Show all 12 skills &#x25BC;</div>
+      </div>
+
+      <!-- MCP Servers section -->
+      <div style="margin-bottom:20px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <div class="cap-icon mcp" style="width:24px;height:24px;font-size:12px">&#x1F50C;</div>
+          <div style="font-size:14px;font-weight:700">MCP Servers</div>
+          <span style="font-size:11px;color:var(--muted-fg)">5 running</span>
+        </div>
+        <table class="source-table">
+          <thead><tr><th>Server</th><th>Transport</th><th>Tools</th><th>Cost</th><th>Health</th><th>Uptime</th><th>Uses (30d)</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Filesystem MCP</strong><br><span style="font-size:11px;color:var(--muted-fg)">mcpservers.org &middot; Official</span></td>
+              <td style="font-size:12px;color:var(--muted-fg)">stdio</td>
+              <td>6</td>
+              <td><span class="price-tag price-free">Free</span></td>
+              <td><span style="display:inline-flex;align-items:center;gap:4px"><span class="status-dot ok"></span><span style="font-size:11px;color:var(--green)">Healthy</span></span></td>
+              <td style="font-size:12px;color:var(--muted-fg)">14d 6h</td>
+              <td>89</td>
+              <td><span class="source-status"><span class="status-dot ok"></span> Running</span></td>
+              <td><button class="btn-ghost">&#x22EE;</button></td>
+            </tr>
+            <tr>
+              <td><strong>Slack MCP</strong><br><span style="font-size:11px;color:var(--muted-fg)">mcpserverhub.com &middot; Community</span></td>
+              <td style="font-size:12px;color:var(--muted-fg)">stdio (npx)</td>
+              <td>8</td>
+              <td><span class="price-tag price-paid">$12/mo</span></td>
+              <td><span style="display:inline-flex;align-items:center;gap:4px"><span class="status-dot ok"></span><span style="font-size:11px;color:var(--green)">Healthy</span></span></td>
+              <td style="font-size:12px;color:var(--muted-fg)">2d 3h</td>
+              <td>8</td>
+              <td><span class="source-status"><span class="status-dot ok"></span> Running</span></td>
+              <td><button class="btn-ghost">&#x22EE;</button></td>
+            </tr>
+            <tr>
+              <td><strong>PostgreSQL MCP</strong><br><span style="font-size:11px;color:var(--muted-fg)">mcpservers.org &middot; Official</span></td>
+              <td style="font-size:12px;color:var(--muted-fg)">stdio</td>
+              <td>5</td>
+              <td><span class="price-tag price-free">Free</span></td>
+              <td><span style="display:inline-flex;align-items:center;gap:4px"><span class="status-dot warn"></span><span style="font-size:11px;color:var(--yellow)">Slow (2.1s)</span></span></td>
+              <td style="font-size:12px;color:var(--muted-fg)">7d 12h</td>
+              <td>15</td>
+              <td><span class="source-status"><span class="status-dot warn"></span> Degraded</span></td>
+              <td><button class="btn-ghost">&#x22EE;</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Connectors section -->
+      <div style="margin-bottom:20px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <div class="cap-icon connector" style="width:24px;height:24px;font-size:12px">&#x1F517;</div>
+          <div style="font-size:14px;font-weight:700">Connectors</div>
+          <span style="font-size:11px;color:var(--muted-fg)">4 active</span>
+        </div>
+        <table class="source-table">
+          <thead><tr><th>Connector</th><th>Auth</th><th>Cost</th><th>Last Used</th><th>API Calls (30d)</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Gmail Connector</strong><br><span style="font-size:11px;color:var(--muted-fg)">Private &middot; internal</span></td>
+              <td style="font-size:12px;color:var(--muted-fg)">OAuth2</td>
+              <td><span class="price-tag price-paid">$8/mo</span></td>
+              <td style="font-size:12px;color:var(--muted-fg)">3 hours ago</td>
+              <td>342</td>
+              <td><span class="source-status"><span class="status-dot ok"></span> Connected</span></td>
+              <td><button class="btn-ghost">&#x22EE;</button></td>
+            </tr>
+            <tr>
+              <td><strong>Slack Connector</strong><br><span style="font-size:11px;color:var(--muted-fg)">Auto-generated from Slack MCP</span></td>
+              <td style="font-size:12px;color:var(--muted-fg)">Bot Token</td>
+              <td><span class="price-tag price-free">Free</span></td>
+              <td style="font-size:12px;color:var(--muted-fg)">1 hour ago</td>
+              <td>56</td>
+              <td><span class="source-status"><span class="status-dot ok"></span> Connected</span></td>
+              <td><button class="btn-ghost">&#x22EE;</button></td>
+            </tr>
+            <tr>
+              <td><strong>GitHub Connector Pro</strong><br><span style="font-size:11px;color:var(--muted-fg)">Official &middot; Verified</span></td>
+              <td style="font-size:12px;color:var(--muted-fg)">OAuth2 + PAT</td>
+              <td><span class="price-tag price-premium">$45/mo</span></td>
+              <td style="font-size:12px;color:var(--muted-fg)">30 min ago</td>
+              <td>1,204</td>
+              <td><span class="source-status"><span class="status-dot ok"></span> Connected</span></td>
+              <td><button class="btn-ghost">&#x22EE;</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Plugins section -->
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <div class="cap-icon plugin" style="width:24px;height:24px;font-size:12px">&#x1F9E9;</div>
+          <div style="font-size:14px;font-weight:700">Plugins</div>
+          <span style="font-size:11px;color:var(--muted-fg)">2 loaded</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+              <div class="cap-icon plugin" style="width:28px;height:28px;font-size:14px">&#x1F4CB;</div>
+              <div><div style="font-weight:600">Kanban Board</div><div style="font-size:11px;color:var(--muted-fg)">npm &middot; @sanad/kanban</div></div>
+              <span class="price-tag price-paid" style="margin-left:auto">$25/mo</span>
+            </div>
+            <div style="display:flex;gap:12px;font-size:11px;color:var(--muted-fg)">
+              <span><span class="status-dot ok" style="display:inline-block"></span> Loaded</span>
+              <span>v2.1.0</span>
+              <span>Used 34 times</span>
+            </div>
+          </div>
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+              <div class="cap-icon plugin" style="width:28px;height:28px;font-size:14px">&#x1F4CA;</div>
+              <div><div style="font-weight:600">Analytics Dashboard</div><div style="font-size:11px;color:var(--muted-fg)">npm &middot; @sanad/analytics</div></div>
+              <span class="price-tag price-free" style="margin-left:auto">Free</span>
+            </div>
+            <div style="display:flex;gap:12px;font-size:11px;color:var(--muted-fg)">
+              <span><span class="status-dot ok" style="display:inline-block"></span> Loaded</span>
+              <span>v1.0.3</span>
+              <span>Used 12 times</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
