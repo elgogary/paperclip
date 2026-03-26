@@ -1,0 +1,50 @@
+[
+  {
+    "issue_id": "portrait-orientation",
+    "what_failed": "v1 PDF rendered in portrait orientation — looked like a document not a presentation",
+    "fix_applied": "Added @page { size: 13.333in 7.5in; margin: 0; } and aspect-ratio: 16/9 on .slide",
+    "date": "2026-03-26"
+  },
+  {
+    "issue_id": "chrome-headers",
+    "what_failed": "Chrome headless added date, title, URL, and page numbers to PDF",
+    "fix_applied": "Use --no-pdf-header-footer flag with google-chrome --headless",
+    "date": "2026-03-26"
+  },
+  {
+    "issue_id": "stats-wrapping",
+    "what_failed": "4th stat box wrapped to second row — grid was auto-fit",
+    "fix_applied": "Changed grid-template-columns from repeat(auto-fit, minmax(150px, 1fr)) to repeat(4, 1fr)",
+    "date": "2026-03-26"
+  },
+  {
+    "issue_id": "steps-empty-space",
+    "what_failed": "Steps only used left 40% of slide — right half was completely empty",
+    "fix_applied": "Changed steps to full-width card rows with background, border, border-radius. Added flex: 1 to .steps",
+    "date": "2026-03-26"
+  },
+  {
+    "issue_id": "content-not-centered",
+    "what_failed": "Content bunched at top of slide with massive empty space below",
+    "fix_applied": "Added display: flex; flex-direction: column; justify-content: center to .slide-body",
+    "date": "2026-03-26"
+  },
+  {
+    "issue_id": "small-stat-numbers",
+    "what_failed": "Stat numbers were 42px — too small for presentation slides",
+    "fix_applied": "Increased to 56px font-size with font-weight 800",
+    "date": "2026-03-26"
+  },
+  {
+    "issue_id": "python-pptx-ugly",
+    "what_failed": "python-pptx generates basic boxes and text — no design quality for client presentations",
+    "fix_applied": "Switched to HTML-first approach: generate rich HTML with CSS → convert to PDF via Chrome headless",
+    "date": "2026-03-26"
+  },
+  {
+    "issue_id": "generic-fonts",
+    "what_failed": "Using system fonts made output look like AI-generated slop",
+    "fix_applied": "Use Outfit for display, Space Mono for code, IBM Plex Sans Arabic for RTL. Never Inter/Roboto/Arial",
+    "date": "2026-03-26"
+  }
+]

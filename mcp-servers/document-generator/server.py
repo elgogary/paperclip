@@ -259,5 +259,100 @@ def list_themes() -> str:
     })
 
 
+@mcp.tool()
+def evaluate_presentation(html_path: str) -> str:
+    """Evaluate an HTML presentation for quality before sending to client.
+
+    Checks: slide count, icons, color coding, fonts, RTL, atmospheric backgrounds,
+    badges, landscape print rules. Returns pass/fail score with issues to fix.
+
+    Auto-appends new lessons from failures so the generator improves over time.
+
+    Args:
+        html_path: Path to the HTML presentation file to evaluate.
+    """
+    from generators.evaluator import evaluate, get_lessons_prompt
+    p = Path(html_path)
+    if not p.exists():
+        return json.dumps({"error": f"File not found: {html_path}"})
+    html = p.read_text(encoding="utf-8")
+    result = evaluate(html)
+    result["lessons_count"] = len(get_lessons_prompt().split("\n")) - 1
+    return json.dumps(result)
+
+
+@mcp.tool()
+def add_lesson(issue_id: str, what_failed: str, fix_applied: str) -> str:
+    """Record a lesson learned so the generator avoids this mistake in the future.
+
+    Lessons are stored in lessons.json and read by the generator before each run.
+
+    Args:
+        issue_id: Short identifier (e.g. "stats-wrapping", "empty-space")
+        what_failed: What went wrong (e.g. "4th stat wrapped to second row")
+        fix_applied: How it was fixed (e.g. "Changed grid to repeat(4, 1fr)")
+    """
+    from generators.evaluator import add_lesson as _add
+    import datetime
+    lessons = _add({
+        "issue_id": issue_id,
+        "what_failed": what_failed,
+        "fix_applied": fix_applied,
+        "date": datetime.date.today().isoformat(),
+    })
+    return json.dumps({"status": "ok", "total_lessons": len(lessons)})
+
+
+@mcp.tool()
+def get_lessons() -> str:
+    """Get all accumulated lessons learned by the document generator.
+
+    These lessons are automatically injected into the generator's context
+    so it avoids repeating past mistakes. The system improves with every evaluation.
+    """
+    from generators.evaluator import load_lessons, get_lessons_prompt
+    lessons = load_lessons()
+    return json.dumps({
+        "count": len(lessons),
+        "lessons": lessons,
+        "prompt_section": get_lessons_prompt(),
+    })
+
+
+@mcp.tool()
+def convert_to_pdf(html_path: str, output_filename: str = "output.pdf") -> str:
+    """Convert an HTML presentation to PDF using headless Chrome.
+
+    Produces landscape 16:9 PDF with no headers/footers.
+
+    Args:
+        html_path: Path to the HTML file.
+        output_filename: Output PDF filename.
+    """
+    import subprocess
+    html_p = Path(html_path)
+    if not html_p.exists():
+        return json.dumps({"error": f"HTML file not found: {html_path}"})
+    pdf_path = OUTPUT_DIR / output_filename
+    try:
+        result = subprocess.run([
+            "google-chrome", "--headless", "--disable-gpu", "--no-sandbox",
+            "--no-pdf-header-footer",
+            f"--print-to-pdf={pdf_path}",
+            str(html_p),
+        ], capture_output=True, text=True, timeout=30)
+        if pdf_path.exists():
+            return json.dumps({
+                "status": "ok",
+                "path": str(pdf_path),
+                "size": pdf_path.stat().st_size,
+            })
+        return json.dumps({"error": result.stderr[:300]})
+    except subprocess.TimeoutExpired:
+        return json.dumps({"error": "Chrome PDF conversion timed out"})
+    except FileNotFoundError:
+        return json.dumps({"error": "google-chrome not found. Install Chrome/Chromium."})
+
+
 if __name__ == "__main__":
     mcp.run(transport="stdio")
