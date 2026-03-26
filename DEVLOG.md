@@ -1,19 +1,51 @@
 # Paperclip Dev Log
 
 ## Working State
-**Session:** Upstream Bug Fix Cherry-picks | **Date:** 2026-03-25
+**Session:** Clean-Code File Splitting | **Date:** 2026-03-26
+**Branch:** `refactor/clean-code-split` (= `main-sanad-eoi-app` + split commits)
 
 ### Active Task
-Selectively cherry-picking upstream commits onto `feature/multimodal-attachments` + `main-sanad-eoi-app`
+Split all files exceeding 2000 lines down to <700 lines each using safe-split strategy.
 
-- [x] Phase 1: Branch cleanup — deleted feature/chat-ui, feature/scheduled-jobs (superseded)
-- [x] Phase 2: Merge feature/multimodal-attachments → master, push
-- [x] Phase 3: Create main-sanad-eoi-app branch (our permanent fork branch)
-- [x] Phase 4: Reset master to clean upstream/master mirror
-- [x] Phase 5: Cherry-pick all 35 upstream bug fixes ✅
-- [x] Phase 6: Sync main-sanad-eoi-app with feature/multimodal-attachments
-- [ ] Phase 7: Cherry-pick selected Feature commits (next)
-- [ ] Phase 8: Rebuild Docker + deploy to Hetzner
+- [x] Wave 1: Extract shared YAML parser + skill keys to @paperclipai/shared (73ceb32b)
+- [x] Task 2: Split heartbeat.ts (3899 → 8 modules) — $ bag pattern (695d2132, dd32a83e)
+  - heartbeat.ts (305), heartbeat-helpers.ts (745), heartbeat-session.ts (377)
+  - heartbeat-workspace.ts (229), heartbeat-run-ops.ts (645), heartbeat-execution.ts (975)
+  - heartbeat-wakeup.ts (679), heartbeat-cancellation.ts (216)
+  - Code review: fixed $.budgetHooks, audited all 35 $.refs — zero dangling
+- [ ] Task 3: Split company-portability.ts (4088 lines) <-- NEXT
+  - 6 module files created and stashed (portability-*.ts)
+  - Need: rewrite stub + wire imports + type check
+- [ ] Task 4: Split company-skills.ts (2321 lines)
+- [ ] Tasks 5-6: Split issues.ts + workspace-runtime.ts
+- [ ] Tasks 7-13: Route files + UI + CLI (see plan)
+
+### Key Files (current shape)
+**`server/src/services/heartbeat.ts`** (MODIFIED, 305 lines)
+Thin factory stub. Creates service instances, initializes modules via `createXxxOps(db, $)`,
+populates shared `$` context bag, returns public API. All closures moved to sibling modules.
+
+**`server/src/services/heartbeat-helpers.ts`** (NEW, 745 lines)
+Pure helpers, types, constants, exported test-facing utility functions.
+
+**`docs/plans/2026-03-26-large-file-splitting.md`** (reference plan)
+
+### Decisions
+- **$ bag pattern**: Modules share a mutable context object instead of sub-factories with explicit deps.
+  Avoids circular dependency issues. Populated incrementally; functions resolved at runtime.
+- **heartbeat-execution.ts at 975 lines**: Single `executeRun` function cannot be further split
+  without decomposing the function itself. Accepted as-is.
+
+### Next Steps
+1. Pop portability stash: `git stash pop`
+2. Rewrite company-portability.ts as stub importing from portability-*.ts
+3. Type check + fix
+4. Continue with company-skills.ts (Task 4)
+
+### Watch Out
+- Portability modules have some over-700 files (import=1049, manifest=911, export=901, skills=830)
+- Need to re-check if subagents duplicated types that should be imported
+- Test file `company-portability.test.ts` imports `parseGitHubSourceUrl` directly — must re-export
 
 ### Branch Strategy
 ```

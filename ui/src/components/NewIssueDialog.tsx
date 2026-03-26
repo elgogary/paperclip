@@ -37,9 +37,6 @@ import {
   ChevronDown,
   CircleDot,
   Minus,
-  ArrowUp,
-  ArrowDown,
-  AlertTriangle,
   Tag,
   Calendar,
   Paperclip,
@@ -49,223 +46,34 @@ import {
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { extractProviderIdWithFallback } from "../lib/model-utils";
-import { issueStatusText, issueStatusTextDefault, priorityColor, priorityColorDefault } from "../lib/status-colors";
 import { MarkdownEditor, type MarkdownEditorRef, type MentionOption } from "./MarkdownEditor";
 import { AgentIcon } from "./AgentIconPicker";
 import { InlineEntitySelector, type InlineEntityOption } from "./InlineEntitySelector";
 
-const DRAFT_KEY = "paperclip:issue-draft";
-const DEBOUNCE_MS = 800;
-
-
-interface IssueDraft {
-  title: string;
-  description: string;
-  status: string;
-  priority: string;
-  assigneeValue: string;
-  assigneeId?: string;
-  projectId: string;
-  projectWorkspaceId?: string;
-  assigneeModelOverride: string;
-  assigneeThinkingEffort: string;
-  assigneeChrome: boolean;
-  executionWorkspaceMode?: string;
-  selectedExecutionWorkspaceId?: string;
-  useIsolatedExecutionWorkspace?: boolean;
-}
-
-type StagedIssueFile = {
-  id: string;
-  file: File;
-  kind: "document" | "attachment";
-  documentKey?: string;
-  title?: string | null;
-};
-
-const ISSUE_OVERRIDE_ADAPTER_TYPES = new Set(["claude_local", "codex_local", "opencode_local"]);
-const STAGED_FILE_ACCEPT = "image/*,application/pdf,text/plain,text/markdown,application/json,text/csv,text/html,.md,.markdown";
-
-const ISSUE_THINKING_EFFORT_OPTIONS = {
-  claude_local: [
-    { value: "", label: "Default" },
-    { value: "low", label: "Low" },
-    { value: "medium", label: "Medium" },
-    { value: "high", label: "High" },
-  ],
-  codex_local: [
-    { value: "", label: "Default" },
-    { value: "minimal", label: "Minimal" },
-    { value: "low", label: "Low" },
-    { value: "medium", label: "Medium" },
-    { value: "high", label: "High" },
-  ],
-  opencode_local: [
-    { value: "", label: "Default" },
-    { value: "minimal", label: "Minimal" },
-    { value: "low", label: "Low" },
-    { value: "medium", label: "Medium" },
-    { value: "high", label: "High" },
-    { value: "max", label: "Max" },
-  ],
-} as const;
-
-function buildAssigneeAdapterOverrides(input: {
-  adapterType: string | null | undefined;
-  modelOverride: string;
-  thinkingEffortOverride: string;
-  chrome: boolean;
-}): Record<string, unknown> | null {
-  const adapterType = input.adapterType ?? null;
-  if (!adapterType || !ISSUE_OVERRIDE_ADAPTER_TYPES.has(adapterType)) {
-    return null;
-  }
-
-  const adapterConfig: Record<string, unknown> = {};
-  if (input.modelOverride) adapterConfig.model = input.modelOverride;
-  if (input.thinkingEffortOverride) {
-    if (adapterType === "codex_local") {
-      adapterConfig.modelReasoningEffort = input.thinkingEffortOverride;
-    } else if (adapterType === "opencode_local") {
-      adapterConfig.variant = input.thinkingEffortOverride;
-    } else if (adapterType === "claude_local") {
-      adapterConfig.effort = input.thinkingEffortOverride;
-    } else if (adapterType === "opencode_local") {
-      adapterConfig.variant = input.thinkingEffortOverride;
-    }
-  }
-  if (adapterType === "claude_local" && input.chrome) {
-    adapterConfig.chrome = true;
-  }
-
-  const overrides: Record<string, unknown> = {};
-  if (Object.keys(adapterConfig).length > 0) {
-    overrides.adapterConfig = adapterConfig;
-  }
-  return Object.keys(overrides).length > 0 ? overrides : null;
-}
-
-function loadDraft(): IssueDraft | null {
-  try {
-    const raw = localStorage.getItem(DRAFT_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as IssueDraft;
-  } catch {
-    return null;
-  }
-}
-
-function saveDraft(draft: IssueDraft) {
-  localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-}
-
-function clearDraft() {
-  localStorage.removeItem(DRAFT_KEY);
-}
-
-function isTextDocumentFile(file: File) {
-  const name = file.name.toLowerCase();
-  return (
-    name.endsWith(".md") ||
-    name.endsWith(".markdown") ||
-    name.endsWith(".txt") ||
-    file.type === "text/markdown" ||
-    file.type === "text/plain"
-  );
-}
-
-function fileBaseName(filename: string) {
-  return filename.replace(/\.[^.]+$/, "");
-}
-
-function slugifyDocumentKey(input: string) {
-  const slug = input
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  return slug || "document";
-}
-
-function titleizeFilename(input: string) {
-  return input
-    .split(/[-_ ]+/g)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
-function createUniqueDocumentKey(baseKey: string, stagedFiles: StagedIssueFile[]) {
-  const existingKeys = new Set(
-    stagedFiles
-      .filter((file) => file.kind === "document")
-      .map((file) => file.documentKey)
-      .filter((key): key is string => Boolean(key)),
-  );
-  if (!existingKeys.has(baseKey)) return baseKey;
-  let suffix = 2;
-  while (existingKeys.has(`${baseKey}-${suffix}`)) {
-    suffix += 1;
-  }
-  return `${baseKey}-${suffix}`;
-}
-
-function formatFileSize(file: File) {
-  if (file.size < 1024) return `${file.size} B`;
-  if (file.size < 1024 * 1024) return `${(file.size / 1024).toFixed(1)} KB`;
-  return `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-const statuses = [
-  { value: "backlog", label: "Backlog", color: issueStatusText.backlog ?? issueStatusTextDefault },
-  { value: "todo", label: "Todo", color: issueStatusText.todo ?? issueStatusTextDefault },
-  { value: "in_progress", label: "In Progress", color: issueStatusText.in_progress ?? issueStatusTextDefault },
-  { value: "in_review", label: "In Review", color: issueStatusText.in_review ?? issueStatusTextDefault },
-  { value: "done", label: "Done", color: issueStatusText.done ?? issueStatusTextDefault },
-];
-
-const priorities = [
-  { value: "critical", label: "Critical", icon: AlertTriangle, color: priorityColor.critical ?? priorityColorDefault },
-  { value: "high", label: "High", icon: ArrowUp, color: priorityColor.high ?? priorityColorDefault },
-  { value: "medium", label: "Medium", icon: Minus, color: priorityColor.medium ?? priorityColorDefault },
-  { value: "low", label: "Low", icon: ArrowDown, color: priorityColor.low ?? priorityColorDefault },
-];
-
-const EXECUTION_WORKSPACE_MODES = [
-  { value: "shared_workspace", label: "Project default" },
-  { value: "isolated_workspace", label: "New isolated workspace" },
-  { value: "reuse_existing", label: "Reuse existing workspace" },
-] as const;
-
-function defaultProjectWorkspaceIdForProject(project: { workspaces?: Array<{ id: string; isPrimary: boolean }>; executionWorkspacePolicy?: { defaultProjectWorkspaceId?: string | null } | null } | null | undefined) {
-  if (!project) return "";
-  return project.executionWorkspacePolicy?.defaultProjectWorkspaceId
-    ?? project.workspaces?.find((workspace) => workspace.isPrimary)?.id
-    ?? project.workspaces?.[0]?.id
-    ?? "";
-}
-
-function defaultExecutionWorkspaceModeForProject(project: { executionWorkspacePolicy?: { enabled?: boolean; defaultMode?: string | null } | null } | null | undefined) {
-  const defaultMode = project?.executionWorkspacePolicy?.enabled ? project.executionWorkspacePolicy.defaultMode : null;
-  if (
-    defaultMode === "isolated_workspace" ||
-    defaultMode === "operator_branch" ||
-    defaultMode === "adapter_default"
-  ) {
-    return defaultMode === "adapter_default" ? "agent_default" : defaultMode;
-  }
-  return "shared_workspace";
-}
-
-function issueExecutionWorkspaceModeForExistingWorkspace(mode: string | null | undefined) {
-  if (mode === "isolated_workspace" || mode === "operator_branch" || mode === "shared_workspace") {
-    return mode;
-  }
-  if (mode === "adapter_managed" || mode === "cloud_sandbox") {
-    return "agent_default";
-  }
-  return "shared_workspace";
-}
+import {
+  DEBOUNCE_MS,
+  STAGED_FILE_ACCEPT,
+  ISSUE_OVERRIDE_ADAPTER_TYPES,
+  ISSUE_THINKING_EFFORT_OPTIONS,
+  statuses,
+  priorities,
+  buildAssigneeAdapterOverrides,
+  defaultProjectWorkspaceIdForProject,
+  defaultExecutionWorkspaceModeForProject,
+  issueExecutionWorkspaceModeForExistingWorkspace,
+  type IssueDraft,
+  type StagedIssueFile,
+} from "./new-issue";
+import { loadDraft, saveDraft, clearDraft } from "./new-issue";
+import {
+  isTextDocumentFile,
+  fileBaseName,
+  slugifyDocumentKey,
+  titleizeFilename,
+  createUniqueDocumentKey,
+  formatFileSize,
+} from "./new-issue";
+import { ExecutionWorkspaceSection } from "./new-issue";
 
 export function NewIssueDialog() {
   const { newIssueOpen, newIssueDefaults, closeNewIssue } = useDialog();
@@ -642,12 +450,12 @@ export function NewIssueDialog() {
       experimentalSettings?.enableIsolatedWorkspaces === true
         ? selectedProject?.executionWorkspacePolicy ?? null
         : null;
-    const selectedReusableExecutionWorkspace = deduplicatedReusableWorkspaces.find(
+    const selectedReusableExecWorkspace = deduplicatedReusableWorkspaces.find(
       (workspace) => workspace.id === selectedExecutionWorkspaceId,
     );
     const requestedExecutionWorkspaceMode =
       executionWorkspaceMode === "reuse_existing"
-        ? issueExecutionWorkspaceModeForExistingWorkspace(selectedReusableExecutionWorkspace?.mode)
+        ? issueExecutionWorkspaceModeForExistingWorkspace(selectedReusableExecWorkspace?.mode)
         : executionWorkspaceMode;
     const executionWorkspaceSettings = executionWorkspacePolicy?.enabled
       ? { mode: requestedExecutionWorkspaceMode }
@@ -881,12 +689,6 @@ export function NewIssueDialog() {
             event.preventDefault();
             return;
           }
-          // Radix Dialog's modal DismissableLayer calls preventDefault() on
-          // pointerdown events that originate outside the Dialog DOM tree.
-          // Popover portals render at the body level (outside the Dialog), so
-          // touch events on popover content get their default prevented — which
-          // kills scroll gesture recognition on mobile.  Telling Radix "this
-          // event is handled" skips that preventDefault, restoring touch scroll.
           const target = event.detail.originalEvent.target as HTMLElement | null;
           if (target?.closest("[data-radix-popper-content-wrapper]")) {
             event.preventDefault();
@@ -1000,7 +802,6 @@ export function NewIssueDialog() {
               if (e.key === "Tab" && !e.shiftKey) {
                 e.preventDefault();
                 if (assigneeValue) {
-                  // Assignee already set — skip to project or description
                   if (projectId) {
                     descriptionEditorRef.current?.focus();
                   } else {
@@ -1115,49 +916,14 @@ export function NewIssueDialog() {
         </div>
 
         {currentProject && currentProjectSupportsExecutionWorkspace && (
-          <div className="px-4 py-3 shrink-0 space-y-2">
-            <div className="space-y-1.5">
-              <div className="text-xs font-medium">Execution workspace</div>
-              <div className="text-[11px] text-muted-foreground">
-                Control whether this issue runs in the shared workspace, a new isolated workspace, or an existing one.
-              </div>
-              <select
-                className="w-full rounded border border-border bg-transparent px-2 py-1.5 text-xs outline-none"
-                value={executionWorkspaceMode}
-                onChange={(e) => {
-                  setExecutionWorkspaceMode(e.target.value);
-                  if (e.target.value !== "reuse_existing") {
-                    setSelectedExecutionWorkspaceId("");
-                  }
-                }}
-              >
-                {EXECUTION_WORKSPACE_MODES.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              {executionWorkspaceMode === "reuse_existing" && (
-                <select
-                  className="w-full rounded border border-border bg-transparent px-2 py-1.5 text-xs outline-none"
-                  value={selectedExecutionWorkspaceId}
-                  onChange={(e) => setSelectedExecutionWorkspaceId(e.target.value)}
-                >
-                  <option value="">Choose an existing workspace</option>
-                  {deduplicatedReusableWorkspaces.map((workspace) => (
-                    <option key={workspace.id} value={workspace.id}>
-                      {workspace.name} · {workspace.status} · {workspace.branchName ?? workspace.cwd ?? workspace.id.slice(0, 8)}
-                    </option>
-                  ))}
-                </select>
-              )}
-              {executionWorkspaceMode === "reuse_existing" && selectedReusableExecutionWorkspace && (
-                <div className="text-[11px] text-muted-foreground">
-                  Reusing {selectedReusableExecutionWorkspace.name} from {selectedReusableExecutionWorkspace.branchName ?? selectedReusableExecutionWorkspace.cwd ?? "existing execution workspace"}.
-                </div>
-              )}
-            </div>
-          </div>
+          <ExecutionWorkspaceSection
+            executionWorkspaceMode={executionWorkspaceMode}
+            setExecutionWorkspaceMode={setExecutionWorkspaceMode}
+            selectedExecutionWorkspaceId={selectedExecutionWorkspaceId}
+            setSelectedExecutionWorkspaceId={setSelectedExecutionWorkspaceId}
+            deduplicatedReusableWorkspaces={deduplicatedReusableWorkspaces}
+            selectedReusableExecutionWorkspace={selectedReusableExecutionWorkspace}
+          />
         )}
 
         {supportsAssigneeOverrides && (
