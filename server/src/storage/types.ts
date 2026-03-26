@@ -63,4 +63,6 @@ export interface StorageService {
   putRawObject(companyId: string, objectKey: string, body: Buffer, contentType: string): Promise<void>;
   /** Read raw bytes from an exact key (company-prefix enforced). */
   getRawObject(companyId: string, objectKey: string): Promise<Buffer>;
+  /** Stream object without company-prefix check (for converted preview files). */
+  getObjectRaw(objectKey: string): Promise<GetObjectResult>;
 }

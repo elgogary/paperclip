@@ -462,11 +462,14 @@ export function attachmentRoutes(db: Db, storage: StorageService) {
     }
 
     try {
-      const object = await storage.getObject(row.companyId, row.htmlPreviewKey);
+      // Preview keys from media-worker use "converted/" prefix — bypass company prefix check
+      // by fetching directly from the storage provider
+      const previewKey = row.htmlPreviewKey;
+      const object = await storage.getObjectRaw(previewKey);
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.setHeader("X-Content-Type-Options", "nosniff");
       res.setHeader("Cache-Control", "private, max-age=60");
-      object.stream.on("error", (err) => next(err));
+      object.stream.on("error", (err: Error) => next(err));
       object.stream.pipe(res);
     } catch (err) {
       next(err);

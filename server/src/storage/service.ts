@@ -118,6 +118,13 @@ export function createStorageService(provider: StorageProvider): StorageService 
       return provider.getObject({ objectKey });
     },
 
+    async getObjectRaw(objectKey: string) {
+      if (objectKey.includes("..")) {
+        throw badRequest("Invalid object key");
+      }
+      return provider.getObject({ objectKey });
+    },
+
     async headObject(companyId: string, objectKey: string) {
       ensureCompanyPrefix(companyId, objectKey);
       return provider.headObject({ objectKey });
