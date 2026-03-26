@@ -543,6 +543,122 @@ Director tiebreaker:
   Is this a role-fit issue or a quality issue?"
 ```
 
+## OpenSpace — Agent Self-Evolution System
+
+3 monitoring layers that drive continuous agent improvement:
+
+### Layer 1: Post-Execution Analysis (after every task)
+- Log everything: tool calls, errors, outputs, duration, cost
+- Pattern detection: if a successful pattern repeats 3+ times → auto-create skill
+- Failure detection: if a skill fails consistently → trigger evolution (fix or replace)
+- All changes stored in version DAG (ancestry tree) — trace how any skill evolved
+
+### Layer 2: Tool Degradation Monitor (when tools break)
+- Track success rate per tool (MCP server, connector, API)
+- If success rate drops below threshold → find ALL skills using that tool
+- Auto-trigger skill evolution for affected skills
+- Notify Swarm Director for investigation
+
+### Layer 3: Metric Monitor (periodic health check)
+- Per-skill metrics reviewed on schedule:
+  - **Applied rate** — how often is this skill used?
+  - **Completion rate** — how often does it succeed?
+  - **Fallback rate** — how often does it need a backup plan?
+- Low-performing skills (completion <70% or fallback >30%) → trigger evolution
+- High-performing skills → promote to "recommended" in Swarm catalog
+
+### Version DAG (Skill Ancestry)
+Every skill evolution creates a node in a directed acyclic graph:
+```
+code-review v1 → v1.1 (fixed citation format) → v1.2 (added security check)
+                                                   ↑
+                                          triggered by: Tool Degradation
+                                          (eslint MCP success rate dropped)
+```
+Viewable in SQLite browser or Swarm UI. Full traceability of how skills evolved.
+
+**Key insight**: OpenSpace learns from SUCCESS too — not just failures. When an agent
+discovers a pattern that works, OpenSpace captures and promotes it.
+
+## Sub-Agent Creation Rules
+
+When an agent needs help on a complex task, it can spawn sub-agents:
+
+### Rules
+- **Default**: 1 sub-agent per task
+- **Maximum**: 3 concurrent sub-agents
+- **Budget gate**: Check before spawning:
+  - `spent > 80%` → NO sub-agents, do it yourself
+  - `spent > 95%` → Exit and report "approaching budget limit"
+- **Inheritance**: Sub-agents inherit Company Law + parent's persona context
+- **Instructions**: Sub-agent gets focused instructions for its specific subtask
+- **Tracking**: Parent tracks all sub-agent completions, aggregates results
+- **Cost**: Sub-agent cost counts against parent's budget
+
+### When to Use Sub-Agents
+| Situation | Strategy |
+|---|---|
+| Research + Build | Sub-agent researches, parent builds |
+| A vs B comparison | Parallel sub-agents, parent decides |
+| Cross-domain task | Delegate domain-specific part to specialist agent |
+| Large document | Split by section, sub-agents per section, parent assembles |
+
+### When NOT to Use Sub-Agents
+- Simple tasks (<30 min estimated)
+- Budget >80% used
+- Task is already a sub-task from another agent
+- No clear subtask boundary
+
+## Agent Readiness Score
+
+Every agent has a readiness score (0-100) based on 6 mandatory dimensions:
+
+### Mandatory Files (per agent)
+| # | File | Purpose | Shared? |
+|---|---|---|---|
+| 1 | COMPANY_LAW.md | 7 principles — behavior rules | Same for all |
+| 2 | PERSONA (identity card) | Name, role, character, language, email | Unique |
+| 3 | SOUL.md | Full instructions + responsibilities | Unique |
+| 4 | SKILLS.md | Available tools + capabilities | Unique |
+| 5 | HEARTBEAT.md | Schedule + daily routine | Unique |
+| 6 | LESSONS.md | What they've learned | Unique, grows |
+
+### Radar Chart (6 dimensions)
+```
+        Identity (PERSONA)
+            ████░ 80%
+           /        \
+  Ethics  /          \ Expertise
+  ████░  /            \ █████
+  80%   /              \ 100%
+       /                \
+      /                  \
+Knowledge ░░░░░ ─────── Operations
+    20%        ████░ 80%
+         \    /
+          \ /
+     Experience
+       ██░░░ 40%
+```
+
+### Scoring per dimension
+| Dimension | Score = 100% when... |
+|---|---|
+| **Identity** | PERSONA fields complete (name, role, email, language, character) |
+| **Ethics** | Company Law loaded in system prompt |
+| **Expertise** | SOUL.md >100 lines + SKILLS.md >10 skills listed |
+| **Experience** | LESSONS.md >10 entries + >30 tasks completed |
+| **Operations** | HEARTBEAT.md defined + agent has run in last 24h |
+| **Knowledge** | >5 Brain memories tagged to this agent |
+
+### Score Calculation
+```
+Readiness = (Identity×15 + Ethics×20 + Expertise×25 + Experience×15 + Operations×15 + Knowledge×10) / 100
+```
+
+Ethics weighted highest (20%) because an agent without principles is dangerous.
+Expertise weighted highest (25%) because an agent without skills is useless.
+
 ## Key Design Decisions
 
 1. **Infrastructure first** — Can't mentor without capabilities to manage
