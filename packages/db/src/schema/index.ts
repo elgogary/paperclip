@@ -70,3 +70,4 @@ export { mcpAgentAccess } from "./mcp_agent_access.js";
 export { mcpCatalog } from "./mcp_catalog.js";
 export { connectors } from "./connectors.js";
 export { pluginAgentAccess } from "./plugin_agent_access.js";
+export { chatSessions } from "./chat-sessions.js";
