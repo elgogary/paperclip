@@ -207,9 +207,9 @@ Body: {body}
 Category:"""
 
 
-def _llm(prompt, max_tokens=10):
+def _llm(prompt, max_tokens=10, model=None):
     payload = json.dumps({
-        "model": "qwen2.5-0.5b",
+        "model": model or os.environ.get("CLASSIFY_MODEL", "glm-4.5-air"),
         "messages": [{"role": "user", "content": prompt}],
         "max_tokens": max_tokens, "temperature": 0.0,
     }).encode()
