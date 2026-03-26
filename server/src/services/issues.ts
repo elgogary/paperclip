@@ -491,9 +491,9 @@ export function issueService(db: Db) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const $: Record<string, any> = { assertAssignableAgent, withIssueLabels };
 
-  const commentOps = createCommentOps(db, $);
-  const attachmentOps = createAttachmentOps(db, $);
-  const checkoutOps = createCheckoutOps(db, $);
+  const commentOps = createCommentOps(db, $ as any);
+  const attachmentOps = createAttachmentOps(db, $ as any);
+  const checkoutOps = createCheckoutOps(db, $ as any);
 
   return {
     ...commentOps,

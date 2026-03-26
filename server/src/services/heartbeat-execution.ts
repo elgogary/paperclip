@@ -515,8 +515,8 @@ export function createExecutionOps(db: Db, $: any) {
       await db
         .update(heartbeatRuns)
         .set({
-          logStore: handle.store,
-          logRef: handle.logRef,
+          logStore: handle!.store,
+          logRef: handle!.logRef,
           updatedAt: new Date(),
         })
         .where(eq(heartbeatRuns.id, runId));

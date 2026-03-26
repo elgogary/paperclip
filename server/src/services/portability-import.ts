@@ -264,8 +264,8 @@ export function createImportOps(db: Db, $: ImportServices) {
     if (input.target.mode === "existing_company") {
       const targetCompany = await $.companies.getById(input.target.companyId);
       if (!targetCompany) throw notFound("Target company not found");
-      targetCompanyId = targetCompany.id;
-      targetCompanyName = targetCompany.name;
+      targetCompanyId = targetCompany!.id;
+      targetCompanyName = targetCompany!.name;
     }
 
     const agentPlans: CompanyPortabilityPreviewAgentPlan[] = [];
@@ -546,7 +546,7 @@ export function createImportOps(db: Db, $: ImportServices) {
       targetCompany = await $.companies.getById(input.target.companyId);
       if (!targetCompany) throw notFound("Target company not found");
       if (include.company && sourceManifest.company && mode === "board_full") {
-        const updated = await $.companies.update(targetCompany.id, {
+        const updated = await $.companies.update(targetCompany!.id, {
           name: sourceManifest.company.name,
           description: sourceManifest.company.description,
           brandColor: sourceManifest.company.brandColor,
@@ -562,7 +562,7 @@ export function createImportOps(db: Db, $: ImportServices) {
     if (include.company) {
       const logoPath = sourceManifest.company?.logoPath ?? null;
       if (!logoPath) {
-        const cleared = await $.companies.update(targetCompany.id, { logoAssetId: null });
+        const cleared = await $.companies.update(targetCompany!.id, { logoAssetId: null });
         targetCompany = cleared ?? targetCompany;
       } else {
         const logoFile = plan.source.files[logoPath];
@@ -580,13 +580,13 @@ export function createImportOps(db: Db, $: ImportServices) {
             try {
               const body = portableFileToBuffer(logoFile, logoPath);
               const stored = await $.storage.putFile({
-                companyId: targetCompany.id,
+                companyId: targetCompany!.id,
                 namespace: "assets/companies",
                 originalFilename: path.posix.basename(logoPath),
                 contentType,
                 body,
               });
-              const createdAsset = await $.assetRecords.create(targetCompany.id, {
+              const createdAsset = await $.assetRecords.create(targetCompany!.id, {
                 provider: stored.provider,
                 objectKey: stored.objectKey,
                 contentType: stored.contentType,
@@ -596,7 +596,7 @@ export function createImportOps(db: Db, $: ImportServices) {
                 createdByAgentId: null,
                 createdByUserId: actorUserId ?? null,
               });
-              const updated = await $.companies.update(targetCompany.id, {
+              const updated = await $.companies.update(targetCompany!.id, {
                 logoAssetId: createdAsset.id,
               });
               targetCompany = updated ?? targetCompany;
@@ -612,20 +612,20 @@ export function createImportOps(db: Db, $: ImportServices) {
     const resultProjects: CompanyPortabilityImportResult["projects"] = [];
     const importedSlugToAgentId = new Map<string, string>();
     const existingSlugToAgentId = new Map<string, string>();
-    const existingAgents = await $.agents.list(targetCompany.id);
+    const existingAgents = await $.agents.list(targetCompany!.id);
     for (const existing of existingAgents) {
       existingSlugToAgentId.set(normalizeAgentUrlKey(existing.name) ?? existing.id, existing.id);
     }
     const importedSlugToProjectId = new Map<string, string>();
     const importedProjectWorkspaceIdByProjectSlug = new Map<string, Map<string, string>>();
     const existingProjectSlugToId = new Map<string, string>();
-    const existingProjects = await $.projects.list(targetCompany.id);
+    const existingProjects = await $.projects.list(targetCompany!.id);
     for (const existing of existingProjects) {
       existingProjectSlugToId.set(existing.urlKey, existing.id);
     }
 
     const importedSkills = include.skills || include.agents
-      ? await $.companySkills.importPackageFiles(targetCompany.id, pickTextFiles(plan.source.files), {
+      ? await $.companySkills.importPackageFiles(targetCompany!.id, pickTextFiles(plan.source.files), {
           onConflict: resolveSkillConflictStrategy(mode, plan.collisionStrategy),
         })
       : [];
@@ -749,10 +749,10 @@ export function createImportOps(db: Db, $: ImportServices) {
           continue;
         }
 
-        let created = await $.agents.create(targetCompany.id, patch);
-        await $.access.ensureMembership(targetCompany.id, "agent", created.id, "member", "active");
+        let created = await $.agents.create(targetCompany!.id, patch);
+        await $.access.ensureMembership(targetCompany!.id, "agent", created.id, "member", "active");
         await $.access.setPrincipalPermission(
-          targetCompany.id,
+          targetCompany!.id,
           "agent",
           created.id,
           "tasks:assign",
@@ -853,7 +853,7 @@ export function createImportOps(db: Db, $: ImportServices) {
             reason: planProject.reason,
           });
         } else {
-          const created = await $.projects.create(targetCompany.id, projectPatch);
+          const created = await $.projects.create(targetCompany!.id, projectPatch);
           projectId = created.id;
           importedSlugToProjectId.set(planProject.slug, created.id);
           existingProjectSlugToId.set(created.urlKey, created.id);
@@ -939,7 +939,7 @@ export function createImportOps(db: Db, $: ImportServices) {
             catchUpPolicy: null,
             triggers: [],
           };
-          const createdRoutine = await routines.create(targetCompany.id, {
+          const createdRoutine = await routines.create(targetCompany!.id, {
             projectId,
             goalId: null,
             parentIssueId: null,
@@ -1005,7 +1005,7 @@ export function createImportOps(db: Db, $: ImportServices) {
           }
           continue;
         }
-        await $.issues.create(targetCompany.id, {
+        await $.issues.create(targetCompany!.id, {
           projectId,
           projectWorkspaceId,
           title: manifestIssue.title,
@@ -1027,8 +1027,8 @@ export function createImportOps(db: Db, $: ImportServices) {
 
     return {
       company: {
-        id: targetCompany.id,
-        name: targetCompany.name,
+        id: targetCompany!.id,
+        name: targetCompany!.name,
         action: companyAction,
       },
       agents: resultAgents,

@@ -168,8 +168,8 @@ export function companyPortabilityService(db: Db, storage?: StorageService) {
   $.resolveSource = resolveSource;
 
   // ── Initialize sub-modules ──────────────────────────────────────────────
-  const exportOps = createExportOps(db, $);
-  const importOps = createImportOps(db, $);
+  const exportOps = createExportOps(db, $ as any);
+  const importOps = createImportOps(db, $ as any);
 
   return {
     exportBundle: exportOps.exportBundle,
