@@ -31,16 +31,19 @@
   .main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
   .breadcrumb { height: 38px; border-bottom: 1px solid var(--border); padding: 0 16px; display: flex; align-items: center; font-size: 12px; color: var(--muted-fg); flex-shrink: 0; gap: 6px; }
 
-  /* ── Tabs ── */
-  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); padding: 0 16px; flex-shrink: 0; }
-  .tab { padding: 10px 16px; font-size: 13px; font-weight: 500; color: var(--muted-fg); cursor: pointer; border-bottom: 2px solid transparent; transition: all .15s; display: flex; align-items: center; gap: 6px; }
-  .tab:hover { color: var(--fg); background: var(--accent); }
-  .tab.active { color: var(--fg); border-bottom-color: var(--fg); }
-  .tab .tab-count { font-size: 10px; background: var(--muted); padding: 1px 7px; border-radius: 8px; }
-  .tab.active .tab-count { background: oklch(0.35 0 0); }
-
-  /* ── Content area ── */
-  .content { flex: 1; overflow-y: auto; padding: 16px 20px; }
+  /* ── Toolkit layout (sidebar nav + content) ── */
+  .toolkit-layout { display: flex; flex: 1; overflow: hidden; }
+  .toolkit-nav { width: 200px; border-right: 1px solid var(--border); flex-shrink: 0; display: flex; flex-direction: column; }
+  .toolkit-nav-title { padding: 14px 14px 12px; font-size: 15px; font-weight: 700; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .toolkit-nav-items { flex: 1; padding: 8px 8px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+  .tk-nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 7px; cursor: pointer; transition: all .12s; color: var(--muted-fg); font-weight: 500; }
+  .tk-nav-item:hover { background: var(--accent); color: var(--fg); }
+  .tk-nav-item.active { background: var(--accent); color: var(--fg); }
+  .tk-nav-icon { font-size: 16px; width: 22px; text-align: center; }
+  .tk-nav-label { flex: 1; font-size: 13px; }
+  .tk-nav-count { font-size: 10px; background: var(--muted); padding: 1px 7px; border-radius: 8px; color: var(--muted-fg); }
+  .tk-nav-item.active .tk-nav-count { color: var(--fg); }
+  .toolkit-nav-hint { padding: 12px 14px; font-size: 11px; color: var(--muted-fg); line-height: 1.5; border-top: 1px solid var(--border); }
   .panel { display: none; }
   .panel.active { display: block; }
 
@@ -258,20 +261,43 @@
     <span>OPT</span> <span style="opacity:.4">&#x203A;</span> <span style="color:var(--fg);font-weight:600">Capability Swarm</span>
   </div>
 
-  <!-- Tabs -->
-  <div class="tabs">
-    <div class="tab active" onclick="switchTab('catalog')">&#x1F4E6; Catalog <span class="tab-count">247</span></div>
-    <div class="tab" onclick="switchTab('myswarm')">&#x1F41D; Capability Swarm <span class="tab-count">23</span></div>
-    <div class="tab" onclick="switchTab('sources')">&#x1F517; Sources <span class="tab-count">5</span></div>
-    <div class="tab" onclick="switchTab('queue')">&#x1F514; Queue <span class="tab-count" style="background:rgba(239,68,68,.25);color:var(--red)">3</span></div>
-    <div class="tab" onclick="switchTab('audit')">&#x1F4DC; Audit</div>
-    <div class="tab" onclick="switchTab('library')">&#x1F4DA; Library <span class="tab-count">245</span></div>
-    <div class="tab" onclick="switchTab('agents')">&#x1F916; Agents <span class="tab-count">9</span></div>
-    <div class="tab" onclick="switchTab('economics')">&#x1F4B0; Economics</div>
-    <div class="tab" onclick="switchTab('budgets')">&#x1F464; Agent Budgets</div>
-  </div>
+  <div class="toolkit-layout">
+    <!-- ── Inner Nav (sections) ── -->
+    <div class="toolkit-nav">
+      <div class="toolkit-nav-title">&#x1F41D; Capability Swarm</div>
+      <div class="toolkit-nav-items">
+        <div class="tk-nav-item active" onclick="switchSection(this,'catalog')">
+          <span class="tk-nav-icon">&#x1F4E6;</span><span class="tk-nav-label">Catalog</span><span class="tk-nav-count">247</span>
+        </div>
+        <div class="tk-nav-item" onclick="switchSection(this,'myswarm')">
+          <span class="tk-nav-icon">&#x1F41D;</span><span class="tk-nav-label">Capability Swarm</span><span class="tk-nav-count">23</span>
+        </div>
+        <div class="tk-nav-item" onclick="switchSection(this,'sources')">
+          <span class="tk-nav-icon">&#x1F517;</span><span class="tk-nav-label">Sources</span><span class="tk-nav-count">5</span>
+        </div>
+        <div class="tk-nav-item" onclick="switchSection(this,'queue')">
+          <span class="tk-nav-icon">&#x1F514;</span><span class="tk-nav-label">Queue</span><span class="tk-nav-count" style="background:rgba(239,68,68,.25);color:var(--red)">3</span>
+        </div>
+        <div class="tk-nav-item" onclick="switchSection(this,'audit')">
+          <span class="tk-nav-icon">&#x1F4DC;</span><span class="tk-nav-label">Audit</span>
+        </div>
+        <div class="tk-nav-item" onclick="switchSection(this,'library')">
+          <span class="tk-nav-icon">&#x1F4DA;</span><span class="tk-nav-label">Library</span><span class="tk-nav-count">245</span>
+        </div>
+        <div class="tk-nav-item" onclick="switchSection(this,'agents')">
+          <span class="tk-nav-icon">&#x1F916;</span><span class="tk-nav-label">Agents</span><span class="tk-nav-count">9</span>
+        </div>
+        <div class="tk-nav-item" onclick="switchSection(this,'economics')">
+          <span class="tk-nav-icon">&#x1F4B0;</span><span class="tk-nav-label">Economics</span>
+        </div>
+        <div class="tk-nav-item" onclick="switchSection(this,'budgets')">
+          <span class="tk-nav-icon">&#x1F464;</span><span class="tk-nav-label">Agent Budgets</span>
+        </div>
+      </div>
+      <div class="toolkit-nav-hint">A living hub where agents discover, learn, and grow. Browse capabilities, study the library, and track ROI.</div>
+    </div>
 
-  <div class="content">
+    <div style="flex:1;overflow-y:auto;padding:16px 20px">
 
     <!-- ═══════════════════════════════════════════════════════════ -->
     <!-- TAB 1: CATALOG                                             -->
@@ -1822,7 +1848,8 @@
       </div>
     </div>
 
-  </div><!-- /content -->
+    </div><!-- /panel area -->
+  </div><!-- /toolkit-layout -->
 </div><!-- /main-area -->
 
 <!-- ═══════════════════════════════════════════════════════════════ -->
@@ -2204,12 +2231,21 @@
 </div>
 
 <script>
-// ── Tab switching ──
-function switchTab(name) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+// ── Section switching (sidebar nav) ──
+function switchSection(el, name) {
+  document.querySelectorAll('.tk-nav-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  event.currentTarget.classList.add('active');
   document.getElementById('panel-' + name).classList.add('active');
+}
+// Legacy support for inline onclick="switchTab('catalog')" calls
+function switchTab(name) {
+  const navItem = document.querySelector(`.tk-nav-item[onclick*="${name}"]`);
+  if (navItem) switchSection(navItem, name);
+  else {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + name)?.classList.add('active');
+  }
 }
 
 // ── Filter chips ──
