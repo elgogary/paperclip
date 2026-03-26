@@ -142,7 +142,7 @@ type RuntimeSkillEntryOptions = {
 
 const skillInventoryRefreshPromises = new Map<string, Promise<void>>();
 
-const PROJECT_SCAN_DIRECTORY_ROOTS = [
+export const PROJECT_SCAN_DIRECTORY_ROOTS = [
   "skills",
   "skills/.curated",
   "skills/.experimental",
@@ -179,7 +179,7 @@ const PROJECT_SCAN_DIRECTORY_ROOTS = [
   ".adal/skills",
 ] as const;
 
-const PROJECT_ROOT_SKILL_SUBDIRECTORIES = [
+export const PROJECT_ROOT_SKILL_SUBDIRECTORIES = [
   "references",
   "scripts",
   "assets",

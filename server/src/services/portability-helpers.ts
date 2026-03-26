@@ -72,7 +72,7 @@ type EnvInputRecord = {
   portability?: "portable" | "system_dependent";
 };
 
-const COMPANY_LOGO_CONTENT_TYPE_EXTENSIONS: Record<string, string> = {
+export const COMPANY_LOGO_CONTENT_TYPE_EXTENSIONS: Record<string, string> = {
   "image/gif": ".gif",
   "image/jpeg": ".jpg",
   "image/png": ".png",
@@ -658,3 +658,49 @@ export function buildEnvInputMap(inputs: CompanyPortabilityEnvInput[]) {
 export function readCompanyApprovalDefault(_frontmatter: Record<string, unknown>) {
   return true;
 }
+
+export const DEFAULT_COLLISION_STRATEGY: CompanyPortabilityCollisionStrategy = "rename";
+
+export const COMPANY_LOGO_FILE_NAME = "company-logo";
+
+export const RUNTIME_DEFAULT_RULES: Array<{ path: string[]; value: unknown }> = [
+  { path: ["heartbeat", "cooldownSec"], value: 10 },
+  { path: ["heartbeat", "intervalSec"], value: 3600 },
+  { path: ["heartbeat", "wakeOnOnDemand"], value: true },
+  { path: ["heartbeat", "wakeOnAssignment"], value: true },
+  { path: ["heartbeat", "wakeOnAutomation"], value: true },
+  { path: ["heartbeat", "wakeOnDemand"], value: true },
+  { path: ["heartbeat", "maxConcurrentRuns"], value: 3 },
+];
+
+export const ADAPTER_DEFAULT_RULES_BY_TYPE: Record<string, Array<{ path: string[]; value: unknown }>> = {
+  codex_local: [
+    { path: ["timeoutSec"], value: 0 },
+    { path: ["graceSec"], value: 15 },
+  ],
+  gemini_local: [
+    { path: ["timeoutSec"], value: 0 },
+    { path: ["graceSec"], value: 15 },
+  ],
+  opencode_local: [
+    { path: ["timeoutSec"], value: 0 },
+    { path: ["graceSec"], value: 15 },
+  ],
+  cursor: [
+    { path: ["timeoutSec"], value: 0 },
+    { path: ["graceSec"], value: 15 },
+  ],
+  claude_local: [
+    { path: ["timeoutSec"], value: 0 },
+    { path: ["graceSec"], value: 15 },
+    { path: ["maxTurnsPerRun"], value: 300 },
+  ],
+  openclaw_gateway: [
+    { path: ["timeoutSec"], value: 120 },
+    { path: ["waitTimeoutMs"], value: 120000 },
+    { path: ["sessionKeyStrategy"], value: "fixed" },
+    { path: ["sessionKey"], value: "paperclip" },
+    { path: ["role"], value: "operator" },
+    { path: ["scopes"], value: ["operator.admin"] },
+  ],
+};

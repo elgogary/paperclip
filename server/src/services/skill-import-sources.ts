@@ -32,6 +32,8 @@ import {
   deriveTrustLevel,
   readCanonicalSkillKey,
   deriveCanonicalSkillKey,
+} from "./skill-inventory.js";
+import {
   PROJECT_SCAN_DIRECTORY_ROOTS,
   PROJECT_ROOT_SKILL_SUBDIRECTORIES,
 } from "./company-skills.js";

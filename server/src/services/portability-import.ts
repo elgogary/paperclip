@@ -39,10 +39,7 @@ import { notFound, unprocessable } from "../errors.js";
 import { routineService } from "./routines.js";
 import {
   normalizeInclude,
-  stripEmptyValues,
   readPortableTextFile,
-  ensureMarkdownPath,
-  applySelectedFilesToSource,
   isPortableBinaryFile,
   inferContentTypeFromPath,
   portableFileToBuffer,
@@ -51,7 +48,6 @@ import {
   dedupeEnvInputs,
   uniqueNameBySlug,
   uniqueProjectName,
-  resolvePortableRoutineDefinition,
   disableImportedTimerHeartbeat,
   importPortableProjectExecutionWorkspacePolicy,
   stripPortableProjectExecutionWorkspaceRefs,
@@ -59,9 +55,10 @@ import {
   resolveSkillConflictStrategy,
   DEFAULT_COLLISION_STRATEGY,
   COMPANY_LOGO_CONTENT_TYPE_EXTENSIONS,
-  buildOrgTreeFromManifest,
 } from "./portability-helpers.js";
-import { buildManifestFromPackageFiles } from "./portability-manifest.js";
+import { stripEmptyValues } from "./portability-yaml-render.js";
+import { applySelectedFilesToSource, ensureMarkdownPath, buildOrgTreeFromManifest } from "./portability-skills.js";
+import { buildManifestFromPackageFiles, resolvePortableRoutineDefinition } from "./portability-manifest.js";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
