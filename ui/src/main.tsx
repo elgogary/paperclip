@@ -49,9 +49,9 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <CompanyProvider>
-          <ToastProvider>
-            <BrowserRouter>
+        <BrowserRouter>
+          <CompanyProvider>
+            <ToastProvider>
               <LiveUpdatesProvider>
                 <TooltipProvider>
                   <BreadcrumbProvider>
@@ -67,9 +67,9 @@ createRoot(document.getElementById("root")!).render(
                   </BreadcrumbProvider>
                 </TooltipProvider>
               </LiveUpdatesProvider>
-            </BrowserRouter>
-          </ToastProvider>
-        </CompanyProvider>
+            </ToastProvider>
+          </CompanyProvider>
+        </BrowserRouter>
       </ThemeProvider>
     </QueryClientProvider>
   </StrictMode>

@@ -52,7 +52,8 @@
               "guides/board-operator/scheduled-jobs",
               "guides/board-operator/skills",
               "guides/board-operator/toolkit-capabilities",
-              "guides/board-operator/brain-architecture"
+              "guides/board-operator/brain-architecture",
+              "guides/board-operator/importing-and-exporting"
             ]
           },
           {

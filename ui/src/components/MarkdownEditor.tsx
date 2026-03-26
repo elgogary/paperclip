@@ -8,6 +8,7 @@ import {
   useState,
   type DragEvent,
 } from "react";
+import { createPortal } from "react-dom";
 import {
   CodeMirrorEditor,
   MDXEditor,
@@ -29,6 +30,8 @@ import {
 import { buildAgentMentionHref, buildProjectMentionHref } from "@paperclipai/shared";
 import { AgentIcon } from "./AgentIconPicker";
 import { applyMentionChipDecoration, clearMentionChipDecoration, parseMentionChipHref } from "../lib/mention-chips";
+import { MentionAwareLinkNode, mentionAwareLinkNodeReplacement } from "../lib/mention-aware-link-node";
+import { mentionDeletionPlugin } from "../lib/mention-deletion";
 import { cn } from "../lib/utils";
 
 /* ---- Mention types ---- */
@@ -68,12 +71,21 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function isSafeMarkdownLinkUrl(url: string): boolean {
+  const trimmed = url.trim();
+  if (!trimmed) return true;
+  return !/^(javascript|data|vbscript):/i.test(trimmed);
+}
+
 /* ---- Mention detection helpers ---- */
 
 interface MentionState {
   query: string;
   top: number;
   left: number;
+  /** Viewport-relative coords for portal positioning */
+  viewportTop: number;
+  viewportLeft: number;
   textNode: Text;
   atPos: number;
   endPos: number;
@@ -147,6 +159,8 @@ function detectMention(container: HTMLElement): MentionState | null {
     query,
     top: rect.bottom - containerRect.top,
     left: rect.left - containerRect.left,
+    viewportTop: rect.bottom,
+    viewportLeft: rect.left,
     textNode: textNode as Text,
     atPos,
     endPos: offset,
@@ -269,8 +283,9 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
       listsPlugin(),
       quotePlugin(),
       tablePlugin(),
-      linkPlugin(),
+      linkPlugin({ validateUrl: isSafeMarkdownLinkUrl }),
       linkDialogPlugin(),
+      mentionDeletionPlugin(),
       thematicBreakPlugin(),
       codeBlockPlugin({
         defaultCodeBlockLanguage: "txt",
@@ -541,49 +556,52 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
           "paperclip-mdxeditor-content focus:outline-none [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:list-item",
           contentClassName,
         )}
+        additionalLexicalNodes={[MentionAwareLinkNode, mentionAwareLinkNodeReplacement]}
         plugins={plugins}
       />
 
-      {/* Mention dropdown */}
-      {mentionActive && filteredMentions.length > 0 && (
-        <div
-          className="absolute z-50 min-w-[180px] max-h-[200px] overflow-y-auto rounded-md border border-border bg-popover shadow-md"
-          style={{ top: mentionState.top + 4, left: mentionState.left }}
-        >
-          {filteredMentions.map((option, i) => (
-            <button
-              key={option.id}
-              className={cn(
-                "flex items-center gap-2 w-full px-3 py-1.5 text-sm text-left hover:bg-accent/50 transition-colors",
-                i === mentionIndex && "bg-accent",
-              )}
-              onMouseDown={(e) => {
-                e.preventDefault(); // prevent blur
-                selectMention(option);
-              }}
-              onMouseEnter={() => setMentionIndex(i)}
-            >
-              {option.kind === "project" && option.projectId ? (
-                <span
-                  className="inline-flex h-2 w-2 rounded-full border border-border/50"
-                  style={{ backgroundColor: option.projectColor ?? "#64748b" }}
-                />
-              ) : (
-                <AgentIcon
-                  icon={option.agentIcon}
-                  className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
-                />
-              )}
-              <span>{option.name}</span>
-              {option.kind === "project" && option.projectId && (
-                <span className="ml-auto text-[10px] uppercase tracking-wide text-muted-foreground">
-                  Project
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Mention dropdown — rendered via portal so it isn't clipped by overflow containers */}
+      {mentionActive && filteredMentions.length > 0 &&
+        createPortal(
+          <div
+            className="fixed z-[9999] min-w-[180px] max-h-[200px] overflow-y-auto rounded-md border border-border bg-popover shadow-md"
+            style={{ top: mentionState.viewportTop + 4, left: mentionState.viewportLeft }}
+          >
+            {filteredMentions.map((option, i) => (
+              <button
+                key={option.id}
+                className={cn(
+                  "flex items-center gap-2 w-full px-3 py-1.5 text-sm text-left hover:bg-accent/50 transition-colors",
+                  i === mentionIndex && "bg-accent",
+                )}
+                onMouseDown={(e) => {
+                  e.preventDefault(); // prevent blur
+                  selectMention(option);
+                }}
+                onMouseEnter={() => setMentionIndex(i)}
+              >
+                {option.kind === "project" && option.projectId ? (
+                  <span
+                    className="inline-flex h-2 w-2 rounded-full border border-border/50"
+                    style={{ backgroundColor: option.projectColor ?? "#64748b" }}
+                  />
+                ) : (
+                  <AgentIcon
+                    icon={option.agentIcon}
+                    className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                  />
+                )}
+                <span>{option.name}</span>
+                {option.kind === "project" && option.projectId && (
+                  <span className="ml-auto text-[10px] uppercase tracking-wide text-muted-foreground">
+                    Project
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>,
+          document.body,
+        )}
 
       {isDragOver && canDropImage && (
         <div

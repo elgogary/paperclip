@@ -15,7 +15,7 @@ import {
 } from "@paperclipai/adapter-utils/server-utils";
 import path from "node:path";
 import { parseCodexJsonl } from "./parse.js";
-import { readCodexAuthInfo } from "./quota.js";
+import { codexHomeDir, readCodexAuthInfo } from "./quota.js";
 
 function summarizeStatus(checks: AdapterEnvironmentCheck[]): AdapterEnvironmentTestResult["status"] {
   if (checks.some((check) => check.level === "error")) return "fail";
@@ -109,13 +109,14 @@ export async function testEnvironment(
       detail: `Detected in ${source}.`,
     });
   } else {
-    const codexAuth = await readCodexAuthInfo().catch(() => null);
+    const codexHome = isNonEmpty(env.CODEX_HOME) ? env.CODEX_HOME : undefined;
+    const codexAuth = await readCodexAuthInfo(codexHome).catch(() => null);
     if (codexAuth) {
       checks.push({
         code: "codex_native_auth_present",
         level: "info",
         message: "Codex is authenticated via its own auth configuration.",
-        detail: codexAuth.email ? `Logged in as ${codexAuth.email}.` : "Credentials found in ~/.codex/auth.json.",
+        detail: codexAuth.email ? `Logged in as ${codexAuth.email}.` : `Credentials found in ${path.join(codexHome ?? codexHomeDir(), "auth.json")}.`,
       });
     } else {
       checks.push({

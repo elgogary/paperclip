@@ -45,6 +45,7 @@ import { MarkdownEditor } from "./MarkdownEditor";
 import { ChoosePathButton } from "./PathInstructionsModal";
 import { OpenCodeLogoIcon } from "./OpenCodeLogoIcon";
 import { ReportsToPicker } from "./ReportsToPicker";
+import { shouldShowLegacyWorkingDirectoryField } from "../lib/legacy-agent-config";
 
 /* ---- Create mode values ---- */
 

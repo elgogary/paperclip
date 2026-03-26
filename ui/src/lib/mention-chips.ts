@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import { parseAgentMentionHref, parseProjectMentionHref } from "@paperclipai/shared";
 import { getAgentIcon } from "./agent-icons";
+import { hexToRgb, pickTextColorForPillBg } from "./color-contrast";
 
 export type ParsedMentionChip =
   | {
@@ -98,22 +99,10 @@ export function clearMentionChipDecoration(element: HTMLElement) {
 function projectMentionColors(color: string): Pick<CSSProperties, "borderColor" | "backgroundColor" | "color"> {
   const rgb = hexToRgb(color);
   if (!rgb) return {};
-  const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
   return {
     borderColor: color,
     backgroundColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.22)`,
-    color: luminance > 0.55 ? "#111827" : "#f8fafc",
-  };
-}
-
-function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
-  const match = /^#([0-9a-f]{6})$/i.exec(hex.trim());
-  if (!match) return null;
-  const value = match[1];
-  return {
-    r: parseInt(value.slice(0, 2), 16),
-    g: parseInt(value.slice(2, 4), 16),
-    b: parseInt(value.slice(4, 6), 16),
+    color: pickTextColorForPillBg(color),
   };
 }
 
@@ -123,15 +112,7 @@ function buildAgentIconMask(iconName: string | null): string | null {
   if (cached) return cached;
 
   const Icon = getAgentIcon(iconName);
-  const rendered = (
-    Icon as unknown as {
-      render: (
-        props: Record<string, unknown>,
-        ref: unknown,
-      ) => { props?: { iconNode?: Array<[string, Record<string, string>]> } };
-    }
-  ).render({ size: 12, strokeWidth: 2 }, null);
-  const iconNode = rendered?.props?.iconNode;
+  const iconNode = resolveLucideIconNode(Icon);
   if (!Array.isArray(iconNode) || iconNode.length === 0) return null;
 
   const body = iconNode.map(([tag, attrs]) => {
@@ -150,6 +131,33 @@ function buildAgentIconMask(iconName: string | null): string | null {
   iconMaskCache.set(cacheKey, url);
   return url;
 }
+
+function resolveLucideIconNode(
+  icon: unknown,
+): Array<[string, Record<string, string>]> | null {
+  const staticIconNode = (
+    icon as {
+      iconNode?: Array<[string, Record<string, string>]>;
+    }
+  ).iconNode;
+  if (Array.isArray(staticIconNode) && staticIconNode.length > 0) {
+    return staticIconNode;
+  }
+
+  const render = (
+    icon as {
+      render?: (props: Record<string, unknown>, ref: unknown) => {
+        props?: { iconNode?: Array<[string, Record<string, string>]> };
+      } | null;
+    }
+  ).render;
+  const rendered = typeof render === "function" ? render({}, null) : null;
+  const renderedIconNode = rendered?.props?.iconNode;
+  return Array.isArray(renderedIconNode) && renderedIconNode.length > 0
+    ? renderedIconNode
+    : null;
+}
+
 
 function escapeAttribute(value: string): string {
   return value

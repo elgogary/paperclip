@@ -40,7 +40,7 @@ pnpm sanadai company get <company-id>
 pnpm sanadai company export <company-id> --out ./exports/acme --include company,agents
 
 # Preview import (no writes)
-pnpm sanadai company import \
+pnpm paperclipai company import \
   <owner>/<repo>/<path> \
   --target existing \
   --company-id <company-id> \
@@ -49,7 +49,7 @@ pnpm sanadai company import \
   --dry-run
 
 # Apply import
-pnpm sanadai company import \
+pnpm paperclipai company import \
   ./exports/acme \
   --target new \
   --new-company-name "Acme Imported" \

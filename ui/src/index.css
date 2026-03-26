@@ -153,6 +153,10 @@
   [data-slot="select-trigger"] {
     min-height: 44px;
   }
+
+  [data-slot="toggle"] {
+    min-height: 0;
+  }
 }
 
 /* Dark mode scrollbars */
@@ -351,7 +355,7 @@
   font-size: 0.75rem;
   line-height: 1.3;
   text-decoration: none;
-  vertical-align: baseline;
+  vertical-align: middle;
   white-space: nowrap;
   user-select: none;
 }
@@ -445,7 +449,7 @@ a.paperclip-mention-chip[data-mention-kind="agent"]::before {
 
 .paperclip-mdxeditor-content code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.78em;
+  font-size: 1em;
 }
 
 .paperclip-mdxeditor-content pre {
@@ -463,7 +467,7 @@ a.paperclip-mention-chip[data-mention-kind="agent"]::before {
 .paperclip-mdxeditor .cm-editor {
   background-color: #1e1e2e !important;
   color: #cdd6f4 !important;
-  font-size: 0.78em;
+  font-size: 1em;
 }
 
 .paperclip-mdxeditor .cm-gutters {
@@ -543,14 +547,14 @@ a.paperclip-mention-chip[data-mention-kind="agent"]::before {
   color: #cdd6f4 !important;
   padding: 0.5rem 0.65rem !important;
   margin: 0.4rem 0 !important;
-  font-size: 0.78em !important;
+  font-size: 1em !important;
   overflow-x: auto;
   white-space: pre;
 }
 
 .paperclip-markdown code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.78em;
+  font-size: 1em;
 }
 
 .paperclip-markdown pre code {
@@ -571,6 +575,10 @@ a.paperclip-mention-chip[data-mention-kind="agent"]::before {
   padding: 0.15em 0.35em;
   border-radius: 3px;
   font-weight: 500;
+}
+
+.dark .prose :not(pre) > code {
+  background-color: #ffffff0f;
 }
 
 .paperclip-markdown {
@@ -738,7 +746,7 @@ a.paperclip-project-mention-chip {
   font-size: 0.75rem;
   line-height: 1.3;
   text-decoration: none;
-  vertical-align: baseline;
+  vertical-align: middle;
   white-space: nowrap;
 }
 
