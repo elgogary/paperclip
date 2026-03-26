@@ -1,23 +1,40 @@
 # Paperclip Dev Log
 
 ## Working State
-**Session:** Clean-Code File Splitting | **Date:** 2026-03-26
-**Branch:** `refactor/clean-code-split` (= `main-sanad-eoi-app` + split commits)
+**Session:** Clean-Code Split COMPLETE + Deploy | **Date:** 2026-03-27
+**Branch:** `main-sanad-eoi-app` (merged from refactor/clean-code-split)
 
-### Active Task
-Split all files exceeding 2000 lines down to <700 lines each using safe-split strategy.
+### Completed
+- [x] Wave 1: Shared YAML parser + skill keys to @paperclipai/shared
+- [x] Task 2: heartbeat.ts (3899 → 8 modules, $ bag pattern)
+- [x] Task 3: company-portability.ts (4088 → 7 modules)
+- [x] Task 4: company-skills.ts (2203 → 4 files)
+- [x] Tasks 5-6: issues.ts (1727 → 4) + workspace-runtime.ts (1564 → 3)
+- [x] Tasks 7-9: Route splits — access (2908 → 6), agents (2324 → 5), issues (1636 → 5)
+- [x] Tasks 10+12: AgentDetail.tsx (4053 → 9) + NewIssueDialog.tsx (1472 → 6)
+- [x] Task 13: CLI worktree.ts (2585 → 4)
+- [x] Code review: 4 architecture + 4 DRY fixes
+- [x] Test fixes: 10 broken imports + 5 missing constants + parseGitHubSourceUrl
+- [x] Strict TS fixes for Docker build
+- [x] Pre-deploy smoke test suite (33 tests)
+- [x] Deploy to Hetzner (65.109.65.159:3100) — healthy
+- [x] DB restore from backup (all data intact)
+- [x] Full backup: DB dump + app tar + Docker volumes
 
-- [x] Wave 1: Extract shared YAML parser + skill keys to @paperclipai/shared (73ceb32b)
-- [x] Task 2: Split heartbeat.ts (3899 → 8 modules) — $ bag pattern (695d2132, dd32a83e)
-  - heartbeat.ts (305), heartbeat-helpers.ts (745), heartbeat-session.ts (377)
-  - heartbeat-workspace.ts (229), heartbeat-run-ops.ts (645), heartbeat-execution.ts (975)
-  - heartbeat-wakeup.ts (679), heartbeat-cancellation.ts (216)
-  - Code review: fixed $.budgetHooks, audited all 35 $.refs — zero dangling
-- [ ] Task 3: Split company-portability.ts (4088 lines) <-- NEXT
-  - 6 module files created and stashed (portability-*.ts)
-  - Need: rewrite stub + wire imports + type check
-- [ ] Task 4: Split company-skills.ts (2321 lines)
-- [ ] Tasks 5-6: Split issues.ts + workspace-runtime.ts
+### Key Files
+**`scripts/pre-deploy.sh`** — Run before every deploy. TS check + 33 smoke tests.
+**`server/src/__tests__/pre-deploy-smoke.test.ts`** — Verifies all split module wiring.
+**`server/src/__tests__/heartbeat-wiring.test.ts`** — Verifies heartbeat $ bag (19 tests).
+
+### Backup Location (Hetzner)
+```
+/home/eslam/docker-backups/
+  paperclip-postgres-20260327-002630.sql   (7.0 MB — DB dump)
+  full/
+    paperclip-app-20260327-002630.tar.gz   (4.2 MB — app code)
+    pgdata-20260327-002630.tar.gz          (14 MB — PG volume)
+    minio-data-20260327-002630.tar.gz      (4.7 KB — MinIO volume)
+```
 - [ ] Tasks 7-13: Route files + UI + CLI (see plan)
 
 ### Key Files (current shape)
