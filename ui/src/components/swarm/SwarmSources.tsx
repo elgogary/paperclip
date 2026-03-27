@@ -13,7 +13,7 @@ const TRUST_STYLES: Record<string, { bg: string; text: string; label: string }> 
 export function SwarmSources() {
   const { selectedCompanyId } = useCompany();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["swarm", "sources", selectedCompanyId],
     queryFn: () => swarmApi.listSources(selectedCompanyId!),
     enabled: !!selectedCompanyId,
@@ -32,7 +32,9 @@ export function SwarmSources() {
         </div>
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <div className="text-center py-12 text-destructive text-sm">Failed to load sources. Please try again.</div>
+      ) : isLoading ? (
         <div className="text-center py-12 text-muted-foreground text-sm">Loading...</div>
       ) : sources.length === 0 ? (
         <div className="text-center py-12">

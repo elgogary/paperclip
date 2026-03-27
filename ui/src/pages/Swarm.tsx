@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { useCompany } from "../context/CompanyContext";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
-import { swarmApi } from "../api/swarm";
 import { cn } from "../lib/utils";
 import { SwarmCatalog } from "../components/swarm/SwarmCatalog";
 import { SwarmMySwarm } from "../components/swarm/SwarmMySwarm";
@@ -21,43 +19,13 @@ const NAV_ITEMS: { key: Section; icon: string; label: string }[] = [
 ];
 
 export function Swarm() {
-  const { selectedCompanyId } = useCompany();
+  const { selectedCompanyId: _companyId } = useCompany();
   const { setBreadcrumbs } = useBreadcrumbs();
   const [activeSection, setActiveSection] = useState<Section>("catalog");
 
   useEffect(() => {
     setBreadcrumbs([{ label: "Capability Swarm" }]);
   }, [setBreadcrumbs]);
-
-  const { data: installsData } = useQuery({
-    queryKey: ["swarm", "installs", selectedCompanyId],
-    queryFn: () => swarmApi.listInstalls(selectedCompanyId!),
-    enabled: !!selectedCompanyId,
-  });
-
-  const { data: sourcesData } = useQuery({
-    queryKey: ["swarm", "sources", selectedCompanyId],
-    queryFn: () => swarmApi.listSources(selectedCompanyId!),
-    enabled: !!selectedCompanyId,
-  });
-
-  const { data: capabilitiesData } = useQuery({
-    queryKey: ["swarm", "capabilities", selectedCompanyId],
-    queryFn: () => swarmApi.listCapabilities(selectedCompanyId!),
-    enabled: !!selectedCompanyId,
-  });
-
-  const installCount = installsData?.installs?.length ?? 0;
-  const sourceCount = sourcesData?.sources?.length ?? 0;
-  const capCount = capabilitiesData?.capabilities?.length ?? 0;
-
-  const counts: Record<Section, number | null> = {
-    catalog: capCount,
-    myswarm: installCount,
-    sources: sourceCount,
-    queue: 0,
-    audit: null,
-  };
 
   return (
     <div className="flex h-full">
@@ -77,21 +45,8 @@ export function Swarm() {
                   : "text-muted-foreground hover:bg-accent hover:text-foreground",
               )}
             >
-              <span className="w-[22px] text-center text-base">{item.icon}</span>
+              <span className="w-[22px] text-center text-base" aria-hidden="true">{item.icon}</span>
               <span className="flex-1">{item.label}</span>
-              {counts[item.key] !== null && (
-                <span
-                  className={cn(
-                    "text-[10px] rounded-full px-1.5 py-px",
-                    item.key === "queue" && counts[item.key]! > 0
-                      ? "bg-destructive/25 text-destructive"
-                      : "bg-muted",
-                    activeSection === item.key ? "text-foreground" : "text-muted-foreground",
-                  )}
-                >
-                  {counts[item.key]}
-                </span>
-              )}
             </button>
           ))}
         </div>

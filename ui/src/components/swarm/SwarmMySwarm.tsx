@@ -45,7 +45,7 @@ function InstallRow({ install }: { install: SwarmInstall }) {
 export function SwarmMySwarm() {
   const { selectedCompanyId } = useCompany();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["swarm", "installs", selectedCompanyId],
     queryFn: () => swarmApi.listInstalls(selectedCompanyId!),
     enabled: !!selectedCompanyId,
@@ -76,14 +76,16 @@ export function SwarmMySwarm() {
           const count = grouped[t]?.length ?? 0;
           return (
             <div key={t} className={cn("bg-card border rounded-lg p-3.5 border-l-[3px]", meta.color)}>
-              <div className={cn("text-xl font-bold", meta.color.split(" ")[0])}>{count}</div>
+              <div className={cn("text-xl font-bold", meta.color.split(" ")[0]!)}>{count}</div>
               <div className="text-[11px] text-muted-foreground">{meta.label} installed</div>
             </div>
           );
         })}
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <div className="text-center py-12 text-destructive text-sm">Failed to load installs. Please try again.</div>
+      ) : isLoading ? (
         <div className="text-center py-12 text-muted-foreground text-sm">Loading...</div>
       ) : installs.length === 0 ? (
         <div className="text-center py-12">

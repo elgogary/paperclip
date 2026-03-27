@@ -40,7 +40,7 @@ function AuditRow({ entry }: { entry: SwarmAuditEntry }) {
 export function SwarmAudit() {
   const { selectedCompanyId } = useCompany();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["swarm", "audit", selectedCompanyId],
     queryFn: () => swarmApi.listAudit(selectedCompanyId!),
     enabled: !!selectedCompanyId,
@@ -59,7 +59,9 @@ export function SwarmAudit() {
         </div>
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <div className="text-center py-12 text-destructive text-sm">Failed to load audit log. Please try again.</div>
+      ) : isLoading ? (
         <div className="text-center py-12 text-muted-foreground text-sm">Loading...</div>
       ) : entries.length === 0 ? (
         <div className="text-center py-12">

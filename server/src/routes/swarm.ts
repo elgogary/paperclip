@@ -43,9 +43,13 @@ export function swarmRoutes(db: Db) {
       res.status(404).json({ error: "Not found" });
       return;
     }
-    const { name, url, trustLevel, capabilityTypes, enabled, syncIntervalMinutes, metadata } = req.body;
-    await svc.updateSource(sourceId, { name, url, trustLevel, capabilityTypes, enabled, syncIntervalMinutes, metadata });
-    res.json({ ok: true });
+    try {
+      const { name, url, trustLevel, capabilityTypes, enabled, syncIntervalMinutes, metadata } = req.body;
+      await svc.updateSource(sourceId, { name, url, trustLevel, capabilityTypes, enabled, syncIntervalMinutes, metadata });
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(400).json({ error: err instanceof Error ? err.message : "Bad request" });
+    }
   });
 
   router.delete("/companies/:companyId/swarm/sources/:sourceId", async (req, res) => {
@@ -57,9 +61,13 @@ export function swarmRoutes(db: Db) {
       res.status(404).json({ error: "Not found" });
       return;
     }
-    await svc.deleteSource(sourceId);
-    await svc.logAudit({ companyId, action: "source_removed", capabilityName: existing.name, actorType: "board", actorBoardUserId: req.actor?.userId, detail: `Source ${existing.name} removed` });
-    res.json({ ok: true });
+    try {
+      await svc.deleteSource(sourceId);
+      await svc.logAudit({ companyId, action: "source_removed", capabilityName: existing.name, actorType: "board", actorBoardUserId: req.actor?.userId, detail: `Source ${existing.name} removed` });
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(400).json({ error: err instanceof Error ? err.message : "Bad request" });
+    }
   });
 
   // ── Capabilities (catalog) ──
@@ -185,7 +193,8 @@ export function swarmRoutes(db: Db) {
     const { companyId } = req.params as { companyId: string };
     assertCompanyAccess(req, companyId);
     const { action, limit } = req.query as Record<string, string | undefined>;
-    const entries = await svc.listAuditLog(companyId, { action, limit: limit ? parseInt(limit, 10) : undefined });
+    const parsedLimit = limit ? Math.min(parseInt(limit, 10), 500) : undefined;
+    const entries = await svc.listAuditLog(companyId, { action, limit: parsedLimit });
     res.json({ entries });
   });
 

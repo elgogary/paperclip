@@ -124,8 +124,10 @@ export function swarmService(db: Db) {
     },
 
     async deleteSource(sourceId: string): Promise<void> {
-      await db.delete(swarmCapabilities).where(eq(swarmCapabilities.sourceId, sourceId));
-      await db.delete(swarmSources).where(eq(swarmSources.id, sourceId));
+      await db.transaction(async (tx) => {
+        await tx.delete(swarmCapabilities).where(eq(swarmCapabilities.sourceId, sourceId));
+        await tx.delete(swarmSources).where(eq(swarmSources.id, sourceId));
+      });
     },
 
     async updateSourceSyncStatus(sourceId: string, status: string, error?: string, capCount?: number): Promise<void> {
@@ -145,7 +147,10 @@ export function swarmService(db: Db) {
       if (filters?.type) conditions.push(eq(swarmCapabilities.capabilityType, filters.type));
       if (filters?.trustLevel) conditions.push(eq(swarmCapabilities.trustLevel, filters.trustLevel));
       if (filters?.pricingTier) conditions.push(eq(swarmCapabilities.pricingTier, filters.pricingTier));
-      if (filters?.search) conditions.push(ilike(swarmCapabilities.name, `%${filters.search}%`));
+      if (filters?.search) {
+        const escaped = filters.search.replace(/%/g, "\\%").replace(/_/g, "\\_");
+        conditions.push(ilike(swarmCapabilities.name, `%${escaped}%`));
+      }
       return db.select().from(swarmCapabilities)
         .where(and(...conditions))
         .orderBy(desc(swarmCapabilities.installs))

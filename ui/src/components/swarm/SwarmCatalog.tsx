@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useCompany } from "../../context/CompanyContext";
 import { swarmApi, type SwarmCapability } from "../../api/swarm";
@@ -32,9 +32,9 @@ function CapabilityCard({ cap }: { cap: SwarmCapability }) {
   const price = PRICE_COLORS[cap.pricingTier] ?? PRICE_COLORS.free;
 
   return (
-    <div className="bg-card border border-border rounded-lg p-3.5 cursor-pointer transition-all hover:border-muted-foreground/40 hover:-translate-y-px relative">
+    <button className="bg-card border border-border rounded-lg p-3.5 transition-all hover:border-muted-foreground/40 hover:-translate-y-px relative text-left w-full">
       <div className="flex items-start gap-2.5 mb-2">
-        <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center text-lg shrink-0", type.bg, type.text)}>
+        <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center text-lg shrink-0", type.bg, type.text)} aria-hidden="true">
           {cap.icon ?? "\u{1F4E6}"}
         </div>
         <div className="min-w-0">
@@ -58,7 +58,7 @@ function CapabilityCard({ cap }: { cap: SwarmCapability }) {
           {cap.pricingTier === "free" ? "Free" : `$${cap.priceMonthlyUsd}/mo`}
         </span>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -67,20 +67,26 @@ export function SwarmCatalog() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterType>("all");
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["swarm", "capabilities", selectedCompanyId, search],
-    queryFn: () => swarmApi.listCapabilities(selectedCompanyId!, { search: search || undefined }),
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["swarm", "capabilities", selectedCompanyId],
+    queryFn: () => swarmApi.listCapabilities(selectedCompanyId!),
     enabled: !!selectedCompanyId,
   });
 
   const capabilities = data?.capabilities ?? [];
 
-  const filtered = capabilities.filter((cap) => {
-    if (filter === "all") return true;
-    if (filter === "free") return cap.pricingTier === "free";
-    if (filter === "paid") return cap.pricingTier !== "free";
-    return cap.capabilityType === filter;
-  });
+  const filtered = useMemo(() => {
+    return capabilities.filter((cap) => {
+      if (search) {
+        const q = search.toLowerCase();
+        if (!cap.name.toLowerCase().includes(q) && !(cap.description ?? "").toLowerCase().includes(q)) return false;
+      }
+      if (filter === "all") return true;
+      if (filter === "free") return cap.pricingTier === "free";
+      if (filter === "paid") return cap.pricingTier !== "free";
+      return cap.capabilityType === filter;
+    });
+  }, [capabilities, search, filter]);
 
   const filters: { key: FilterType; label: string }[] = [
     { key: "all", label: "All" },
@@ -129,7 +135,9 @@ export function SwarmCatalog() {
         ))}
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <div className="text-center py-12 text-destructive text-sm">Failed to load capabilities. Please try again.</div>
+      ) : isLoading ? (
         <div className="text-center py-12 text-muted-foreground text-sm">Loading...</div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-12">
