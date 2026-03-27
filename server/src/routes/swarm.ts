@@ -63,6 +63,15 @@ export function swarmRoutes(db: Db) {
   });
 
   // ── Capabilities (catalog) ──
+  // NOTE: /counts must come BEFORE /:capabilityId to avoid route shadowing
+  router.get("/companies/:companyId/swarm/capabilities/counts", async (req, res) => {
+    assertBoard(req);
+    const { companyId } = req.params as { companyId: string };
+    assertCompanyAccess(req, companyId);
+    const counts = await svc.getCapabilityCounts(companyId);
+    res.json({ counts });
+  });
+
   router.get("/companies/:companyId/swarm/capabilities", async (req, res) => {
     assertBoard(req);
     const { companyId } = req.params as { companyId: string };
@@ -84,15 +93,16 @@ export function swarmRoutes(db: Db) {
     res.json({ capability });
   });
 
-  router.get("/companies/:companyId/swarm/capabilities/counts", async (req, res) => {
+  // ── Installs ──
+  // NOTE: /counts must come BEFORE /:installId to avoid route shadowing
+  router.get("/companies/:companyId/swarm/installs/counts", async (req, res) => {
     assertBoard(req);
     const { companyId } = req.params as { companyId: string };
     assertCompanyAccess(req, companyId);
-    const counts = await svc.getCapabilityCounts(companyId);
+    const counts = await svc.getInstallCounts(companyId);
     res.json({ counts });
   });
 
-  // ── Installs ──
   router.get("/companies/:companyId/swarm/installs", async (req, res) => {
     assertBoard(req);
     const { companyId } = req.params as { companyId: string };
@@ -167,14 +177,6 @@ export function swarmRoutes(db: Db) {
     await svc.updateInstallStatus(installId, "removed");
     await svc.logAudit({ companyId, action: "remove", capabilityName: existing.name, capabilityType: existing.capabilityType, actorType: "board", actorBoardUserId: req.actor?.userId, detail: `Removed ${existing.name}` });
     res.json({ ok: true });
-  });
-
-  router.get("/companies/:companyId/swarm/installs/counts", async (req, res) => {
-    assertBoard(req);
-    const { companyId } = req.params as { companyId: string };
-    assertCompanyAccess(req, companyId);
-    const counts = await svc.getInstallCounts(companyId);
-    res.json({ counts });
   });
 
   // ── Audit Log ──
