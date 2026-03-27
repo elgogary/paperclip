@@ -16,6 +16,7 @@ import {
   Brain,
   CalendarClock,
   Wrench,
+  Bug,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { SidebarSection } from "./SidebarSection";
@@ -122,6 +123,7 @@ export function Sidebar() {
           <SidebarNavItem to="/activity" label="Activity" icon={History} />
           <SidebarNavItem to="/scheduled-jobs" label="Scheduled Jobs" icon={CalendarClock} />
           <SidebarNavItem to="/toolkit" label="Toolkit" icon={Wrench} />
+          <SidebarNavItem to="/swarm" label="Capability Swarm" icon={Bug} />
           <SidebarNavItem to="/company/settings" label="Settings" icon={Settings} />
         </SidebarSection>
 
