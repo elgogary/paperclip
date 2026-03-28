@@ -46,3 +46,4 @@ export { skillEvolutionService, type EvolutionEvent } from "./skill-evolution.js
 export { parseSkillFeedback, type ParsedFeedback } from "./skill-feedback-parser.js";
 export { toolDegradationMonitor } from "./tool-degradation-monitor.js";
 export { skillMetricsTracker, type SkillAgentMetric } from "./skill-metrics-tracker.js";
+export { swarmService, type SwarmSource, type SwarmCapability, type SwarmInstall, type SwarmAuditEntry } from "./swarm.js";

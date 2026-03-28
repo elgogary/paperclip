@@ -25,6 +25,7 @@ import { Activity } from "./pages/Activity";
 import { ScheduledJobs } from "./pages/ScheduledJobs";
 import { Toolkit } from "./pages/Toolkit";
 import { Skills } from "./pages/Skills";
+import { Swarm } from "./pages/Swarm";
 import { Inbox } from "./pages/Inbox";
 import { CompanySettings } from "./pages/CompanySettings";
 import { CompanyExport } from "./pages/CompanyExport";
@@ -177,6 +178,7 @@ function boardRoutes() {
       <Route path="scheduled-jobs" element={<ScheduledJobs />} />
       <Route path="skills" element={<Skills />} />
       <Route path="toolkit" element={<Toolkit />} />
+      <Route path="swarm" element={<Swarm />} />
       <Route path="inbox" element={<InboxRootRedirect />} />
       <Route path="inbox/recent" element={<Inbox />} />
       <Route path="inbox/unread" element={<Inbox />} />

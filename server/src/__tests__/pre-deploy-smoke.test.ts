@@ -636,6 +636,14 @@ describe("6. Route Sub-Router Wiring", () => {
     expect(Array.isArray((router as any).stack)).toBe(true);
   });
 
+  it("swarmRoutes(db) returns an Express Router", async () => {
+    const mod = await import("../routes/swarm.js");
+    const router = mod.swarmRoutes(fakeDb);
+    expect(router).toBeDefined();
+    expect(typeof router).toBe("function");
+    expect(Array.isArray((router as any).stack)).toBe(true);
+  });
+
   it("each router has middleware registered (not empty)", async () => {
     const accessMod = await import("../routes/access.js");
     const agentsMod = await import("../routes/agents.js");

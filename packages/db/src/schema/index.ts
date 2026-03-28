@@ -72,3 +72,7 @@ export { connectors } from "./connectors.js";
 export { pluginAgentAccess } from "./plugin_agent_access.js";
 export { chatSessions } from "./chat-sessions.js";
 export { agentMetrics } from "./agent_metrics.js";
+export { swarmSources } from "./swarm_sources.js";
+export { swarmCapabilities } from "./swarm_capabilities.js";
+export { swarmInstalls } from "./swarm_installs.js";
+export { swarmAuditLog } from "./swarm_audit_log.js";

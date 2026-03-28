@@ -43,9 +43,9 @@ services:
       - paperclip-data:/paperclip
       - /home/eslam/optiflow:/workspace:rw
       - /home/eslam/data/projects/sanad-brain-mcp:/home/eslam/data/projects/sanad-brain-mcp:ro
-      - /home/eslam/data/projects/paperclip/skills:/workspace/skills:ro
-      - /home/eslam/data/projects/paperclip/plugins:/workspace/plugins:ro
-      - /home/eslam/data/projects/paperclip/mcp-servers:/workspace/mcp-servers:ro
+      - /home/eslam/data/projects/Sanad EOI - Production/paperclip/skills:/workspace/skills:ro
+      - /home/eslam/data/projects/Sanad EOI - Production/paperclip/plugins:/workspace/plugins:ro
+      - /home/eslam/data/projects/Sanad EOI - Production/paperclip/mcp-servers:/workspace/mcp-servers:ro
       - /home/eslam/.npm:/home/eslam/.npm:ro
     depends_on:
       db:
