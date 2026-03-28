@@ -12,6 +12,10 @@ data/
 tmp-*
 cli/tmp/
 
+# Secrets
+**/infisical-secrets.env
+.agents/_common/infisical-secrets.env
+
 # Scratch/seed scripts (but not scripts/ dir)
 check-*.mjs
 !scripts/check-*.mjs

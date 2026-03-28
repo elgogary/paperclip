@@ -1,8 +1,36 @@
-# Sanad AI EOI Wiki
+# Sanad AI EOI Platform Wiki
 
-Project documentation index for Sanad AI EOI — the AI agent platform.
+AI agent orchestration platform — manage teams of AI agents that work on tasks autonomously.
+Fork of Paperclip with Sanad Brain integration, multimodal attachments, scheduled jobs, and capability swarm.
 
-## Deployment & Operations
+## Wiki Index
+
+### 00 — Getting Started
+- [Overview](00-getting-started/overview.md) — What this platform does, who it's for
+- [Architecture](00-getting-started/architecture.md) — System design, data flow, module map
+- [Development Setup](00-getting-started/development-setup.md) — Prerequisites, install, run
+
+### 01 — Backend
+- [Services Map](01-backend/services-map.md) — All 81 service files grouped by domain
+- [Routes Map](01-backend/routes-map.md) — All REST API endpoints
+- [Database Schema](01-backend/database-schema.md) — All 60+ tables with relationships
+- [Adapters](01-backend/adapters.md) — 10 agent runtime adapters
+- [Split Module Pattern](01-backend/split-module-pattern.md) — The $ bag factory pattern
+
+### 02 — Frontend
+- [Pages & Components](02-frontend/pages-map.md) — All UI pages, components, hooks
+- [Routing](02-frontend/routing.md) — Company-prefix routing system
+
+### 03 — Deployment & Operations
+- [Deployment Guide](03-deployment/deployment-guide.md) — Docker, backups, server info
+- [CLI Commands](03-deployment/cli-commands.md) — All CLI commands reference
+
+### 04 — Integrations
+- [media-worker](04-integrations/media-worker.md) — Thumbnail generation and Office document conversion
+
+---
+
+## Deployment & Operations (existing docs)
 - [Deploy overview](../deploy/overview.md)
 - [Docker setup](../deploy/docker.md)
 - [Environment variables](../deploy/environment-variables.md)
@@ -19,19 +47,16 @@ Project documentation index for Sanad AI EOI — the AI agent platform.
 ## Guides
 - [User guides](../guides/)
 
-## Integrations
-- [media-worker](04-integrations/media-worker.md) — thumbnail generation and Office document conversion
+---
 
 ## Features
 
 ### Multimodal Attachments (2026-03-25)
-- **API docs**: `docs/api/attachments.md` — full REST reference (init/chunk/complete/content/preview/thumbnail/delete)
-- **Developer guide**: `docs/guides/agent-developer/attachments.md` — [[attach:]] syntax, vision injection, AttachmentCard, media-worker, DB schema
-- **Backend**: `server/src/routes/attachments.ts`, `server/src/services/attachment-context.ts`, `server/src/services/attachment-resolver.ts`
+- **API docs**: `docs/api/attachments.md` — full REST reference
+- **Backend**: `server/src/routes/attachments.ts`, `server/src/services/attachment-context.ts`
 - **DB**: `packages/db/src/migrations/0044_attachments.sql`
-- **Media processing**: `docker/media-worker/` — see also [media-worker integration](04-integrations/media-worker.md)
-- **UI**: `ui/src/components/attachments/`, `ui/src/api/attachments.ts`
-- **Deploy**: `docs/deploy/2026-03-25-multimodal-attachments-deploy.md`
+- **Media processing**: `docker/media-worker/` — see [media-worker](04-integrations/media-worker.md)
+- **UI**: `ui/src/components/attachments/`
 
 ### Scheduled Jobs (2026-03-24)
 - **Backend**: `server/src/services/scheduler-loop.ts`, `server/src/services/scheduled-job-executors.ts`
@@ -40,31 +65,31 @@ Project documentation index for Sanad AI EOI — the AI agent platform.
 - **User guide**: `docs/guides/board-operator/scheduled-jobs.md`
 
 ### Ephemeral Agent Chat (2026-03-26)
-- **DB**: `packages/db/src/schema/chat-sessions.ts`, `packages/db/src/migrations/0046_chat_sessions.sql`
 - **Backend**: `server/src/routes/public-chat.ts` — token service + public API routes
-- **WebSocket**: Token-based auth for ephemeral sessions (no login required)
-- **UI**: `ui/src/pages/PublicChat.tsx` — standalone chat page with countdown timer
-- **Runtime**: `ui/src/components/chat/paperclip-runtime.ts` — assistant-ui adapter
+- **UI**: `ui/src/pages/PublicChat.tsx` — standalone chat page
 - **Flow**: Email watcher creates issue → generates signed token → sends link → customer chats without auth
 
 ### Agent Crew (9 Agents) (2026-03-26)
-- **Configs**: `.agents/{ceo,tech-lead,backend-engineer,frontend-engineer,product-manager,sales-manager,sales-rep,beta-tester,devops}/`
-- **Each agent has**: `SOUL.md` (identity + ethics + rules), `HEARTBEAT.md` (operating cycle), `SKILLS.md` (capabilities), `LESSONS.md` (learnings)
-- **Shared**: `.agents/_common/` — CAPABILITIES.md, EXECUTION-RULES.md, INFISICAL.md, PROJECT-KNOWLEDGE-INDEX.md, report-template.html
+- **Configs**: `.agents/{ceo,tech-lead,backend-engineer,...}/`
+- **Each agent has**: `SOUL.md`, `HEARTBEAT.md`, `SKILLS.md`, `LESSONS.md`
+- **Shared**: `.agents/_common/` — capabilities, execution rules, knowledge index
 - **Company Law**: `docs/company-law.md` — 7 Islamic principles governing all agents
 
 ### Email MCP + Watcher (2026-03-26)
 - **MCP Server**: `tools/email-mcp/server.py` — 7 IMAP/SMTP tools for agents
-- **Watcher**: `tools/email-mcp/watcher.py` — auto-ack → AI classify → create task → chat invite → track
-- **Modules**: `auto_reply.py`, `guardrails.py`, `mail_client.py`, `request_analyzer.py`, `task_builder.py`, `tracker.py`
-- **Security**: Rate limiting, content blocking, file safety checks, SSRF guards
+- **Watcher**: `tools/email-mcp/watcher.py` — auto-ack → classify → create task → chat invite
 
-### Capability Swarm (2026-03-26) — DESIGN ONLY
-- **Design doc**: `docs/plans/2026-03-26-capabilities-swarm-design.md` (561 lines)
-- **Prototype**: `docs/prototypes/capabilities_swarm_prototype.html` (6 tabs + 3 dialogs)
-- **Architecture**: 3 layers (Infrastructure → Brain Tools → Director Agent), 4 implementation phases
+### Capability Swarm (2026-03-27)
+- **Backend**: `server/src/services/swarm.ts`, `server/src/routes/swarm.ts`
+- **UI**: `ui/src/pages/Swarm.tsx`, `ui/src/components/swarm/`
+- **Design doc**: `docs/plans/2026-03-26-capabilities-swarm-design.md`
 
 ## Project Status & Plans
-- **Master status**: [STATUS.md](../STATUS.md) — all features shipped vs not-done, 45 plan docs indexed
-- **Master TODO (96 tasks)**: `optiflow/docs/plans/2026-03-23-master-todo-all-plans.md`
+- **Master status**: [STATUS.md](../STATUS.md)
 - **All plans**: `docs/plans/` (14 files) + `optiflow/docs/plans/` (31 files)
+
+---
+
+**Stack**: Node.js, Express, TypeScript, React 19, PostgreSQL, Drizzle ORM
+**Server**: 65.109.65.159:3100 (Hetzner, Docker Compose)
+**Branch**: `main-sanad-eoi-app`
