@@ -1,167 +1,255 @@
-# Architecture
+# Sanad AI — Architecture
 
-## System Overview
+> Full system architecture. If you lose direction, read this first.
+> See also: `roadmap.md` (what's built, what's next), `KNOWLEDGE_BASE.md` (all decisions)
+
+---
+
+## The Vision (One Sentence)
+
+**Sanad AI is not another ERP. It is the intelligent operating layer that sits on top of ERPs.**
+
+Every person in the organization gets a **Twin Agent** that thinks with them, captures voice, routes work to the correct ERP automatically, and never loses a thought.
+
+> The ERP is infrastructure. Sanad is the operating layer on top.
+
+---
+
+## System Layers
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        CLIENTS                               │
-│  React UI (Vite)  │  CLI (Commander.js)  │  Public Chat     │
-└────────┬──────────┴──────────┬───────────┴────────┬─────────┘
-         │                     │                     │
-         ▼                     ▼                     ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    EXPRESS SERVER (:3100)                     │
-│                                                              │
-│  Middleware: JSON → Logger → SSRF Guard → Actor Resolution   │
-│                                                              │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────────┐  │
-│  │ Routes   │  │ Services │  │ Adapters │  │ Scheduler  │  │
-│  │ (47 files│  │ (81 files│  │ (10 types│  │ (60s loop) │  │
-│  │  13K LOC)│  │  28K LOC)│  │  )       │  │            │  │
-│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └──────┬─────┘  │
-│       │              │             │                │        │
-│       ▼              ▼             ▼                ▼        │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │              Drizzle ORM + PostgreSQL                 │   │
-│  │              60+ tables, 46+ migrations               │   │
-│  └──────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-         │                     │                     │
-         ▼                     ▼                     ▼
-┌──────────────┐  ┌──────────────────┐  ┌─────────────────┐
-│   MinIO S3   │  │   Sanad Brain    │  │  Agent CLIs     │
-│  (attachments│  │  (RAG/memory/    │  │  (Claude, Codex │
-│   assets)    │  │   knowledge)     │  │   Cursor, etc.) │
-└──────────────┘  └──────────────────┘  └─────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                        HUMANS (Board)                            │
+│          Approve strategy · Review agents · Set budgets          │
+└──────────────────────┬───────────────────────────────────────────┘
+                       │
+┌──────────────────────▼───────────────────────────────────────────┐
+│                  SANAD EOI PLATFORM (Paperclip Fork)             │
+│                                                                  │
+│  ┌────────────┐  ┌──────────────┐  ┌──────────┐  ┌──────────┐  │
+│  │ React UI   │  │ Express API  │  │ Scheduler│  │ Brain    │  │
+│  │ (port 3100)│  │ (REST + SSE) │  │ (60s)    │  │ Proxy    │  │
+│  └────────────┘  └──────┬───────┘  └──────────┘  └──────────┘  │
+│                         │                                        │
+│  ┌──────────────────────▼────────────────────────────────────┐  │
+│  │           PostgreSQL — Drizzle ORM (76 tables)            │  │
+│  │   agents · runs · issues · skills · swarm · costs · ...   │  │
+│  └───────────────────────────────────────────────────────────┘  │
+└──────────────────────┬───────────────────────────────────────────┘
+                       │ adapters
+┌──────────────────────▼───────────────────────────────────────────┐
+│                       AGENT CREW                                 │
+│                                                                  │
+│  CEO → TechLead → BackendEng / FrontendEng                      │
+│      → SalesManager → SalesRep                                   │
+│      → ProductManager → BetaTester                               │
+│      → DevOps                                                    │
+│                                                                  │
+│  Each agent: Claude Code / Codex / Cursor / HTTP                 │
+└──────────────────────┬───────────────────────────────────────────┘
+                       │ MCP (agents propose, humans approve)
+┌──────────────────────▼───────────────────────────────────────────┐
+│                      ERP LAYER                                   │
+│  ERPNext (AccuBuild) · Odoo (planned) · SAP (Phase 6)           │
+│                                                                  │
+│  Rule: Agents NEVER touch ERP directly.                         │
+│        Every ERP action goes through Sanad MCP. Always.         │
+└──────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## Platform Architecture (Sanad EOI = Paperclip Fork)
+
+```
+                    ┌─── Board UI (React 19) ───┐
+                    │  Tasks · Agents · Costs   │
+                    │  Swarm · Brain · Jobs     │
+                    └──────────┬────────────────┘
+                               │ REST / SSE
+                    ┌──────────▼────────────────┐
+                    │   Express Server (Node 24) │
+                    │                            │
+                    │  Routes (48 files)         │
+                    │  Services (89 files)       │
+                    │  Scheduler (60s loop)      │
+                    │  Sanad Brain Proxy         │
+                    └──────┬───────────┬─────────┘
+                           │           │
+             ┌─────────────▼──┐  ┌────▼─────────────┐
+             │  PostgreSQL    │  │   Sanad Brain     │
+             │  76 tables     │  │  (Qdrant + LLM)   │
+             │  Drizzle ORM   │  │  RAG memory       │
+             └────────────────┘  └──────────────────┘
+                           │
+             ┌─────────────▼──────────────┐
+             │    Agent Adapters          │
+             │  claude_local · codex      │
+             │  cursor · http · process   │
+             └────────────────────────────┘
+                           │
+             ┌─────────────▼──────────────┐
+             │     MinIO (S3)             │
+             │  attachments · assets      │
+             └────────────────────────────┘
+```
+
+---
+
+## Infrastructure (Hetzner)
+
+```
+Cloudflare DNS (3 zones)
+  sanadai.com           → HETZNER_IP (proxy ON — WAF + DDoS)
+  *.sanadai.com         → HETZNER_IP (proxy ON)
+  *.dev.sanadai.com     → HETZNER_IP (proxy OFF — Traefik handles SSL)
+  *.sandbox.sanadai.com → HETZNER_IP (proxy OFF — Traefik handles SSL)
+
+Hetzner Server (16GB RAM)
+  Docker Compose stack:
+  ┌─────────────────────────────────────────┐
+  │  Traefik v3        → reverse proxy      │
+  │  Sanad EOI server  → port 3100          │
+  │  PostgreSQL        → DB                 │
+  │  MinIO             → S3 storage         │
+  │  Sanad Brain       → RAG/memory         │
+  │  media-worker      → LibreOffice/ffmpeg │
+  │  Portainer         → Docker management  │
+  │  Prometheus        → metrics            │
+  │  Grafana           → dashboards         │
+  └─────────────────────────────────────────┘
+```
+
+---
 
 ## Data Flow
 
 ### Agent Execution Flow
 ```
-Wakeup Request → Queue → Claim → Resolve Workspace → Execute Adapter
-                                                          │
-                                    ┌─────────────────────┤
-                                    ▼                     ▼
-                              Stream Logs            Stream Costs
-                              (SSE events)           (token usage)
-                                    │                     │
-                                    ▼                     ▼
-                              Finalize Run → Update Issue Status
+Human creates Issue
+    → Assigns to Agent
+    → Wakeup Request queued
+    → Heartbeat picks up (60s loop)
+    → Resolve workspace (git worktree or cwd)
+    → Execute Adapter (Claude/Codex/Cursor)
+    → Stream output to SSE (live in UI)
+    → Stream cost events (token usage)
+    → Finalize run → Update issue status
+    → Append to activity log
 ```
 
-### Request Flow
+### MCP (Agent → ERP) Flow
 ```
-HTTP Request → Actor Middleware (who is this?)
-            → Board Mutation Guard (read-only check)
-            → Route Handler (validate + delegate)
-            → Service Factory (business logic)
-            → Drizzle ORM (DB query)
-            → JSON Response
+Agent proposes ERP change
+    → Sanad MCP receives proposal
+    → Checker Agent reviews
+    → Human approves in Sanad UI
+    → MCP pushes diff to ERPNext
+    → Confirmation back to agent
+    → Never bypasses this chain
 ```
+
+### Knowledge / Memory Flow
+```
+Agent run completes
+    → Run summary → memory_ingest queue
+    → Scheduler picks up → Sanad Brain API
+    → Embedded into Qdrant
+    → Future agents recall via /brain/recall
+    → Knowledge sync job indexes project wikis
+    → Dream job consolidates nightly
+```
+
+---
+
+## Multi-Company Model
+
+```
+One Sanad Instance
+├── Accurate Systems (holding, CEO cross-view)
+├── AccuBuild (construction ERP → ERPNext live)
+├── Sales Force App (sales domain)
+└── (future companies)
+
+Each company has:
+  - Its own agents, issues, projects, budgets
+  - Its own ERP connector (MCP)
+  - Its own data scope (row-level isolation)
+  - Shared Sanad Brain (RAG) with company namespace
+```
+
+---
+
+## Key Design Principles
+
+| # | Principle |
+|---|---|
+| 1 | **ERP is infrastructure, Sanad is the operating layer** |
+| 2 | **Agents propose. Humans approve. Always.** |
+| 3 | **Nothing touches production until it passes the full chain** (Maker → Checker → Human → MCP) |
+| 4 | **Agents never build the safety layer** — permissions are built by humans first |
+| 5 | **Never locked to one model** — LLM Router abstracts all models |
+| 6 | **Additive-only DB migrations** — never drop/modify columns |
+| 7 | **Masked data for all non-production** — no PII leaves production |
+| 8 | **On-premise first** — all services run on Hetzner |
+| 9 | **Sandbox isolation** — each agent task gets its own microVM |
+| 10 | **Two languages only**: TypeScript (frontend/API) + Python (agents/AI) |
+| 11 | **Each phase ships something usable** |
+| 12 | **SRS documents are agent task specifications** |
+| 13 | **Monitoring (passive) ≠ Evaluation (active). Never mix them.** |
+
+---
 
 ## Module Map
 
 ### Server Services (grouped by domain)
 
-| Domain | Files | Lines | Key Service |
-|--------|-------|-------|-------------|
-| **Heartbeat** (agent runs) | 9 | ~3,500 | `heartbeatService(db)` |
-| **Portability** (import/export) | 8 | ~4,000 | `companyPortabilityService(db)` |
-| **Skills** | 12 | ~3,400 | `companySkillService(db)` |
-| **Issues** | 7 | ~2,000 | `issueService(db)` |
-| **Workspace** | 6 | ~2,300 | `workspace-runtime.ts` (stub) |
-| **Routines** | 1 | 1,268 | `routineService(db)` |
-| **Budgets/Costs** | 4 | ~1,500 | `budgetService(db)`, `costService(db)` |
-| **Agents** | 5 | ~1,800 | `agentService(db)` |
-| **Access/Auth** | 5 | ~1,000 | `accessService(db)`, `boardAuthService(db)` |
-| **Scheduler** | 3 | ~600 | `schedulerLoop`, `executors` |
-| **Swarm** | 1 | 300 | `swarmService(db)` |
-| **Other** | 20 | ~3,500 | Attachments, approvals, secrets, etc. |
-| **Total** | **81** | **~28K** | |
+| Domain | Files | Key Service |
+|---|---|---|
+| Heartbeat (agent runs) | 9 | `heartbeatService(db)` |
+| Portability (import/export) | 8 | `companyPortabilityService(db)` |
+| Skills | 13 | `companySkillService(db)` |
+| Issues | 7 | `issueService(db)` |
+| Workspace | 7 | `workspace-runtime.ts` |
+| Scheduled Jobs | 3 | `schedulerLoop`, `executors` |
+| Swarm | 1 | `swarmService(db)` |
+| Budgets/Costs/Finance | 5 | `budgetService`, `costService`, `financeService` |
+| Agents | 8 | `agentService(db)` |
+| Access/Auth | 5 | `accessService(db)`, `boardAuthService(db)` |
+| Attachments | 3 | `attachmentContext`, `attachmentResolver` |
+| Plugins/MCP/Connectors | 3 | `pluginsService`, `mcpServersService` |
+| Core (approvals, goals, projects, etc.) | 17 | Various |
+| **Total** | **89** | |
 
-### Server Routes
+### Database (76 tables)
 
-| Domain | Files | Endpoints |
-|--------|-------|-----------|
-| **Access/Auth** | 5 | ~20 |
-| **Agents** | 6 | ~25 |
-| **Issues** | 5 | ~20 |
-| **Companies** | 2 | ~15 |
-| **Skills** | 3 | ~15 |
-| **Routines/Jobs** | 2 | ~15 |
-| **Other** | 24 | ~40 |
-| **Total** | **47** | **~150** |
+| Domain | Tables |
+|---|---|
+| Core entities | companies, agents, projects, issues, goals |
+| Run lifecycle | heartbeat_runs, run_events, runtime_state, wakeup_requests, task_sessions |
+| Access & auth | memberships, api_keys, invites, cli_auth_challenges, permission_grants |
+| Skills | skills, company_skills, skill_versions, evolution_events, skill_metrics |
+| Finance | approvals, budget_policies, cost_events, finance_events |
+| Plugins/MCP | plugins, mcp_server_configs, connectors + junction tables |
+| Capability Swarm | swarm_sources, swarm_capabilities, swarm_installs, swarm_audit_log |
+| Workspace | execution_workspaces, project_workspaces, workspace_operations |
+| Content | documents, attachments, issue_comments, activity_log, scheduled_jobs |
 
-### UI Pages
+---
 
-| Area | Pages | Key pages |
-|------|-------|-----------|
-| **Dashboard** | 1 | Dashboard with 4 charts |
-| **Agents** | 3 | List, Detail (7 tabs), New |
-| **Issues** | 2 | List (kanban+table), Detail |
-| **Projects** | 1 | Detail (7 tabs) |
-| **Skills** | 2 | Split panel, Company skills |
-| **Brain** | 1 | 7 tabs (Live, Memories, Knowledge, Graph, Health, Audit, Monitoring) |
-| **Swarm** | 1 | 5 tabs (Catalog, My Swarm, Sources, Queue, Audit) |
-| **Finance** | 2 | Costs (5 tabs), Approvals |
-| **Ops** | 3 | Scheduled Jobs, Routines, Toolkit |
-| **Other** | 10+ | Chat, Inbox, Settings, Auth, etc. |
+## Diagrams in This Folder
 
-## Database Entity Relationships
+| File | What it shows |
+|---|---|
+| `sanad-bigpicture-v2.html` | Full system big picture — open in browser |
+| `sanad-sequence-v2.html` | Sequence diagrams — agent flows, MCP flows |
+| `sanad-complete-v2.drawio` | Full draw.io diagram — open in draw.io |
 
-```
-Company (tenant root)
-├── Agents (workers)
-│   ├── Agent Runtime State
-│   ├── Agent Task Sessions
-│   ├── Agent Config Revisions
-│   ├── Agent API Keys
-│   └── Wakeup Requests → Heartbeat Runs
-├── Projects
-│   ├── Project Workspaces (git repos)
-│   └── Execution Workspaces (ephemeral)
-├── Issues (tasks)
-│   ├── Comments
-│   ├── Attachments → Assets (S3)
-│   ├── Documents → Revisions
-│   ├── Work Products
-│   ├── Labels
-│   └── Approvals
-├── Goals (hierarchy: company → team → agent → task)
-├── Skills (company_skills + skills)
-├── Routines → Triggers → Runs
-├── Scheduled Jobs → Job Runs
-├── Budget Policies → Incidents
-├── Cost Events → Finance Events
-├── Swarm Sources → Capabilities → Installs
-├── MCP Servers, Connectors, Plugins
-├── Secrets
-└── Activity Log
-```
+---
 
-## Key Patterns
+## Related Docs
 
-### 1. Split Module Pattern ($ bag)
-Large services split into sibling files sharing a mutable context object:
-```typescript
-const $ = {} as Record<string, any>;
-Object.assign($, createSessionOps(db, $));    // heartbeat-session.ts
-Object.assign($, createExecutionOps(db, $));  // heartbeat-execution.ts
-// Functions call $.otherFunction() — resolved at runtime
-```
-Original file becomes thin stub re-exporting the public API.
-
-### 2. Company-Prefix Routing (UI)
-Every board page lives under `/:companyPrefix/`. Custom router wrappers in `lib/router.tsx` inject the prefix transparently. Adding a new page requires BOTH a Route in App.tsx AND adding to `BOARD_ROUTE_ROOTS`.
-
-### 3. Service Factory Pattern
-All services are factory functions that receive `db` (Drizzle instance):
-```typescript
-export function issueService(db: Database) {
-  return { create, update, list, ... };
-}
-```
-
-### 4. Adapter Registry
-10 agent adapters registered in `server/src/adapters/registry.ts`. Each implements `ServerAdapterModule`: `execute()`, `testEnvironment()`, optional `listSkills()`, `syncSkills()`, `getQuotaWindows()`.
+- [Roadmap](roadmap.md) — what's built, what's next, phase sequence
+- [KNOWLEDGE_BASE.md](KNOWLEDGE_BASE.md) — all architectural decisions
+- [File Reference Matrix](../01-backend/file-reference-matrix.md) — every file mapped
+- [Database Schema](../01-backend/database-schema.md) — all 76 tables

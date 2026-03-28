@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sanad — Build Sequence v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+* { box-sizing:border-box; margin:0; padding:0; }
+:root {
+  --bg:#f5f3ee; --ink:#1a1814; --muted:#7a7060; --border:#ddd8ce;
+  --p0:#16a34a; --p1:#2563eb; --p1b:#0ea5e9;
+  --p2:#7c3aed; --p2b:#a78bfa;
+  --p3:#d97706; --p4:#dc2626; --p5:#0891b2;
+  --p6:#be185d; --p7:#ea580c; --eval:#6d28d9;
+}
+body { background:var(--bg); color:var(--ink); font-family:'Outfit',sans-serif; padding:40px 36px 80px; }
+
+.hdr { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:36px; padding-bottom:20px; border-bottom:2px solid var(--ink); }
+.hdr h1 { font-family:'Bebas Neue',sans-serif; font-size:52px; letter-spacing:.02em; line-height:1; }
+.hdr-right { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted); text-align:right; line-height:2; }
+
+/* TIMELINE */
+.timeline { display:grid; grid-template-columns:repeat(9,1fr); gap:0; margin-bottom:44px; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+.tl { padding:10px 12px; border-right:1px solid var(--border); }
+.tl:last-child { border-right:none; }
+.tl-num { font-family:'JetBrains Mono',monospace; font-size:8px; letter-spacing:.15em; text-transform:uppercase; margin-bottom:3px; opacity:.6; }
+.tl-name { font-family:'Bebas Neue',sans-serif; font-size:13px; letter-spacing:.04em; margin-bottom:2px; }
+.tl-out { font-family:'JetBrains Mono',monospace; font-size:8px; opacity:.5; line-height:1.4; }
+.tl-bar { height:3px; border-radius:2px; margin-top:6px; }
+
+/* RULES */
+.rules { background:var(--ink); color:#f5f3ee; border-radius:8px; padding:12px 20px; margin-bottom:40px; display:flex; flex-wrap:wrap; gap:20px; font-family:'JetBrains Mono',monospace; font-size:10px; }
+.ri { display:flex; align-items:center; gap:8px; }
+.rd { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+
+/* PHASE */
+.phase { margin-bottom:36px; }
+.ph { display:flex; align-items:center; gap:14px; margin-bottom:14px; }
+.pnum { font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; padding:4px 14px; border-radius:100px; flex-shrink:0; }
+.ptitle { font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:.02em; }
+.pmeta { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted); margin-left:auto; }
+
+/* CARDS */
+.g2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.g3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+.g4 { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+.g5 { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
+
+.card { background:#fff; border:1px solid var(--border); border-radius:10px; padding:18px; position:relative; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.04); }
+.card::before { content:''; position:absolute; top:0;left:0;right:0; height:3px; background:var(--pc,#ccc); }
+
+.badge { display:inline-block; font-family:'JetBrains Mono',monospace; font-size:8px; letter-spacing:.1em; text-transform:uppercase; padding:2px 8px; border-radius:4px; margin-bottom:8px; background:color-mix(in srgb, var(--pc,#888) 12%, transparent); color:var(--pc,#888); }
+.ct { font-size:14px; font-weight:600; margin-bottom:5px; color:var(--ink); }
+.cd { font-size:11px; color:var(--muted); line-height:1.6; margin-bottom:8px; }
+.ci { font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--muted); padding-left:13px; position:relative; line-height:1.6; }
+.ci::before { content:'→'; position:absolute; left:0; font-size:9px; opacity:.35; }
+.ci.ok { color:var(--p0); } .ci.ok::before { content:'✓'; opacity:1; }
+.ci.ev { color:var(--eval); } .ci.ev::before { content:'◆'; opacity:1; }
+.note { margin-top:10px; padding-top:8px; border-top:1px solid var(--border); font-size:10px; color:var(--pc,#888); font-style:italic; line-height:1.5; }
+
+/* Phase color vars */
+.ph0 { --pc:var(--p0); }
+.ph1a { --pc:var(--p1); }
+.ph1b { --pc:var(--p2); }
+.ph1c { --pc:var(--eval); }
+.ph2  { --pc:var(--p3); }
+.ph3  { --pc:var(--p4); }
+.ph4  { --pc:var(--p5); }
+.ph5  { --pc:var(--p6); }
+.ph6  { --pc:var(--p7); }
+
+.phase.ph0  .card::before { background:var(--p0); }
+.phase.ph1a .card::before { background:var(--p1); }
+.phase.ph1b .card::before { background:var(--p2); }
+.phase.ph1c .card::before { background:var(--eval); }
+.phase.ph2  .card::before { background:var(--p3); }
+.phase.ph3  .card::before { background:var(--p4); }
+.phase.ph4  .card::before { background:var(--p5); }
+.phase.ph5  .card::before { background:var(--p6); }
+.phase.ph6  .card::before { background:var(--p7); }
+
+.phase.ph0  .pnum,.phase.ph0  .badge { background:rgba(22,163,74,.1); color:var(--p0); }
+.phase.ph1a .pnum,.phase.ph1a .badge { background:rgba(37,99,235,.1); color:var(--p1); }
+.phase.ph1b .pnum,.phase.ph1b .badge { background:rgba(124,58,237,.1); color:var(--p2); }
+.phase.ph1c .pnum,.phase.ph1c .badge { background:rgba(109,40,217,.1); color:var(--eval); }
+.phase.ph2  .pnum,.phase.ph2  .badge { background:rgba(217,119,6,.1); color:var(--p3); }
+.phase.ph3  .pnum,.phase.ph3  .badge { background:rgba(220,38,38,.1); color:var(--p4); }
+.phase.ph4  .pnum,.phase.ph4  .badge { background:rgba(8,145,178,.1); color:var(--p5); }
+.phase.ph5  .pnum,.phase.ph5  .badge { background:rgba(190,24,93,.1); color:var(--p6); }
+.phase.ph6  .pnum,.phase.ph6  .badge { background:rgba(234,88,12,.1); color:var(--p7); }
+
+.arr { text-align:center; padding:6px 0 14px; color:var(--border); font-size:22px; }
+
+.principle { background:var(--ink); color:#f5f3ee; border-radius:10px; padding:16px 24px; text-align:center; font-size:11px; line-height:1.9; margin-top:28px; font-family:'JetBrains Mono',monospace; }
+.principle strong { color:#a78bfa; }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.2em;margin-bottom:8px;">ACCURATE SYSTEMS · MARCH 2026 · v2 — EVAL ENGINE ADDED</div>
+    <h1>Sanad Build Sequence</h1>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-top:6px;">9 Phases · Hetzner · sanadai.com · Each phase ships something real · Monitoring + Eval from day 1</div>
+  </div>
+  <div class="hdr-right">
+    Hetzner 16GB · Docker running · Anthropic API ready<br>
+    Cloudflare: *.sanadai.com / *.dev / *.sandbox<br>
+    Traefik + Portainer · Prometheus + Grafana · DeepEval<br>
+    Two separate systems: Monitoring (passive) vs Eval (active)
+  </div>
+</div>
+
+<!-- RULES -->
+<div class="rules">
+  <div class="ri"><div class="rd" style="background:var(--p0);"></div>Each phase ships something USABLE</div>
+  <div class="ri"><div class="rd" style="background:var(--p1);"></div>See everything before building anything — monitoring day 1</div>
+  <div class="ri"><div class="rd" style="background:var(--eval);"></div>Monitoring (passive) ≠ Evaluation (active) — never mixed</div>
+  <div class="ri"><div class="rd" style="background:var(--p2);"></div>Security scan before any agent goes live</div>
+  <div class="ri"><div class="rd" style="background:var(--p3);"></div>LLM Router + Eval Engine = Sanad auto-routes to cheapest model that meets quality</div>
+  <div class="ri"><div class="rd" style="background:var(--p4);"></div>Agents never build the safety layer — humans do</div>
+</div>
+
+<!-- TIMELINE -->
+<div class="timeline">
+  <div class="tl" style="background:rgba(22,163,74,.08);">
+    <div class="tl-num" style="color:var(--p0);">Phase 0</div>
+    <div class="tl-name" style="color:var(--p0);">Done</div>
+    <div class="tl-out">Paperclip + ERPNext</div>
+    <div class="tl-bar" style="background:var(--p0);"></div>
+  </div>
+  <div class="tl" style="background:rgba(37,99,235,.06);">
+    <div class="tl-num" style="color:var(--p1);">Phase 1A</div>
+    <div class="tl-name" style="color:var(--p1);">Monitor</div>
+    <div class="tl-out">Traefik + Portainer + Prometheus + Grafana</div>
+    <div class="tl-bar" style="background:var(--p1);"></div>
+  </div>
+  <div class="tl" style="background:rgba(124,58,237,.06);">
+    <div class="tl-num" style="color:var(--p2);">Phase 1B</div>
+    <div class="tl-name" style="color:var(--p2);">Secure</div>
+    <div class="tl-out">PentAGI + 3-zone DNS</div>
+    <div class="tl-bar" style="background:var(--p2);"></div>
+  </div>
+  <div class="tl" style="background:rgba(109,40,217,.06);">
+    <div class="tl-num" style="color:var(--eval);">Phase 1C</div>
+    <div class="tl-name" style="color:var(--eval);">Evaluate</div>
+    <div class="tl-out">Eval Engine + DeepEval sidecar</div>
+    <div class="tl-bar" style="background:var(--eval);"></div>
+  </div>
+  <div class="tl" style="background:rgba(217,119,6,.06);">
+    <div class="tl-num" style="color:var(--p3);">Phase 2</div>
+    <div class="tl-name" style="color:var(--p3);">Safety</div>
+    <div class="tl-out">Permissions + LLM Router</div>
+    <div class="tl-bar" style="background:var(--p3);"></div>
+  </div>
+  <div class="tl" style="background:rgba(220,38,38,.06);">
+    <div class="tl-num" style="color:var(--p4);">Phase 3</div>
+    <div class="tl-name" style="color:var(--p4);">Sandbox</div>
+    <div class="tl-out">E2B + Provisioner + Dev Clone</div>
+    <div class="tl-bar" style="background:var(--p4);"></div>
+  </div>
+  <div class="tl" style="background:rgba(8,145,178,.06);">
+    <div class="tl-num" style="color:var(--p5);">Phase 4</div>
+    <div class="tl-name" style="color:var(--p5);">Build</div>
+    <div class="tl-out">OpenHands + QA Agent</div>
+    <div class="tl-bar" style="background:var(--p5);"></div>
+  </div>
+  <div class="tl" style="background:rgba(190,24,93,.06);">
+    <div class="tl-num" style="color:var(--p6);">Phase 5</div>
+    <div class="tl-name" style="color:var(--p6);">Product</div>
+    <div class="tl-out">ShipLog + Twin + Mentor</div>
+    <div class="tl-bar" style="background:var(--p6);"></div>
+  </div>
+  <div class="tl" style="background:rgba(234,88,12,.06);">
+    <div class="tl-num" style="color:var(--p7);">Phase 6</div>
+    <div class="tl-name" style="color:var(--p7);">Expand</div>
+    <div class="tl-out">Multi-ERP + All companies</div>
+    <div class="tl-bar" style="background:var(--p7);"></div>
+  </div>
+</div>
+
+<!-- ════ PHASE 0 ════ -->
+<div class="phase ph0">
+  <div class="ph"><div class="pnum">Phase 0</div><div class="ptitle" style="color:var(--p0);">Already Done — Foundation</div><div class="pmeta">✓ RUNNING ON HETZNER</div></div>
+  <div class="g3">
+    <div class="card"><div class="badge">✓ Running</div><div class="ct">Paperclip Core</div><div class="cd">Node.js + React + PostgreSQL · better-auth · req.actor · Agent orchestration</div><div class="note">Team can log in and navigate Sanad today.</div></div>
+    <div class="card"><div class="badge">✓ Connected</div><div class="ct">ERPNext + MCP</div><div class="cd">AccuBuild · MariaDB + Frappe · MCP connector active · Sanad reads/writes ERPNext</div><div class="note">Real ERP data accessible via MCP today.</div></div>
+    <div class="card"><div class="badge">✓ Designed</div><div class="ct">All SRS + Designs</div><div class="cd">Permission SRS (18 tests) · ShipLog UI mockups · Mentor architecture · Build sequence confirmed</div><div class="note">Blueprint clear. Ready to build Phase 1 now.</div></div>
+  </div>
+</div>
+
+<div class="arr">↓</div>
+
+<!-- ════ PHASE 1A ════ -->
+<div class="phase ph1a">
+  <div class="ph"><div class="pnum">Phase 1A</div><div class="ptitle" style="color:var(--p1);">Infrastructure Monitoring — Deploy on Hetzner Today</div><div class="pmeta">PASSIVE · ALWAYS-ON · REAL-TIME</div></div>
+  <div class="g4">
+    <div class="card"><div class="badge">Traefik v3</div><div class="ct">Reverse Proxy + 3-Zone SSL</div><div class="cd">Cloudflare DNS-01 challenge. 1 API token → 3 wildcard certs. All 3 zones auto-HTTPS.</div><div class="ci ok">*.sanadai.com · *.dev · *.sandbox</div><div class="ci ok">traefik.sanadai.com dashboard</div></div>
+    <div class="card"><div class="badge">Portainer</div><div class="ct">Docker UI — No SSH Needed</div><div class="cd">Eslam manages all containers from browser. Start/stop/logs/pull images.</div><div class="ci ok">portainer.sanadai.com</div><div class="ci ok">Full Docker control via browser</div></div>
+    <div class="card"><div class="badge">Prometheus + Grafana</div><div class="ct">Live Monitoring Dashboard</div><div class="cd">Every service visible from minute 1. Alerts before Eslam notices a problem.</div><div class="ci ok">grafana.sanadai.com</div><div class="ci ok">Import dashboards: 1860, 893, 14282</div><div class="ci ok">cAdvisor + node-exporter + AlertManager</div></div>
+    <div class="card"><div class="badge">Key Metrics</div><div class="ct">What Grafana Shows</div><div class="cd">Infrastructure + agent performance in one view.</div><div class="ci ok">agent_task_latency_seconds</div><div class="ci ok">agent_token_usage_total</div><div class="ci ok">agent_error_rate</div><div class="ci ok">agent_cost_usd</div><div class="ci ok">model_calls_total per skill/model</div></div>
+  </div>
+</div>
+
+<div class="arr">↓ alongside ↓</div>
+
+<!-- ════ PHASE 1B ════ -->
+<div class="phase ph1b">
+  <div class="ph"><div class="pnum">Phase 1B</div><div class="ptitle" style="color:var(--p2);">PentAGI Security Scanner — Same Day as 1A</div><div class="pmeta">Scan before any agent goes live</div></div>
+  <div class="g3">
+    <div class="card"><div class="badge">MIT · 13,750⭐</div><div class="ct">Install PentAGI As-Is</div><div class="cd">docker compose up. Set ANTHROPIC_API_KEY. Autonomous security scanning with 20+ tools (nmap, metasploit, sqlmap).</div><div class="ci ok">pentagi.sanadai.com</div><div class="ci ok">Multi-agent: researcher + developer + executor</div></div>
+    <div class="card"><div class="badge">Scan targets</div><div class="ct">What Gets Scanned</div><div class="cd">Everything before agents touch it.</div><div class="ci ok">Sanad API · Paperclip auth · ERPNext</div><div class="ci ok">Hetzner server open ports</div><div class="ci ok">PostgreSQL + Redis access control</div><div class="ci ok">Each new service added in later phases</div></div>
+    <div class="card"><div class="badge warn" style="background:rgba(217,119,6,.1);color:var(--p3);">⚠ License Rule</div><div class="ct">Safe Usage Pattern</div><div class="cd">MIT as-is. AGPL if forked. Safe pattern for Sanad:</div><div class="ci ok">Run standalone via Docker only</div><div class="ci ok">Connect Sanad via REST API only</div><div class="ci ok">Never fork or embed PentAGI code</div><div class="ci ok">Paperclip adapter → PentAGI API → Sanad</div></div>
+  </div>
+</div>
+
+<div class="arr">↓ alongside ↓</div>
+
+<!-- ════ PHASE 1C — EVALUATION ENGINE ════ -->
+<div class="phase ph1c">
+  <div class="ph"><div class="pnum">Phase 1C</div><div class="ptitle" style="color:var(--eval);">Evaluation Engine — Active Quality Gate</div><div class="pmeta">TRIGGERED · ACTIVE · ON CHANGE · SRS NEEDED NEXT</div></div>
+  <div class="g3">
+    <div class="card" style="border-color:rgba(109,40,217,.3);">
+      <div class="badge">Custom Service + DeepEval</div>
+      <div class="ct">What the Eval Engine Does</div>
+      <div class="cd">When developer changes anything (prompt, model, skill, tool) — engine runs, compares before vs after, gives verdict. Like CI/CD but for agent quality.</div>
+      <div class="ci ev">Triggered by code change — not always-on</div>
+      <div class="ci ev">Pulls baseline from PostgreSQL</div>
+      <div class="ci ev">Runs DeepEval sidecar (Docker REST API)</div>
+      <div class="ci ev">Compares 5 dimensions before vs after</div>
+      <div class="ci ev">Outputs: promote or rollback verdict</div>
+      <div class="note" style="color:var(--eval);">DeepEval: Python · Docker · REST API · Apache-2.0</div>
+    </div>
+    <div class="card" style="border-color:rgba(109,40,217,.3);">
+      <div class="badge">5 Evaluation Dimensions</div>
+      <div class="ct">What Gets Evaluated</div>
+      <div class="cd">Every dimension produces a delta score: before vs after the change.</div>
+      <div class="ci ev">1. Task Eval — tool correctness, plan adherence, output quality</div>
+      <div class="ci ev">2. Skill Eval — rolling score → skill_level in Qdrant</div>
+      <div class="ci ev">3. Agent Eval — trust_score, failure patterns, weak vs strong skills</div>
+      <div class="ci ev">4. System Eval — latency p50/p95/p99 (fed from Prometheus)</div>
+      <div class="ci ev">5. Model Comparison — same task, diff LLMs, cost_efficiency = score/cost</div>
+    </div>
+    <div class="card" style="border-color:rgba(109,40,217,.3);">
+      <div class="badge">Model Routing Output</div>
+      <div class="ct">Auto Routing Table</div>
+      <div class="cd">Eval Engine produces the routing table. LLM Router uses it. Sanad auto-routes to cheapest model that meets quality threshold.</div>
+      <div class="ci ev">invoice_processing → GLM-4 (score 0.91, $0.02)</div>
+      <div class="ci ev">legal_contract → Claude (score 0.95, $0.10)</div>
+      <div class="ci ev">data_extraction → Gemini (score 0.89, $0.01)</div>
+      <div class="ci ev">→ Updated automatically after each eval run</div>
+      <div class="note" style="color:var(--eval);">Mentor reads skill_level delta + trust_score from here. Graduation triggered when threshold met.</div>
+    </div>
+  </div>
+</div>
+
+<div class="arr">↓</div>
+
+<!-- ════ PHASE 2 ════ -->
+<div class="phase ph2">
+  <div class="ph"><div class="pnum">Phase 2</div><div class="ptitle" style="color:var(--p3);">Safety Core — Permissions + LLM Router</div><div class="pmeta">BUILT BY HUMANS · Governs all agents</div></div>
+  <div class="g3">
+    <div class="card"><div class="badge">SRS Already Written</div><div class="ct">Permission System (SOD)</div><div class="cd">Just implement it. All test cases written. All endpoints designed.</div><div class="ci ok">migration 0038+0039 · 18 tests all green</div><div class="ci ok">hasPermission() / assertPermission()</div><div class="ci ok">7 REST endpoints · 5-tab UI</div><div class="note">No agent acts without permission. Ever.</div></div>
+    <div class="card"><div class="badge">Never locked to one model</div><div class="ct">LLM Router</div><div class="cd">Every agent calls one endpoint. Router uses Eval Engine's routing table to decide which model.</div><div class="ci ok">Claude · GPT-4 · Gemini · Ollama · GLM-4</div><div class="ci ok">Config per company + per agent role</div><div class="ci ok">Routing table updated by Eval Engine</div><div class="note">Swap any model with config change. Zero agent code change.</div></div>
+    <div class="card"><div class="badge">QA Pipeline First Use</div><div class="ct">GitHub Actions + pytest + Playwright</div><div class="cd">Human sees only passing PRs from now on. Eval Engine also triggers on each PR.</div><div class="ci ok">Level 1: pytest unit · Level 2: API · Level 3: E2E</div><div class="ci ev">Eval Engine also runs on every PR</div><div class="ci ev">Quality score delta reported in PR comments</div></div>
+  </div>
+</div>
+
+<div class="arr">↓</div>
+
+<!-- ════ PHASE 3 ════ -->
+<div class="phase ph3">
+  <div class="ph"><div class="pnum">Phase 3</div><div class="ptitle" style="color:var(--p4);">Sandbox Infrastructure</div><div class="pmeta">Isolated environments for agents + eval runs</div></div>
+  <div class="g4">
+    <div class="card"><div class="badge">E2B → Microsandbox</div><div class="ct">Sandbox Engine</div><div class="cd">E2B (free) now. Microsandbox on Hetzner for production. SDK swap = zero agent code change.</div></div>
+    <div class="card"><div class="badge">FastAPI</div><div class="ct">Provisioner API</div><div class="cd">POST /sandbox/create → {internal_url, output_url}. Greenmask masks ERPNext. Auto-TTL.</div></div>
+    <div class="card"><div class="badge">docker-compose.dev.yml</div><div class="ct">Dev Clone</div><div class="cd">eslam.dev.sanadai.com. Full Sanad + masked ERPNext. Eval Engine also runs here.</div><div class="ci ev">Eval baseline snapshots stored in PostgreSQL</div></div>
+    <div class="card"><div class="badge">3-Zone URLs Live</div><div class="ct">Auto URLs per Task</div><div class="cd">output-001.sandbox.sanadai.com auto-created. Eslam reviews before approve. No DNS work ever.</div></div>
+  </div>
+</div>
+
+<div class="arr">↓</div>
+
+<!-- ════ PHASE 4 ════ -->
+<div class="phase ph4">
+  <div class="ph"><div class="pnum">Phase 4</div><div class="ptitle" style="color:var(--p5);">Agents Build Sanad — OpenHands + QA + Eval</div><div class="pmeta">Sanad accelerates itself · All 3 systems active</div></div>
+  <div class="g3">
+    <div class="card"><div class="badge">OpenHands · MIT · 65k⭐</div><div class="ct">Coding Agent Builds Features</div><div class="cd">Reads GitHub issue + SRS → writes code in dev clone → opens PR. Builds: ShipLog backend, Twin Agent, Mentor layer.</div><div class="ci ok">Uses LLM Router (Claude default)</div><div class="ci ok">Gets dev clone sandbox via Provisioner</div><div class="ci ok">SRS documents = agent task specs</div></div>
+    <div class="card"><div class="badge">pytest + Playwright</div><div class="ct">QA Agent Tests Every PR</div><div class="cd">L1 unit → L2 integration → L3 E2E. All in sandbox. Human sees only passing PRs.</div><div class="ci ok">GitHub Actions trigger</div><div class="ci ok">✅ Pass → "QA Approved" for human review</div><div class="ci ok">❌ Fail → coding agent auto-fixes</div></div>
+    <div class="card"><div class="badge" style="background:rgba(109,40,217,.1);color:var(--eval);">Eval Engine Active</div><div class="ct">Quality Gate on Every Change</div><div class="cd">Every PR also runs through Eval Engine. Not just does it work — is it better?</div><div class="ci ev">Before vs after quality_score</div><div class="ci ev">Before vs after cost delta</div><div class="ci ev">Before vs after latency delta</div><div class="ci ev">Routing table updated if model comparison run</div><div class="ci ev">Mentor notified of skill changes</div></div>
+  </div>
+</div>
+
+<div class="arr">↓</div>
+
+<!-- ════ PHASE 5 ════ -->
+<div class="phase ph5">
+  <div class="ph"><div class="pnum">Phase 5</div><div class="ptitle" style="color:var(--p6);">Full Product — ShipLog + Twin + Mentor + Multi-Agent</div><div class="pmeta">Agents build this · Eval Engine graduates them</div></div>
+  <div class="g4">
+    <div class="card"><div class="badge">Agent builds backend</div><div class="ct">📋 ShipLog Live</div><div class="cd">Team uses it daily. Voice (Whisper STT). All 3 companies. No agents needed to get value.</div></div>
+    <div class="card"><div class="badge">Full loop proven</div><div class="ct">🤖 Twin Agent</div><div class="cd">Human → Agent → Sandbox → output.sandbox.sanadai.com → approve → MCP → ERP. Eval Engine scores each run.</div></div>
+    <div class="card"><div class="badge" style="background:rgba(109,40,217,.1);color:var(--eval);">Eval Engine feeds Mentor</div><div class="ct">◈ Mentor Layer</div><div class="cd">Reads skill_level delta + trust_score from Eval Engine. Triggers graduation. Coaches on regression.</div><div class="ci ev">trainee → autonomous when threshold met</div><div class="ci ev">Coaching triggered on skill regression</div></div>
+    <div class="card"><div class="badge">All 5 patterns</div><div class="ct">Multi-Agent Patterns</div><div class="cd">Maker→Checker · Parallel · Supervisor · Handoff · Escalation. All monitored. All evaluated.</div></div>
+  </div>
+</div>
+
+<div class="arr">↓</div>
+
+<!-- ════ PHASE 6 ════ -->
+<div class="phase ph6">
+  <div class="ph"><div class="pnum">Phase 6</div><div class="ptitle" style="color:var(--p7);">Full ERP + All Companies</div><div class="pmeta">The complete vision on Hetzner</div></div>
+  <div class="g3">
+    <div class="card"><div class="badge">MCP expansion</div><div class="ct">Odoo + SAP + Dynamics</div><div class="cd">All through same MCP. Agents need zero code change. Company config selects ERP. Eval Engine compares per-ERP performance.</div></div>
+    <div class="card"><div class="badge">All companies</div><div class="ct">Full Multi-Company Rollout</div><div class="cd">Accurate Systems · AccuBuild · Sales Force + more. CEO cross-company Grafana view. Eval scores per company.</div></div>
+    <div class="card"><div class="badge">Complete</div><div class="ct">Everything Working Together</div><div class="cd">Every person: Twin+Mentor. Every action: MCP. Every agent: sandboxed+monitored+evaluated. Any model: LLM Router (auto-routed by Eval). On-premise. Arabic+English.</div></div>
+  </div>
+</div>
+
+<div class="principle">
+  <strong>Phase 0 done</strong> → <strong>Phase 1A</strong> Monitoring (passive, always-on) → <strong>Phase 1B</strong> PentAGI (security scan) → <strong>Phase 1C</strong> Eval Engine (active quality gate) →<br>
+  <strong>Phase 2</strong> Safety Core (humans build) → <strong>Phase 3</strong> Sandbox → <strong>Phase 4</strong> Agents build Sanad → <strong>Phase 5</strong> Full product → <strong>Phase 6</strong> Full vision<br><br>
+  <strong>Monitoring watches.</strong> Evaluation judges. Mentor graduates. Agents propose. Humans approve. Always.
+</div>
+
+</body>
+</html>
