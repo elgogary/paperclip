@@ -11,6 +11,7 @@ Fork of Paperclip with Sanad Brain integration, multimodal attachments, schedule
 - [Development Setup](00-getting-started/development-setup.md) — Prerequisites, install, run
 
 ### 01 — Backend
+- [File Reference Matrix](01-backend/file-reference-matrix.md) — Complete map of all 200+ files with purpose
 - [Services Map](01-backend/services-map.md) — All 81 service files grouped by domain
 - [Routes Map](01-backend/routes-map.md) — All REST API endpoints
 - [Database Schema](01-backend/database-schema.md) — All 60+ tables with relationships
