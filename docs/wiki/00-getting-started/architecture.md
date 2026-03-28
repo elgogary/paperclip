@@ -1,7 +1,7 @@
 # Sanad AI — Architecture
 
 > Full system architecture. If you lose direction, read this first.
-> See also: `roadmap.md` (what's built, what's next), `KNOWLEDGE_BASE.md` (all decisions)
+> See also: `roadmap.md` (what's built, what's next), `knowledge-base.md` (all decisions)
 
 ---
 
@@ -250,6 +250,6 @@ Each company has:
 ## Related Docs
 
 - [Roadmap](roadmap.md) — what's built, what's next, phase sequence
-- [KNOWLEDGE_BASE.md](KNOWLEDGE_BASE.md) — all architectural decisions
+- [knowledge-base.md](knowledge-base.md) — all architectural decisions
 - [File Reference Matrix](../01-backend/file-reference-matrix.md) — every file mapped
 - [Database Schema](../01-backend/database-schema.md) — all 76 tables

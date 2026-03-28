@@ -916,3 +916,154 @@ These principles were established and confirmed across all sessions. They do not
 ---
 
 *This document is maintained in the Sanad project repository under `/docs/KNOWLEDGE_BASE.md`. Update it whenever a significant architectural decision is made or changed.*
+
+---
+
+## 16. Repository & Local Setup (For Claude)
+
+> This section is written for Claude. Read this at the start of every session.
+
+### Repo Locations (Local Machine)
+
+| Folder | Purpose |
+|---|---|
+| `/home/eslam/data/projects/Sanad EOI - Production/paperclip` | **Production codebase** — this is what runs on Hetzner |
+| `/home/eslam/data/projects/Sanad EOI - Development/paperclip` | Development copy — safe to experiment |
+| `/home/eslam/data/projects/Sanad EOI - Production/sanad-brain` | Sanad Brain source code |
+| `/home/eslam/data/projects/Sanad EOI - Production/sanad-brain-mcp` | Sanad Brain MCP server |
+| `/home/eslam/optiflow/` | Agent crew configs, memory, knowledge, tools |
+
+### Git Remote
+
+```
+origin  → https://github.com/elgogary/sanad-eoi-main-app.git
+branch  → main-sanad-eoi-app (our only branch — no upstream sync)
+```
+
+### Production Server
+
+| What | Value |
+|---|---|
+| Host | `65.109.65.159` (Hetzner) |
+| URL | `http://100.109.59.30:3100` |
+| SSH | `ssh eslam@65.109.65.159` |
+| Stack | Docker Compose |
+| Backup | **Always run before deploy**: `ssh eslam@65.109.65.159 "bash /home/eslam/docker-backups/pre-deploy-backup.sh"` |
+
+### Deploy Commands
+
+```bash
+# Build and deploy server only
+ssh eslam@65.109.65.159 "cd ~ && docker compose build server && docker compose up -d --no-deps server"
+
+# Check logs
+ssh eslam@65.109.65.159 "docker compose logs -f server | tail -20"
+
+# Pre-deploy verification (run locally first)
+./scripts/pre-deploy.sh
+```
+
+### Key Rules (Never Break These)
+
+1. **Always backup before deploy** — Docker rebuilds have caused data loss before
+2. **Never modify these files during refactors**: `sanad-brain.ts`, `scheduler-loop.ts`, `scheduled-job-executors.ts`
+3. **File size gate**: >700 lines → split first using `$` bag pattern
+4. **docker-compose.yml volume paths are absolute** — update if folder moves
+5. **Adding a new board page requires TWO steps**: Route in `App.tsx` + add to `BOARD_ROUTE_ROOTS` in `company-routes.ts`
+6. **All user-facing strings must use `__()`** — i18n is mandatory
+7. **No upstream sync** — we cherry-pick manually only when needed
+
+### Running Locally
+
+```bash
+cd "/home/eslam/data/projects/Sanad EOI - Development/paperclip"
+pnpm install
+cp .env.example .env  # fill in values
+pnpm db:migrate
+pnpm dev              # starts on :3100
+```
+
+### Environment Variables (Key ones)
+
+| Variable | Purpose |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `ANTHROPIC_API_KEY` | Claude API key |
+| `SANAD_BRAIN_URL` | Sanad Brain API URL |
+| `SANAD_BRAIN_API_KEY` | Sanad Brain auth key |
+| `MINIO_ENDPOINT` | MinIO S3 endpoint |
+| `JWT_SECRET` | Auth token signing |
+| `AUTH_PUBLIC_BASE_URL` | Public URL (e.g. http://100.109.59.30:3100) |
+
+---
+
+## 17. Agent Crew — Optiflow (For Claude)
+
+> The agent crew we operate via the Sanad platform.
+
+### Company
+- **Name**: Optiflow Systems AI Crew
+- **Short**: OPT
+- **UI**: http://100.109.59.30:3100/OPT/
+- **Configs**: `/home/eslam/optiflow/.agents/`
+
+### 9 Agents
+
+| Agent | Role | Adapter |
+|---|---|---|
+| CEO | Strategy, budgets, team coordination | Claude Code |
+| TechLead (CTO) | Architecture, code review, standards | Claude Code |
+| BackendEngineer | Frappe/Python, APIs, TDD | Claude Code |
+| FrontendEngineer | React, design, accessibility | Claude Code |
+| SalesManager | Pipeline, deals, revenue | Claude Code |
+| SalesRep1 | Prospecting, demos, closing | Claude Code |
+| ProductManager | AccuBuild roadmap, beta, metrics | Claude Code |
+| BetaTester (QA) | Testing, bug discovery, feedback | Claude Code |
+| DevOps | Deployments, infrastructure, monitoring | Claude Code |
+
+### Task Routing
+
+| Request Type | Route To |
+|---|---|
+| Sales/leads/proposals | SalesManager or SalesRep1 |
+| Code/architecture/review | TechLead → BackendEng or FrontendEng |
+| Product/roadmap/beta | ProductManager → BetaTester |
+| Deploy/infra/monitoring | DevOps |
+| Strategy/planning/hiring | CEO |
+| Escalation from any agent | CEO → Board (Eslam) |
+
+### Board Authority (Eslam)
+- Approves: hiring >$50k, deals >$100k, product pivots
+- Can override any agent decision
+- Weekly CEO report review
+
+---
+
+## 18. Sanad Brain (For Claude)
+
+### What It Is
+RAG-powered memory system. Agents store and retrieve knowledge, decisions, and patterns across sessions.
+
+### MCP Tools Available
+| Tool | When to Use |
+|---|---|
+| `recall` | Start of session — load relevant past context |
+| `remember` | After bug fix, architecture decision, deployment, lesson learned |
+| `remember_fact` | Single atomic fact with scope |
+| `forget` | Remove wrong or outdated memory |
+| `memory_stats` | Check memory usage |
+
+### Memory Rules
+- Use `scope: "company"` for team knowledge, `"private"` for personal prefs
+- Prefix: `LESSON:`, `FACT:`, `DECISION:`, `PATTERN:`, `EVENT:`
+- One fact per `remember` call, 1-3 sentences max
+- Never store credentials or secrets
+
+### Brain API
+- URL: set in `SANAD_BRAIN_URL` env var
+- Proxy: `server/src/routes/sanad-brain.ts` — all `/brain/*` requests proxied here
+- **Do NOT modify this file during refactors**
+
+---
+
+*Last updated: 2026-03-28. Update this file whenever significant decisions are made.*

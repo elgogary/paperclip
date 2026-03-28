@@ -1,7 +1,7 @@
 # Sanad AI — Roadmap
 
 > If you lose direction, read this. It tells you where we are and what comes next.
-> See also: `architecture.md` (full system design), `KNOWLEDGE_BASE.md` (all decisions)
+> See also: `architecture.md` (full system design), `knowledge-base.md` (all decisions)
 
 ---
 
