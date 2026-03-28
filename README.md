@@ -43,6 +43,87 @@ This is not a reskin. It's a **feature-enhanced fork** that adds what production
 
 ---
 
+## System Vision
+
+```mermaid
+graph TD
+    subgraph Humans["👥 Layer 0 — People"]
+        CEO["CEO — Accurate Systems
+(Cross-company view)"]
+        MGR["Managers
+(Department heads)"]
+        EMP["Employees
+(Daily work)"]
+    end
+
+    subgraph Sanad["🧠 Sanad AI EOI Platform"]
+        ORCH["Agent Orchestration
+(Tasks · Issues · Approvals)"]
+        BRAIN["Sanad Brain
+(RAG Memory · Knowledge · Dreams)"]
+        SWARM["Capability Swarm
+(Skill Marketplace)"]
+        SCHED["Scheduler
+(60s loop · 5 job types)"]
+    end
+
+    subgraph Crew["🤖 Agent Crew (9 Agents)"]
+        CEO_A["CEO Agent
+Strategy · Budgets"]
+        TECH["TechLead CTO
+Architecture · Review"]
+        ENG["Engineers
+Backend · Frontend"]
+        SALES["Sales Team
+Manager · Rep"]
+        PROD["Product Team
+PM · QA Tester"]
+        OPS["DevOps
+Deploy · Infra"]
+    end
+
+    subgraph MCP["🔌 MCP Layer (Agents Propose → Humans Approve)"]
+        ERPMCP["ERPNext MCP Connector
+(AccuBuild — Live ✅)"]
+        ODOO["Odoo MCP
+(Planned ⚪)"]
+        SAP["SAP / MS Dynamics
+(Phase 6 ⚪)"]
+    end
+
+    subgraph ERP["📦 ERP Layer (Infrastructure)"]
+        EN["ERPNext
+(AccuBuild)"]
+        OD["Odoo"]
+        OTHER["Other ERPs"]
+    end
+
+    CEO --> ORCH
+    MGR --> ORCH
+    EMP --> ORCH
+    ORCH --> BRAIN
+    ORCH --> SWARM
+    ORCH --> SCHED
+    ORCH --> CEO_A
+    CEO_A --> TECH
+    TECH --> ENG
+    CEO_A --> SALES
+    CEO_A --> PROD
+    CEO_A --> OPS
+    CEO_A --> ERPMCP
+    ERPMCP --> EN
+    TECH --> ODOO
+    ODOO --> OD
+    SAP --> OTHER
+```
+
+> 📊 **Full interactive diagrams:**
+> - [Big Picture v2](docs/wiki/00-getting-started/sanad-bigpicture-v2.html) — complete system with all layers
+> - [Build Sequence v2](docs/wiki/00-getting-started/sanad-sequence-v2.html) — phase-by-phase timeline
+> - [Complete draw.io](docs/wiki/00-getting-started/sanad-complete-v2.drawio) — open in [draw.io](https://draw.io)
+
+---
+
 ## Features
 
 ### Sanad Brain — Persistent Agent Memory
